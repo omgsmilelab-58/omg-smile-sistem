@@ -1,0 +1,39 @@
+# Veritabanı dosyaları (hassas veri)
+*.db
+*.db-shm
+*.db-wal
+
+# Yüklenen dosyalar (büyük boyutlu)
+uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Streamlit yerel sırlar (şifreler)
+.streamlit/secrets.toml
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Batch dosyaları (sadece yerel)
+Baslat.bat
+temizlik.py
+
+# Gizli Dosyalar (Cloud Run bunları Environment Variables'dan alacak)
+.env
+gcp-key.json
