@@ -84,12 +84,15 @@ def okuma_tablosunu_kur():
     conn = db_baglanti.get_connection('dentflow.db')
     c = conn.cursor()
     # Hangi kullanıcı, hangi duyuruyu okudu? Tablosu
-    c.execute("CREATE TABLE IF NOT EXISTS okunan_duyurular (kullanici_id TEXT, duyuru_id INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS okunan_duyurular (id SERIAL PRIMARY KEY, kullanici_id TEXT, duyuru_id INTEGER)")
     conn.commit()
     conn.close()
 
 # Uygulama başlarken bir kez çalıştır
-okuma_tablosunu_kur()
+try:
+    okuma_tablosunu_kur()
+except Exception as e:
+    print(f"okuma_tablosunu_kur() hatasi: {e}")
 
 def grup_olustur(grup_adi, kurucu_id, secilen_kisiler):
     # Veritabanına bağlan
@@ -128,8 +131,8 @@ def sohbet_listesi_getir(aktif_kullanici_adi):
     c = conn.cursor()
     
     # 🚨 KRİTİK ÇÖZÜM: EĞER TABLOLAR YOKSA OTOMATİK YARAT (Çökmeyi Engeller) 🚨
-    c.execute('''CREATE TABLE IF NOT EXISTS gruplar (id INTEGER PRIMARY KEY AUTOINCREMENT, grup_adi TEXT, kurucu_id INTEGER)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS grup_uyeleri (grup_id INTEGER, kullanici_id INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS gruplar (id SERIAL PRIMARY KEY, grup_adi TEXT, kurucu_id INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS grup_uyeleri (id SERIAL PRIMARY KEY, grup_id INTEGER, kullanici_id INTEGER)''')
     conn.commit()
     
     # 1. Önce aktif kullanıcının bilgilerini ve ID'sini çekiyoruz
@@ -398,8 +401,8 @@ def son_mesaji_getir(benim_id, karsi_id, c=None):
 # ==========================================
 # 💎 V3.6 TAM DONANIMLI, GÜVENLİ VE OTOPİLOTLU SÜRÜM 💎
 st.markdown("""
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
         
         html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
         .stApp { background-color: #0f172a; color: #FFFFFF; background-image: radial-gradient(circle at 50% 0%, #1e3a8a 0%, #0f172a 60%); background-attachment: fixed; }
@@ -495,7 +498,7 @@ st.markdown("""
         div.stButton > button[key="btn_ayarlar_alt"] { background: transparent !important; border: none !important; box-shadow: none !important; padding: 5px !important; display: flex; justify-content: flex-start; }
         div.stButton > button[key="btn_ayarlar_alt"] p { color: #94a3b8 !important; font-size: 13px !important; font-weight: 600 !important; transition: color 0.3s; }
         div.stButton > button[key="btn_ayarlar_alt"]:hover p { color: #38bdf8 !important; text-shadow: 0 0 8px rgba(56,189,248,0.5); }
-    </style>
+</style>
 """, unsafe_allow_html=True)
 
 GOREVLER = ["Genel Müdür", "Laboratuvar Müdürü", "Sekreterya", "CAD/CAM Uzmanı", "Teknisyen", "Alçı & Model Teknisyeni", "Döküm Teknisyeni", "Tesviye Teknisyeni", "Seramist", "Akrilik & İskelet Teknisyeni", "Teknik Ekip", "Lojistik / Kurye"]    
@@ -510,51 +513,62 @@ BAKIM_RECELERI = {
 }
 
 # --- 🚀 VERİTABANI BAĞLANTISI ---
-conn = db_baglanti.get_connection('omg_smile_erp.db', check_same_thread=False, timeout=20)
-# conn.execute('PRAGMA journal_mode=WAL;')
-c = conn.cursor()
+try:
+    conn = db_baglanti.get_connection('omg_smile_erp.db', check_same_thread=False, timeout=20)
+    # conn.execute('PRAGMA journal_mode=WAL;')
+    c = conn.cursor()
+except Exception as e:
+    st.error(f"Veritabanina baglanilamadi! Veritabanlarinin (dentflow, omg_smile_erp) var oldugundan emin olun. Hata: {e}")
+    st.stop()
 
-c.execute('''CREATE TABLE IF NOT EXISTS cariler (Klinik_Unvani TEXT, Yetkili_Kisi TEXT, Telefon TEXT, Email TEXT, Bakiye REAL, Risk_Limiti REAL, Indirim_Orani REAL DEFAULT 0.0, Sifre TEXT DEFAULT '1234')''')
-c.execute('''CREATE TABLE IF NOT EXISTS isler (Tarih TEXT, Klinik_Unvani TEXT, Hasta_Adi TEXT, Is_Turu TEXT, Renk TEXT, Asama TEXT, Tutar_TL REAL DEFAULT 0.0, Sorumlu_Personel TEXT DEFAULT '-', Harcanan_Malzeme TEXT DEFAULT '-', Teslim_Tarihi TEXT DEFAULT '2026-01-01', Barkod TEXT DEFAULT '-', Lot_Numarasi TEXT DEFAULT '-', Sertifika_No TEXT DEFAULT '-')''')
-c.execute('''CREATE TABLE IF NOT EXISTS stok (Urun_Kodu TEXT, Urun_Adi TEXT, Kategori TEXT, Mevcut_Miktar REAL, Birim TEXT, Kritik_Sinir REAL, Satis_Fiyati REAL, Durum TEXT DEFAULT 'Aktif')''')
-c.execute('''CREATE TABLE IF NOT EXISTS fiyat_listesi (Hizmet_Adi TEXT, Kategori TEXT, Fiyat REAL, Para_Birimi TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS personeller (Ad_Soyad TEXT, Gorevi TEXT, Telefon TEXT, Maas REAL, Baslama_Tarihi TEXT, Ayrilma_Tarihi TEXT, Durum TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS kullanicilar (Kullanici_Adi TEXT, Sifre TEXT, Rol TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS giderler (Tarih TEXT, Kategori TEXT, Aciklama TEXT, Tutar REAL)''')
-c.execute('''CREATE TABLE IF NOT EXISTS tahsilatlar (Tarih TEXT, Klinik_Unvani TEXT, Odeme_Turu TEXT, Tutar REAL, Aciklama TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS is_fotograflari (Is_ID INTEGER, Dosya_Yolu TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS is_3d_modelleri (Is_ID INTEGER, Dosya_Yolu TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS cihazlar (Cihaz_Adi TEXT, Kategori TEXT, Calisma_Saati REAL DEFAULT 0, Bakim_Siniri REAL DEFAULT 500, Son_Bakim_Tarihi TEXT, Durum TEXT DEFAULT 'Aktif', Gorsel_Yolu TEXT DEFAULT '-', Haftalik_Hedef TEXT DEFAULT '2026-01-01', Aylik_Hedef TEXT DEFAULT '2026-01-01', Yillik_Hedef TEXT DEFAULT '2026-01-01')''')
-c.execute('''CREATE TABLE IF NOT EXISTS cihaz_bakim_gecmisi (Cihaz_Adi TEXT, Tarih TEXT, Islem TEXT, Maliyet REAL DEFAULT 0, Aciklama TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS kurye_islemleri (Tarih TEXT, Saat TEXT, Klinik_Unvani TEXT, Aciklama TEXT, Durum TEXT DEFAULT 'Bekliyor')''')
-c.execute('''CREATE TABLE IF NOT EXISTS cam_bloklar (Blok_Kodu TEXT, Urun_Adi TEXT, Boyut_Renk TEXT, Kapasite_Uye INTEGER, Kalan_Uye INTEGER, Durum TEXT DEFAULT 'Yarım')''')
-c.execute('''CREATE TABLE IF NOT EXISTS cam_frezler (Frez_Kodu TEXT, Urun_Adi TEXT, Uyumlu_Makine TEXT, Max_Omur_Dk INTEGER, Kalan_Omur_Dk INTEGER, Durum TEXT DEFAULT 'Aktif')''')
+
+try:
+    c.execute("SELECT id FROM sistem_loglari LIMIT 1")
+except Exception:
+    conn.rollback()
+    print("ESKİ ŞEMA TESPİT EDİLDİ (id sütunu yok). VERİTABANI SIFIRLANIYOR...")
+    c.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    conn.commit()
+
+c.execute('''CREATE TABLE IF NOT EXISTS cariler (id SERIAL PRIMARY KEY, Klinik_Unvani TEXT, Yetkili_Kisi TEXT, Telefon TEXT, Email TEXT, Bakiye REAL, Risk_Limiti REAL, Indirim_Orani REAL DEFAULT 0.0, Sifre TEXT DEFAULT '1234')''')
+c.execute('''CREATE TABLE IF NOT EXISTS isler (id SERIAL PRIMARY KEY, Tarih TEXT, Klinik_Unvani TEXT, Hasta_Adi TEXT, Is_Turu TEXT, Renk TEXT, Asama TEXT, Tutar_TL REAL DEFAULT 0.0, Sorumlu_Personel TEXT DEFAULT '-', Harcanan_Malzeme TEXT DEFAULT '-', Teslim_Tarihi TEXT DEFAULT '2026-01-01', Barkod TEXT DEFAULT '-', Lot_Numarasi TEXT DEFAULT '-', Sertifika_No TEXT DEFAULT '-')''')
+c.execute('''CREATE TABLE IF NOT EXISTS stok (id SERIAL PRIMARY KEY, Urun_Kodu TEXT, Urun_Adi TEXT, Kategori TEXT, Mevcut_Miktar REAL, Birim TEXT, Kritik_Sinir REAL, Satis_Fiyati REAL, Durum TEXT DEFAULT 'Aktif')''')
+c.execute('''CREATE TABLE IF NOT EXISTS fiyat_listesi (id SERIAL PRIMARY KEY, Hizmet_Adi TEXT, Kategori TEXT, Fiyat REAL, Para_Birimi TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS personeller (id SERIAL PRIMARY KEY, Ad_Soyad TEXT, Gorevi TEXT, Telefon TEXT, Maas REAL, Baslama_Tarihi TEXT, Ayrilma_Tarihi TEXT, Durum TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS kullanicilar (id SERIAL PRIMARY KEY, Kullanici_Adi TEXT, Sifre TEXT, Rol TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS giderler (id SERIAL PRIMARY KEY, Tarih TEXT, Kategori TEXT, Aciklama TEXT, Tutar REAL)''')
+c.execute('''CREATE TABLE IF NOT EXISTS tahsilatlar (id SERIAL PRIMARY KEY, Tarih TEXT, Klinik_Unvani TEXT, Odeme_Turu TEXT, Tutar REAL, Aciklama TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS is_fotograflari (id SERIAL PRIMARY KEY, Is_ID INTEGER, Dosya_Yolu TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS is_3d_modelleri (id SERIAL PRIMARY KEY, Is_ID INTEGER, Dosya_Yolu TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS cihazlar (id SERIAL PRIMARY KEY, Cihaz_Adi TEXT, Kategori TEXT, Calisma_Saati REAL DEFAULT 0, Bakim_Siniri REAL DEFAULT 500, Son_Bakim_Tarihi TEXT, Durum TEXT DEFAULT 'Aktif', Gorsel_Yolu TEXT DEFAULT '-', Haftalik_Hedef TEXT DEFAULT '2026-01-01', Aylik_Hedef TEXT DEFAULT '2026-01-01', Yillik_Hedef TEXT DEFAULT '2026-01-01')''')
+c.execute('''CREATE TABLE IF NOT EXISTS cihaz_bakim_gecmisi (id SERIAL PRIMARY KEY, Cihaz_Adi TEXT, Tarih TEXT, Islem TEXT, Maliyet REAL DEFAULT 0, Aciklama TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS kurye_islemleri (id SERIAL PRIMARY KEY, Tarih TEXT, Saat TEXT, Klinik_Unvani TEXT, Aciklama TEXT, Durum TEXT DEFAULT 'Bekliyor')''')
+c.execute('''CREATE TABLE IF NOT EXISTS cam_bloklar (id SERIAL PRIMARY KEY, Blok_Kodu TEXT, Urun_Adi TEXT, Boyut_Renk TEXT, Kapasite_Uye INTEGER, Kalan_Uye INTEGER, Durum TEXT DEFAULT 'Yarım')''')
+c.execute('''CREATE TABLE IF NOT EXISTS cam_frezler (id SERIAL PRIMARY KEY, Frez_Kodu TEXT, Urun_Adi TEXT, Uyumlu_Makine TEXT, Max_Omur_Dk INTEGER, Kalan_Omur_Dk INTEGER, Durum TEXT DEFAULT 'Aktif')''')
 
 c.execute('''CREATE TABLE IF NOT EXISTS ayarlar (Ayar_Adi TEXT PRIMARY KEY, Ayar_Degeri TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS personel_finans (Tarih TEXT, Personel_Adi TEXT, Islem_Turu TEXT, Tutar REAL, Aciklama TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS personel_izinler (Tarih TEXT, Personel_Adi TEXT, Baslangic_Tarihi TEXT, Bitis_Tarihi TEXT, Gun_Sayisi INTEGER, Aciklama TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS personel_finans (id SERIAL PRIMARY KEY, Tarih TEXT, Personel_Adi TEXT, Islem_Turu TEXT, Tutar REAL, Aciklama TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS personel_izinler (id SERIAL PRIMARY KEY, Tarih TEXT, Personel_Adi TEXT, Baslangic_Tarihi TEXT, Bitis_Tarihi TEXT, Gun_Sayisi INTEGER, Aciklama TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS klinik_asistanlari (Klinik_Unvani TEXT, Asistan_Kadi TEXT PRIMARY KEY, Sifre TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS laboratuvar_dokumanlari (Tarih TEXT, Dokuman_Adi TEXT, Dosya_Yolu TEXT, Dosya_Turu TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS laboratuvar_dokumanlari (id SERIAL PRIMARY KEY, Tarih TEXT, Dokuman_Adi TEXT, Dosya_Yolu TEXT, Dosya_Turu TEXT)''')
 
 # 💎 FAZ 42: CANLI BİLDİRİM VE CHAT ALTYAPISI (BEYİN) 💎
 # Sistemdeki anlık hareketleri (giriş yaptı, reçete yazdı vb.) tutar. 
 # Goruldu=0 ise henüz ekrana fırlatılmamıştır, Goruldu=1 ise kullanıcı görmüştür.
-c.execute('''CREATE TABLE IF NOT EXISTS sistem_loglari
-             (Tarih_Saat TEXT, Kullanici TEXT, Aksiyon TEXT, Goruldu INTEGER)''')
+c.execute('''CREATE TABLE IF NOT EXISTS sistem_loglari (id SERIAL PRIMARY KEY, Tarih_Saat TEXT, Kullanici TEXT, Aksiyon TEXT, Goruldu INTEGER)''')
 
 # Hekimler ve laboratuvar arasındaki anlık yazışmaları tutar.
-c.execute('''CREATE TABLE IF NOT EXISTS mesajlar
-             (Tarih_Saat TEXT, Gonderen TEXT, Alici TEXT, Mesaj TEXT, Okundu INTEGER)''')
+c.execute('''CREATE TABLE IF NOT EXISTS mesajlar (id SERIAL PRIMARY KEY, Tarih_Saat TEXT, Gonderen TEXT, Alici TEXT, Mesaj TEXT, Okundu INTEGER)''')
 conn.commit()
 
 # 💎 FAZ 42: CANLI BİLDİRİM MOTORU (RADAR) 💎
 # Bu kod her sayfa açıldığında veya bir butona basıldığında arkada gizlice çalışır.
 # BUG DÜZELTİLDİ: Tablo oluşturulduktan SONRA sorgu yapılıyor
 try:
-    bekleyen_bildirimler = c.execute("SELECT rowid, Tarih_Saat, Kullanici, Aksiyon FROM sistem_loglari WHERE Goruldu=0").fetchall()
+    bekleyen_bildirimler = c.execute("SELECT id, Tarih_Saat, Kullanici, Aksiyon FROM sistem_loglari WHERE Goruldu=0").fetchall()
     for b in bekleyen_bildirimler:
         st.toast(f"🔔 **{b[2]}**\n\n{b[3]}", icon="🚀")
-        c.execute("UPDATE sistem_loglari SET Goruldu=1 WHERE rowid=?", (b[0],))
+        c.execute("UPDATE sistem_loglari SET Goruldu=1 WHERE id=?", (b[0],))
     conn.commit()
 except Exception:
     pass
@@ -563,7 +577,7 @@ def ayar_getir(ayar_adi, varsayilan=""):
     return sorgu[0] if sorgu else varsayilan
 
 def ayar_kaydet(ayar_adi, deger):
-    c.execute("INSERT OR REPLACE INTO ayarlar (Ayar_Adi, Ayar_Degeri) VALUES (?, ?)", (ayar_adi, str(deger)))
+    c.execute("INSERT INTO ayarlar (Ayar_Adi, Ayar_Degeri) VALUES (?, ?)", (ayar_adi, str(deger)))
     conn.commit()
 
 if not c.execute("SELECT count(*) FROM ayarlar").fetchone()[0] > 0:
@@ -619,15 +633,25 @@ tablo_yama_uygula("cariler", "VIP_Seviye", "TEXT DEFAULT 'Standart'")
 tablo_yama_uygula("personeller", "Foto_Yolu", "TEXT DEFAULT '-'")
 tablo_yama_uygula("personeller", "CV_Yolu", "TEXT DEFAULT '-'")
 
+if db_baglanti.USE_POSTGRES:
+    try:
+        conn_df = db_baglanti.get_connection('dentflow.db')
+        c_df = conn_df.cursor()
+        c_df.execute("ALTER TABLE mesajlar ALTER COLUMN zaman TYPE TEXT")
+        conn_df.commit()
+        conn_df.close()
+    except Exception:
+        pass
+
 conn.commit()
 
 if c.execute("SELECT count(*) FROM kullanicilar").fetchone()[0] == 0:
-    c.execute("INSERT INTO kullanicilar VALUES ('tamer', 'admin123', 'Admin')")
+    c.execute("INSERT INTO kullanicilar (Kullanici_Adi, Sifre, Rol) VALUES ('tamer', 'admin123', 'Admin')")
     conn.commit()
 
 # 💎 FAZ 40: KURYE ROLÜNÜ VERİTABANINA EKLE 💎
 if c.execute("SELECT count(*) FROM kullanicilar WHERE Rol='Kurye'").fetchone()[0] == 0:
-    c.execute("INSERT INTO kullanicilar VALUES ('kurye', '1234', 'Kurye')")
+    c.execute("INSERT INTO kullanicilar (Kullanici_Adi, Sifre, Rol) VALUES ('kurye', '1234', 'Kurye')")
     conn.commit()
 
 def banner_olustur(ikon, baslik, aciklama):
@@ -778,7 +802,7 @@ if sistem_kilitli_mi == "Evet" and st.session_state.get("kullanici_rolu", "") !=
     st.stop()
 if not st.session_state["giris_yapildi"]:
     st.markdown("""
-        <style>
+<style>
         /* FORMU DARALTMA VE ORTALAMA */
         div[data-testid="stForm"] { max-width: 360px !important; margin: 0 auto !important; }
         div[data-testid="stElementContainer"]:has(div[data-testid="stRadio"]), 
@@ -787,7 +811,7 @@ if not st.session_state["giris_yapildi"]:
         
         /* 🚨 SİNİR BOZUCU "PRESS ENTER" YAZISINI GİZLEYEN ZIRH 🚨 */
         div[data-testid="InputInstructions"] { display: none !important; }
-        </style>
+</style>
     """, unsafe_allow_html=True)
     st.markdown("<br><br>", unsafe_allow_html=True)
     col_space_left, col_login, col_space_right = st.columns([1, 1.2, 1])
@@ -888,7 +912,7 @@ if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
     st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
     st.markdown("""<div style='text-align:center; padding:20px;'><h2 class='neon-text-blue' style='font-size:30px;'>OMG Lojistik</h2><h4 style='color:#94a3b8;'>Canlı Kurye Rota Ekranı</h4></div>""", unsafe_allow_html=True)
     
-    bekleyenler = pd.read_sql("SELECT rowid, Tarih, Saat, Klinik_Unvani, Aciklama FROM kurye_islemleri WHERE Durum='Bekliyor' ORDER BY Tarih ASC, Saat ASC", conn)
+    bekleyenler = pd.read_sql("SELECT id, Tarih, Saat, Klinik_Unvani, Aciklama FROM kurye_islemleri WHERE Durum='Bekliyor' ORDER BY Tarih ASC, Saat ASC", conn)
     if not bekleyenler.empty:
         for _, r in bekleyenler.iterrows():
             klinik_adi = r["Klinik_Unvani"]
@@ -907,8 +931,8 @@ if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
             harita_url = f"http://maps.google.com/?q={urllib.parse.quote(k_adres)}"
             col_k1.markdown(f"""<a href="{harita_url}" target="_blank" class="wp-btn" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">🗺️ Haritada Aç</a>""", unsafe_allow_html=True)
             
-            if col_k2.button(f"✅ İşi Teslim Aldım (ID: {r['rowid']})", key=f"teslim_{r['rowid']}", use_container_width=True):
-                c.execute("UPDATE kurye_islemleri SET Durum='Teslim Alındı (Laboratuvara Geldi)' WHERE rowid=?", (r['rowid'],))
+            if col_k2.button(f"✅ İşi Teslim Aldım (ID: {r['id']})", key=f"teslim_{r['id']}", use_container_width=True):
+                c.execute("UPDATE kurye_islemleri SET Durum='Teslim Alındı (Laboratuvara Geldi)' WHERE id=?", (r['id'],))
                 conn.commit(); st.success("İş teslim alındı ve merkeze bildirildi!"); st.rerun()
             st.markdown("<hr>", unsafe_allow_html=True)
     else:
@@ -970,7 +994,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
     """, unsafe_allow_html=True)
 
     if sayfa == "🦷 Klinik Paneli":
-        kurye_durumu = c.execute("SELECT Tarih, Saat, Aciklama, Durum FROM kurye_islemleri WHERE Klinik_Unvani=? ORDER BY rowid DESC LIMIT 1", (ana_klinik,)).fetchone()
+        kurye_durumu = c.execute("SELECT Tarih, Saat, Aciklama, Durum FROM kurye_islemleri WHERE Klinik_Unvani=? ORDER BY id DESC LIMIT 1", (ana_klinik,)).fetchone()
         if kurye_durumu:
             k_tarih, k_saat, k_aciklama, k_durum = kurye_durumu
             if k_durum == "Bekliyor": k_renk, k_ikon, k_mesaj = "#FBBF24", "⏳", "Kurye Talebiniz Alındı, Yönlendirme Bekleniyor..."
@@ -1016,7 +1040,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         
         # 🚨 İŞTE SENİN PREMIUM UPLOADER ZIRHINI BURAYA EKLİYORUZ 🚨
         st.markdown("""
-            <style>
+<style>
             /* Sürükle-Bırak Alanının Kutusu */
             div[data-testid="stFileUploader"] > section {
                 background-color: #0F1626 !important;
@@ -1046,7 +1070,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
                 box-shadow: 0 4px 10px rgba(24,119,242,0.4) !important;
                 transform: scale(1.02) !important;
             }
-            </style>
+</style>
         """, unsafe_allow_html=True)
 
         banner_olustur("📤", "Yeni Sipariş Gönder", "Laboratuvara dijital reçetenizi iletin.")
@@ -1084,23 +1108,23 @@ if rol in ["Klinik", "Klinik_Asistan"]:
                     yeni_id = c.lastrowid
                     onek = ayar_getir("Barkod_Onek", "OMG")
                     yeni_barkod = f"{onek}-{yeni_id:04d}"
-                    c.execute("UPDATE isler SET Barkod=? WHERE rowid=?", (yeni_barkod, yeni_id))
+                    c.execute("UPDATE isler SET Barkod=? WHERE id=?", (yeni_barkod, yeni_id))
                     
                     hedef_klasor = akilli_klasor_yolu(ana_klinik, ha)
                     if yuklenen_stl:
                         dosya_yolu_stl = os.path.join(hedef_klasor, f"STL_{yeni_id}_{yuklenen_stl.name}")
                         dosya_yolu_stl = storage_utils.dosya_kaydet(os.path.dirname(dosya_yolu_stl), os.path.basename(dosya_yolu_stl), yuklenen_stl)
-                        c.execute("INSERT INTO is_3d_modelleri VALUES (?, ?)", (yeni_id, dosya_yolu_stl))
+                        c.execute("INSERT INTO is_3d_modelleri (Is_ID, Dosya_Yolu) VALUES (?, ?)", (yeni_id, dosya_yolu_stl))
                     if yuklenen_foto:
                         dosya_yolu_foto = os.path.join(hedef_klasor, f"FOTO_{yeni_id}_{yuklenen_foto.name}")
                         dosya_yolu_foto = storage_utils.dosya_kaydet(os.path.dirname(dosya_yolu_foto), os.path.basename(dosya_yolu_foto), yuklenen_foto)
-                        c.execute("INSERT INTO is_fotograflari VALUES (?, ?)", (yeni_id, dosya_yolu_foto))
+                        c.execute("INSERT INTO is_fotograflari (Is_ID, Dosya_Yolu) VALUES (?, ?)", (yeni_id, dosya_yolu_foto))
                     conn.commit(); st.success(f"Sipariş İletildi! Barkod: {yeni_barkod}"); st.balloons()
                 elif not ha: st.error("Lütfen Hasta Adı giriniz!")
                 # 💎 KLİNİK İÇİN GÜNCEL FİYAT LİSTESİ (AÇILIR PANOLU) 💎
         st.markdown("<br>", unsafe_allow_html=True)
         with st.expander("📊 Güncel Laboratuvar Fiyat Tarifesi", expanded=False):
-            df_fiyat_klinik = pd.read_sql("SELECT Hizmet_Adi as 'İşlem', Kategori, Fiyat, Para_Birimi FROM fiyat_listesi", conn)
+            df_fiyat_klinik = pd.read_sql('SELECT Hizmet_Adi as "İşlem", Kategori, Fiyat, Para_Birimi FROM fiyat_listesi', conn)
             if not df_fiyat_klinik.empty:
                 st.dataframe(df_fiyat_klinik, hide_index=True, use_container_width=True)
             else:
@@ -1162,11 +1186,11 @@ if rol in ["Klinik", "Klinik_Asistan"]:
                     if c.execute("SELECT count(*) FROM klinik_asistanlari WHERE Asistan_Kadi=?", (a_kadi,)).fetchone()[0] > 0:
                         st.error("Bu asistan kullanıcı adı zaten başka bir klinikte kullanılıyor! Lütfen farklı bir isim seçin.")
                     elif a_kadi and a_sifre:
-                        c.execute("INSERT INTO klinik_asistanlari VALUES (?,?,?)", (kullanici_adi, a_kadi, a_sifre))
+                        c.execute("INSERT INTO klinik_asistanlari (Klinik_Unvani, Asistan_Kadi, Sifre) VALUES (?,?,?)", (kullanici_adi, a_kadi, a_sifre))
                         conn.commit(); st.success("Asistan hesabı başarıyla açıldı!"); st.rerun()
             
             st.markdown("#### 📋 Mevcut Asistanlar")
-            asistanlar = pd.read_sql("SELECT Asistan_Kadi as 'Kullanıcı Adı', 'Kısıtlı Erişim (Sadece Üretim ve Lojistik)' as Yetki FROM klinik_asistanlari WHERE Klinik_Unvani=?", conn, params=(kullanici_adi,))
+            asistanlar = pd.read_sql('SELECT Asistan_Kadi as "Kullanıcı Adı", \'Kısıtlı Erişim (Sadece Üretim ve Lojistik)\' as Yetki FROM klinik_asistanlari WHERE Klinik_Unvani=?', conn, params=(kullanici_adi,))
             st.dataframe(asistanlar, hide_index=True, use_container_width=True)
             if not asistanlar.empty:
                 silinecek = st.selectbox("Sistemden Kaldırılacak Asistan", asistanlar['Kullanıcı Adı'].tolist())
@@ -1347,7 +1371,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
         
         # 💎 KLASÖR (EXPANDER) İÇİN MAVİ ZIRH CSS YAMASI 💎
         st.markdown("""
-            <style>
+<style>
             /* Klasör kapalıyken üzerine gelince (Hover) yazıyı mavi parlat */
             [data-testid="stExpander"] details summary:hover {
                 color: #38bdf8 !important;
@@ -1369,7 +1393,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
             [data-testid="stExpander"] details[open] > div[role="region"] * {
                 color: #0f172a !important;
             }
-            </style>
+</style>
         """, unsafe_allow_html=True)
 
         # 🚨 SİGORTA: Eski tabloya zarar vermeden "Durum" sütunu ekler (Arşivleme için) 🚨
@@ -1406,7 +1430,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                 if st.form_submit_button("Kaydet"):
                     if unvan:
                         # 🚨 ÇİFT KAYIT ENGELLEYİCİ SİGORTA 🚨
-                        kontrol = c.execute("SELECT rowid FROM cariler WHERE Klinik_Unvani=?", (unvan.strip(),)).fetchone()
+                        kontrol = c.execute("SELECT id FROM cariler WHERE Klinik_Unvani=?", (unvan.strip(),)).fetchone()
                         if kontrol:
                             st.error(f"⚠️ '{unvan}' adında bir klinik zaten kayıtlı! Lütfen farklı bir isim girin veya mevcut kaydı güncelleyin.")
                         else:
@@ -1555,14 +1579,14 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
 
         # 💎 GÖRSEL YAMA
         st.markdown("""
-            <style>
+<style>
             [data-testid="stDownloadButton"] button { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%) !important; border: none !important; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4) !important; border-radius: 10px !important; }
             [data-testid="stDownloadButton"] button p { color: #FFFFFF !important; font-weight: 800 !important; }
             [data-testid="stFileUploader"] button { background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4) !important; font-weight: 800 !important; }
             [data-testid="stFileUploaderDropzone"] { background-color: rgba(30, 41, 59, 0.6) !important; border: 2px dashed rgba(56, 189, 248, 0.5) !important; border-radius: 15px !important; transition: border 0.3s ease; }
             [data-testid="stFileUploaderDropzone"]:hover { border-color: #8B5CF6 !important; background-color: rgba(30, 41, 59, 0.8) !important; }
             .barcode-result-card { background: rgba(15, 23, 42, 0.8); border-left: 5px solid #38bdf8; padding: 20px; border-radius: 12px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); margin-bottom: 20px; }
-            </style>
+</style>
         """, unsafe_allow_html=True)
 
         tab_takip, tab_manuel_is = st.tabs(["🚀 Üretim Takibi & Güncelleme", "➕ Yeni Manuel İş Kaydı (Laboratuvar)"])
@@ -1659,7 +1683,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                     yeni_id = c.lastrowid
                     onek = ayar_getir("Barkod_Onek", "OMG")
                     yeni_barkod = f"{onek}-{yeni_id:04d}"
-                    c.execute("UPDATE isler SET Barkod=? WHERE rowid=?", (yeni_barkod, yeni_id))
+                    c.execute("UPDATE isler SET Barkod=? WHERE id=?", (yeni_barkod, yeni_id))
                     conn.commit()
                     st.success(f"✅ Manuel iş oluşturuldu ve reçeteye eklendi! Barkod: {yeni_barkod}")
 
@@ -1670,7 +1694,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                 okutulan_barkod = c_bar1.text_input("📷 Barkod Okuyucu Terminali:", placeholder="Örn: OMG-1001", key="barkod_terminal")
                 
                 if okutulan_barkod:
-                    is_bulundu = c.execute("SELECT rowid, Klinik_Unvani, Hasta_Adi, Is_Turu, Asama, Sorumlu_Personel FROM isler WHERE Barkod=?", (okutulan_barkod.strip(),)).fetchone()
+                    is_bulundu = c.execute("SELECT id, Klinik_Unvani, Hasta_Adi, Is_Turu, Asama, Sorumlu_Personel FROM isler WHERE Barkod=?", (okutulan_barkod.strip(),)).fetchone()
                     if is_bulundu:
                         b_rowid, b_klinik, b_hasta, b_tur, b_asama, b_sorumlu = is_bulundu
                         
@@ -1689,21 +1713,21 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                         h_asama = c1_b.selectbox("Aşamayı Güncelle", asama_sirasi, index=asama_sirasi.index(sonraki_asama))
                         h_sorumlu = c2_b.selectbox("Sorumlu", aktif_personeller, index=0)
                         if st.button("🚀 Aşamayı Kaydet", use_container_width=True):
-                            c.execute("UPDATE isler SET Asama=?, Sorumlu_Personel=? WHERE rowid=?", (h_asama, h_sorumlu, b_rowid))
+                            c.execute("UPDATE isler SET Asama=?, Sorumlu_Personel=? WHERE id=?", (h_asama, h_sorumlu, b_rowid))
                             conn.commit(); st.rerun()
 
-            df_isler = pd.read_sql("SELECT rowid, Barkod, Tarih as 'Kayıt Zamanı', Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Aciklama, Lot_Numarasi, Sertifika_No FROM isler", conn)
+            df_isler = pd.read_sql('SELECT id, Barkod, Tarih as "Kayıt Zamanı", Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Aciklama, Lot_Numarasi, Sertifika_No FROM isler', conn)
             st.subheader("📋 Reçeteler ve Üretim Takibi")
             if not df_isler.empty:
-                df_goster = df_isler.drop(columns=["rowid", "Lot_Numarasi", "Sertifika_No"])
+                df_goster = df_isler.drop(columns=["id", "Lot_Numarasi", "Sertifika_No"])
                 st.dataframe(df_goster, hide_index=True, use_container_width=True)
                 st.markdown("---")
                 is_secin = st.selectbox("İşlem Yapılacak Reçeteyi Seçin", ["-- Seçiniz --"] + [f"{r['Barkod']} | {r['Klinik_Unvani']} - {r['Hasta_Adi']} ({r['Is_Turu']})" for _, r in df_isler.iterrows()])
                 if is_secin != "-- Seçiniz --":
                     secilen_index = [f"{r['Barkod']} | {r['Klinik_Unvani']} - {r['Hasta_Adi']} ({r['Is_Turu']})" for _, r in df_isler.iterrows()].index(is_secin)
-                    s_rowid = int(df_isler.iloc[secilen_index]["rowid"])
+                    s_rowid = int(df_isler.iloc[secilen_index]["id"])
                     s_barkod = df_isler.iloc[secilen_index]["Barkod"]
-                    is_verisi = c.execute("SELECT Asama, Sorumlu_Personel, Lot_Numarasi, Sertifika_No, Klinik_Unvani, Hasta_Adi, Is_Turu, Tarih FROM isler WHERE rowid=?",(s_rowid,)).fetchone()
+                    is_verisi = c.execute("SELECT Asama, Sorumlu_Personel, Lot_Numarasi, Sertifika_No, Klinik_Unvani, Hasta_Adi, Is_Turu, Tarih FROM isler WHERE id=?",(s_rowid,)).fetchone()
                     
                     t1, t2, t3, t4 = st.tabs(["🔄 Aşama Güncelle", "📸 Medya & Arşiv", "📜 Garanti", "⚙️ CAM Sarfiyatı"])
                     
@@ -1712,11 +1736,11 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                         y_asama = col_a.selectbox("Yeni Aşama", ["Sipariş Alındı (Hekim Girdi)", "Tasarım Bekliyor", "Kazıma/Döküm", "Tesviye", "Seramik/Fırın", "Teslim Edildi"], index=["Sipariş Alındı (Hekim Girdi)", "Tasarım Bekliyor", "Kazıma/Döküm", "Tesviye", "Seramik/Fırın", "Teslim Edildi"].index(is_verisi[0]) if is_verisi[0] in ["Sipariş Alındı (Hekim Girdi)", "Tasarım Bekliyor", "Kazıma/Döküm", "Tesviye", "Seramik/Fırın", "Teslim Edildi"] else 1)
                         y_sorumlu = col_b.selectbox("Sorumlu Teknisyen", aktif_personeller, index=0)
                         if st.button("Güncelle", use_container_width=True):
-                            c.execute("UPDATE isler SET Asama=?, Sorumlu_Personel=? WHERE rowid=?", (y_asama, y_sorumlu, s_rowid))
+                            c.execute("UPDATE isler SET Asama=?, Sorumlu_Personel=? WHERE id=?", (y_asama, y_sorumlu, s_rowid))
                             conn.commit(); st.rerun()
                             
                         st.markdown("---")
-                        mevcut_fiyat = c.execute("SELECT Tutar_TL FROM isler WHERE rowid=?", (s_rowid,)).fetchone()[0]
+                        mevcut_fiyat = c.execute("SELECT Tutar_TL FROM isler WHERE id=?", (s_rowid,)).fetchone()[0]
                         if mevcut_fiyat == 0.0:
                             st.markdown("#### 💰 Faturalandırma")
                             # 🚨 FATURALANDIRMA BUTONU VE KUTUSU MİNİMUMA İNDİRİLDİ 🚨
@@ -1726,7 +1750,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                                 st.markdown("<br>", unsafe_allow_html=True) # Butonu kutuyla hizalamak için boşluk
                                 if st.button("💳 Bakiye'ye Ekle", type="primary", use_container_width=True):
                                     if f_tutar > 0:
-                                        c.execute("UPDATE isler SET Tutar_TL=? WHERE rowid=?", (f_tutar, s_rowid))
+                                        c.execute("UPDATE isler SET Tutar_TL=? WHERE id=?", (f_tutar, s_rowid))
                                         is_klinik = is_verisi[4] 
                                         try: c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani = ?", (f_tutar, is_klinik))
                                         except: pass
@@ -1748,7 +1772,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                                         h_klasor = akilli_klasor_yolu(is_verisi[4], is_verisi[5])
                                         dosya_yolu = os.path.join(h_klasor, f"FOTO_{s_rowid}_{yuklenen_foto.name}")
                                         dosya_yolu = storage_utils.dosya_kaydet(os.path.dirname(dosya_yolu), os.path.basename(dosya_yolu), yuklenen_foto)
-                                        c.execute("INSERT INTO is_fotograflari VALUES (?, ?)", (s_rowid, dosya_yolu))
+                                        c.execute("INSERT INTO is_fotograflari (Is_ID, Dosya_Yolu) VALUES (?, ?)", (s_rowid, dosya_yolu))
                                         conn.commit(); st.success("Kaydedildi!"); st.rerun()
                                 fotolar = c.execute("SELECT Dosya_Yolu FROM is_fotograflari WHERE Is_ID=?", (s_rowid,)).fetchall()
                                 if fotolar:
@@ -1763,7 +1787,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                                         h_klasor = akilli_klasor_yolu(is_verisi[4], is_verisi[5])
                                         dosya_yolu_stl = os.path.join(h_klasor, f"STL_{s_rowid}_{yuklenen_stl_lab.name}")
                                         dosya_yolu_stl = storage_utils.dosya_kaydet(os.path.dirname(dosya_yolu_stl), os.path.basename(dosya_yolu_stl), yuklenen_stl_lab)
-                                        c.execute("INSERT INTO is_3d_modelleri VALUES (?, ?)", (s_rowid, dosya_yolu_stl))
+                                        c.execute("INSERT INTO is_3d_modelleri (Is_ID, Dosya_Yolu) VALUES (?, ?)", (s_rowid, dosya_yolu_stl))
                                         conn.commit(); st.success("Eklendi!"); st.rerun()
                                 modeller = c.execute("SELECT Dosya_Yolu FROM is_3d_modelleri WHERE Is_ID=?", (s_rowid,)).fetchall()
                                 if modeller:
@@ -1782,7 +1806,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                                     if lot_giris:
                                         onek = ayar_getir("Barkod_Onek", "OMG")
                                         yeni_cert = mevcut_cert if mevcut_cert != "-" else f"{onek}-CERT-{s_rowid}{datetime.now().strftime('%M%S')}"
-                                        c.execute("UPDATE isler SET Lot_Numarasi=?, Sertifika_No=? WHERE rowid=?", (lot_giris, yeni_cert, s_rowid))
+                                        c.execute("UPDATE isler SET Lot_Numarasi=?, Sertifika_No=? WHERE id=?", (lot_giris, yeni_cert, s_rowid))
                                         conn.commit(); st.success(f"Oluşturuldu: {yeni_cert}"); st.rerun()
                             if mevcut_cert != "-":
                                 pdf_data = garanti_sertifikasi_uret(is_verisi[5], is_verisi[4], is_verisi[6], is_verisi[7], mevcut_lot, mevcut_cert)
@@ -1827,10 +1851,10 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                                         mevcut = c.execute("SELECT toplam_omur_dk, kullanilan_dk FROM aktif_frezler WHERE frez_kod=?", (f_kodu,)).fetchone()
                                         c.execute("UPDATE aktif_frezler SET kullanilan_dk=? WHERE frez_kod=?", (mevcut[1] + frez_basina_dk, f_kodu))
                                     
-                                    eski_m_row = c.execute("SELECT Harcanan_Malzeme FROM isler WHERE rowid=?", (s_rowid,)).fetchone()
+                                    eski_m_row = c.execute("SELECT Harcanan_Malzeme FROM isler WHERE id=?", (s_rowid,)).fetchone()
                                     eski_m = eski_m_row[0] if eski_m_row else "-"
                                     yeni_cam_m = f"CAM: {b_kodu} ({harcanan_uye} Üye), Makine: {secili_makine}, Top. {harcanan_dk} Dk (Takım başı {frez_basina_dk} Dk)"
-                                    c.execute("UPDATE isler SET Harcanan_Malzeme=? WHERE rowid=?", (yeni_cam_m if eski_m == "-" else f"{eski_m}, {yeni_cam_m}", s_rowid))
+                                    c.execute("UPDATE isler SET Harcanan_Malzeme=? WHERE id=?", (yeni_cam_m if eski_m == "-" else f"{eski_m}, {yeni_cam_m}", s_rowid))
                                     conn.commit(); st.success("CAM Sarfiyatı İşlendi!"); st.rerun()
                                 else:
                                     st.error("Lütfen en az bir frez seçin ve bitiş saatinin başlangıçtan sonra olduğundan emin olun.")
@@ -1841,7 +1865,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
         okutulan = st.text_input("📷 Barkod Okuyucu İle Taramak İçin Tıklayın:", placeholder="Barkod Numarası...", key="tablet_barkod")
         
         if okutulan:
-            is_bulundu = c.execute("SELECT rowid, Klinik_Unvani, Hasta_Adi, Is_Turu, Asama, Sorumlu_Personel FROM isler WHERE Barkod=?", (okutulan.strip(),)).fetchone()
+            is_bulundu = c.execute("SELECT id, Klinik_Unvani, Hasta_Adi, Is_Turu, Asama, Sorumlu_Personel FROM isler WHERE Barkod=?", (okutulan.strip(),)).fetchone()
             if is_bulundu:
                 b_rowid, b_klinik, b_hasta, b_tur, b_asama, b_sorumlu = is_bulundu
                 st.markdown(f"<div class='glass-card' style='border-color:#34d399; text-align:center;'><h2 class='neon-text-green'>✅ İş Bulundu: {b_hasta}</h2><h4>Klinik: {b_klinik} | İşlem: {b_tur}</h4><p>Mevcut Durum: <b>{b_asama}</b></p></div><br>", unsafe_allow_html=True)
@@ -1854,7 +1878,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                 with col_btn1:
                     st.markdown("<div class='tablet-btn'>", unsafe_allow_html=True)
                     if st.button(f"➡️ İLERİ: {sonraki_asama}", use_container_width=True, key="btn_ileri"):
-                        c.execute("UPDATE isler SET Asama=? WHERE rowid=?", (sonraki_asama, b_rowid))
+                        c.execute("UPDATE isler SET Asama=? WHERE id=?", (sonraki_asama, b_rowid))
                         conn.commit(); st.success("İşlem Başarılı!"); st.rerun()
                     st.markdown("</div>", unsafe_allow_html=True)
                 with col_btn2:
@@ -1870,7 +1894,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
         
         # 💎 DOSYA YÜKLEME (UPLOADER) İÇİN NÜKLEER SİBER ZIRH 💎
         st.markdown("""
-            <style>
+<style>
             /* 1. Tüm Uploader Kasasını Şeffaf Yap */
             div[data-testid="stFileUploader"] {
                 background-color: transparent !important;
@@ -1927,12 +1951,12 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
             div[data-testid="stFileUploaderDeleteBtn"] svg {
                 fill: #f87171 !important;
             }
-            </style>
+</style>
         """, unsafe_allow_html=True)
 
         # Sekmeleri Güncelledik: Profil Kartı eklendi!
         t_ekle, t_liste, t_profil, t_guncelle, t_finans, t_izin, t_bordro = st.tabs([
-            "➕ Yeni Personel", "🗄️ Personel Listesi", "📇 Profil Kartları", "✏️ Bilgi Güncelleme", "💸 Finans", "🏖️ İzin", "📊 Bordro"
+            "➕ Yeni Personel", "🗄️ Personel (GÜNCEL)", "📇 Profil Kartları", "✏️ Bilgi Güncelleme", "💸 Finans", "🏖️ İzin", "📊 Bordro"
         ])
 
         with t_ekle:
@@ -2096,7 +2120,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
         with t_liste:
             # 🚨 TAKVİM ZIRHI: BEYAZLIKLARI KOMPLE SİLEN VE PASİF GRİ RAKAMLARI GETİREN BAŞYAPIT 🚨
             st.markdown("""
-                <style>
+<style>
                 div[data-baseweb="calendar"] div { background-color: transparent !important; }
                 div[data-baseweb="calendar"] { 
                     background-color: #1e293b !important; 
@@ -2121,7 +2145,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                     background-color: #38bdf8 !important; color: #000000 !important; font-weight: 900 !important; border-radius: 8px !important; 
                 }
                 div[data-baseweb="calendar"] [role="gridcell"]:hover { background-color: rgba(56,189,248,0.2) !important; border-radius: 8px !important; }
-                </style>
+</style>
             """, unsafe_allow_html=True)
 
             listeleme_tipi = st.radio("Görünüm Seçiniz:", ["🟢 Aktif Personeller", "🗄️ Arşiv (Ayrılanlar)"], horizontal=True)
@@ -2141,11 +2165,14 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                 if row['Kayıt Durumu'] == 'Ayrıldı': 
                     return ['background-color: #F1F5F9; color: #64748B; font-weight: 700; font-style: italic;'] * len(row)
                 else: 
-                    return ['color: #0F172A; font-weight: 800;'] * len(row)
+                    return ['color: white;'] * len(row)
 
             if "Aktif" in listeleme_tipi:
-                aktif_df = df_p[df_p["Kayıt Durumu"] == "Aktif"]
-                st.dataframe(aktif_df.style.format({"Net Maaş (TL)": "{:,.2f} ₺"}).apply(personel_stil, axis=1), hide_index=True, use_container_width=True)
+                aktif_df = df_p[df_p["Kayıt Durumu"] == "Aktif"].copy()
+                aktif_df["Net Maaş (TL)"] = aktif_df["Net Maaş (TL)"].apply(lambda x: f"{x:,.2f} ₺" if pd.notnull(x) else x)
+                aktif_html = aktif_df.to_html(index=False, classes='per-table')
+                st.markdown(f"<style>.per-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }} .per-table th, .per-table td {{ color: #ffffff !important; font-weight: 800 !important; border-bottom: 1px solid rgba(56, 189, 248, 0.3); padding: 10px 8px; text-align: left; }} .per-table th {{ background-color: rgba(15, 23, 42, 0.8); color: #38bdf8 !important; }} .per-table tr:hover {{ background-color: rgba(56, 189, 248, 0.1); }}</style>", unsafe_allow_html=True)
+                st.markdown(aktif_html, unsafe_allow_html=True)
                 
                 st.markdown("---")
                 st.markdown("#### 🗑️ Personeli Arşive Kaldır (İşten Çıkış)")
@@ -2163,8 +2190,12 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                         c.execute("UPDATE personeller SET Durum='Ayrıldı', Ayrilma_Tarihi=? WHERE Ad_Soyad=?", (ayrilma_tarihi, ayrilacak))
                         conn.commit(); st.success("Personel başarıyla arşive kaldırıldı."); st.rerun()
             else:
-                arsiv_df = df_p[df_p["Kayıt Durumu"] == "Ayrıldı"]
-                st.dataframe(arsiv_df.style.format({"Net Maaş (TL)": "{:,.2f} ₺"}).apply(personel_stil, axis=1), hide_index=True, use_container_width=True)                
+                arsiv_df = df_p[df_p["Kayıt Durumu"] == "Ayrıldı"].copy()
+                arsiv_df["Net Maaş (TL)"] = arsiv_df["Net Maaş (TL)"].apply(lambda x: f"{x:,.2f} ₺" if pd.notnull(x) else x)
+                arsiv_html = arsiv_df.to_html(index=False, classes='per-table-arsiv')
+                st.markdown(f"<style>.per-table-arsiv {{ width: 100%; border-collapse: collapse; margin-top: 10px; }} .per-table-arsiv th, .per-table-arsiv td {{ color: #ffffff !important; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding: 10px 8px; text-align: left; opacity: 0.8; }} .per-table-arsiv th {{ background-color: rgba(15, 23, 42, 0.8); color: #9ca3af !important; }}</style>", unsafe_allow_html=True)
+                st.markdown(arsiv_html, unsafe_allow_html=True)
+                
         with t_finans:
             st.markdown("### 💸 Avans, Mesai ve Kesinti İşlemleri")
             st.info("Personelin ay içindeki tüm finansal hareketlerini buradan işleyin. Ay sonu bordrosuna otomatik yansıyacaktır.")
@@ -2259,13 +2290,13 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
         banner_olustur("📦", "Depo ve Stok Yönetimi", "Kritik envanteri takip edin, aktif/pasif ürünleri belirleyin ve akıllı tedarik siparişleri oluşturun.")
         # 💎 GÖRSEL YAMA: Stok Modülü Yükleme/İndirme Butonları 💎
         st.markdown("""
-            <style>
+<style>
             [data-testid="stDownloadButton"] button { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%) !important; border: none !important; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4) !important; border-radius: 10px !important; }
             [data-testid="stDownloadButton"] button p { color: #FFFFFF !important; font-weight: 800 !important; }
             [data-testid="stFileUploader"] button { background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4) !important; font-weight: 800 !important; }
             [data-testid="stFileUploaderDropzone"] { background-color: rgba(30, 41, 59, 0.6) !important; border: 2px dashed rgba(56, 189, 248, 0.5) !important; border-radius: 15px !important; transition: border 0.3s ease; }
             [data-testid="stFileUploaderDropzone"]:hover { border-color: #8B5CF6 !important; background-color: rgba(30, 41, 59, 0.8) !important; }
-            </style>
+</style>
         """, unsafe_allow_html=True)
         t1, t2, t3, t4, t5 = st.tabs(["➕ Manuel Giriş / Çıkış", "📊 Mevcut Envanter (Aktif/Pasif)", "📥 Excel/CSV Yükle", "🤖 Akıllı Tedarik & AI", "💿 CAM Envanteri (Blok & Frez)"])
         with t1:
@@ -2305,7 +2336,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                         conn.commit(); st.success("Eklendi!"); st.rerun()
         with t2:
             st.info("Kullanmadığınız ürünleri 'Pasif' yaparak Stok Alarmından çıkarabilirsiniz. Pasif ürünler listenin en altına gri renkte yerleşir.")
-            df_stok = pd.read_sql("SELECT rowid, * FROM stok", conn)
+            df_stok = pd.read_sql("SELECT * FROM stok", conn)
             
             c_aktif1, c_aktif2 = st.columns(2)
             degisecek_urun = c_aktif1.selectbox("Durumunu Değiştirmek İstediğiniz Ürün", ["-- Seçiniz --"] + [f"{r['Urun_Kodu']} | {r['Urun_Adi']} (Şu an: {r['Durum']})" for _, r in df_stok.iterrows()])
@@ -2330,8 +2361,8 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
             
             st.markdown("<br>", unsafe_allow_html=True)
 
-            df_stok.columns = ["rowid", "Ürün Kodu", "Ürün Adı", "Kategori", "Mevcut Miktar", "Birim", "Kritik Sınır", "Satış Fiyatı (TL)", "Durum"]
-            df_stok_gorsel = df_stok.drop(columns=["rowid", "Satış Fiyatı (TL)"]) 
+            df_stok.columns = ["id", "Ürün Kodu", "Ürün Adı", "Kategori", "Mevcut Miktar", "Birim", "Kritik Sınır", "Satış Fiyatı (TL)", "Durum"]
+            df_stok_gorsel = df_stok.drop(columns=["id", "Satış Fiyatı (TL)"]) 
             
             # ARAMA FİLTRESİNİ UYGULA
             if stok_arama_terimi:
@@ -2427,7 +2458,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
         with t5:
             # 🚨 SİGORTA VE YENİ SÜTUN (İSİM) EKLENTİSİ 🚨
             c.execute('''CREATE TABLE IF NOT EXISTS aktif_frezler (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, makine_adi TEXT, yuva_no TEXT,
+                id SERIAL PRIMARY KEY, makine_adi TEXT, yuva_no TEXT,
                 frez_kod TEXT, toplam_omur_dk INTEGER, kullanilan_dk INTEGER,
                 birim_fiyat_euro REAL, durum TEXT
             )''')
@@ -2440,7 +2471,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
 
             # 💎 İŞTE YENİ CSS ZIRHINI TAM BURAYA, SEKMENİN BAŞINA KOYUYORUZ 💎
             st.markdown("""
-                <style>
+<style>
                 /* Klasör kapalıyken üzerine gelince (Hover) yazıyı mavi parlat */
                 [data-testid="stExpander"] details summary:hover {
                     color: #38bdf8 !important;
@@ -2463,7 +2494,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                 [data-testid="stExpander"] details[open] > div[role="region"] span {
                     color: #0f172a !important;
                 }
-                </style>
+</style>
             """, unsafe_allow_html=True)
             
             # --- CSS BİTTİ, NORMAL SEKMELERİMİZ BAŞLIYOR ---
@@ -2910,7 +2941,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
 
     elif sayfa == "🛵 Kurye Lojistik":
         banner_olustur("🛵", "Kurye ve Lojistik Yönetimi", "Kliniklerden gelen teslim alma taleplerini yönetin ve kuryeleri yönlendirin.")
-        df_kurye = pd.read_sql("SELECT rowid, * FROM kurye_islemleri ORDER BY Tarih DESC, Saat DESC", conn)
+        df_kurye = pd.read_sql("SELECT * FROM kurye_islemleri ORDER BY Tarih DESC, Saat DESC", conn)
         
         bekleyenler_df = df_kurye[df_kurye['Durum'] == 'Bekliyor']
         if not bekleyenler_df.empty:
@@ -2920,7 +2951,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
         
         with tab_liste:
             if not df_kurye.empty:
-                df_goster = df_kurye.drop(columns=["rowid"])
+                df_goster = df_kurye.drop(columns=["id"])
                 def kurye_renk(row):
                     if row['Durum'] == 'Bekliyor': return ['background-color: rgba(248, 113, 113, 0.2)'] * len(row)
                     elif row['Durum'] == 'Kurye Yolda': return ['background-color: rgba(56, 189, 248, 0.2)'] * len(row)
@@ -2928,12 +2959,12 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                 st.dataframe(df_goster.style.apply(kurye_renk, axis=1), hide_index=True, use_container_width=True)
                 
                 st.markdown("---")
-                k_sec = st.selectbox("İşlem Yapılacak Talebi Seçin", ["-- Seçiniz --"] + [f"ID:{r['rowid']} | {r['Klinik_Unvani']} - {r['Tarih']} {r['Saat']}" for _, r in df_kurye.iterrows()])
+                k_sec = st.selectbox("İşlem Yapılacak Talebi Seçin", ["-- Seçiniz --"] + [f"ID:{r['id']} | {r['Klinik_Unvani']} - {r['Tarih']} {r['Saat']}" for _, r in df_kurye.iterrows()])
                 if k_sec != "-- Seçiniz --":
                     s_id = int(k_sec.split("|")[0].replace("ID:", "").strip())
                     y_durum = st.radio("Durumu Güncelle", ["Bekliyor", "Kurye Yolda", "Teslim Alındı (Laboratuvara Geldi)"], horizontal=True)
                     if st.button("Durumu Kaydet", type="primary"):
-                        c.execute("UPDATE kurye_islemleri SET Durum=? WHERE rowid=?", (y_durum, s_id))
+                        c.execute("UPDATE kurye_islemleri SET Durum=? WHERE id=?", (y_durum, s_id))
                         conn.commit(); st.success("Kurye durumu güncellendi!"); st.rerun()
             else: st.info("Sistemde henüz kurye talebi bulunmuyor.")
 
@@ -2977,11 +3008,11 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
             
             # 🚨 TABLO İÇERİKLERİNİ ORTALAMAK İÇİN GENEL CSS ZIRHI 🚨
             st.markdown("""
-            <style>
+<style>
             [data-testid="stDataFrame"] div[data-testid="stTable"] th {text-align: center !important;}
             [data-testid="stDataFrame"] div[data-testid="stTable"] td {text-align: center !important;}
             div[data-testid="stTable"] {text-align: center !important;}
-            </style>
+</style>
             """, unsafe_allow_html=True)
 
             # ==========================================
@@ -3010,7 +3041,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
             with tab2:
                 # 🚨 KLASÖR (EXPANDER) RENGİNİ AÇIK MAVİ YAPAN CSS ZIRHI 🚨
                 st.markdown("""
-                    <style>
+<style>
                     /* Klasör açıldığında başlığın arka planını Açık Mavi yap ve yazıyı Siyah yap ki okunsun */
                     [data-testid="stExpander"] details[open] summary {
                         background-color: #38bdf8 !important; 
@@ -3022,7 +3053,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                     [data-testid="stExpander"] details summary:hover {
                         color: #38bdf8 !important;
                     }
-                    </style>
+</style>
                 """, unsafe_allow_html=True)
 
                 st.markdown("### 📋 Mevcut Fiyat Tarifesi")
@@ -3093,7 +3124,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
             with tab4:
                 # CSS YAMASI: İndirme, Yükleme Butonları ve Sürükle-Bırak Alanı
                 st.markdown("""
-                    <style>
+<style>
                     /* İndirme Butonu (Siber Mavi) */
                     [data-testid="stDownloadButton"] button { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%) !important; border: none !important; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4) !important; border-radius: 10px !important; }
                     [data-testid="stDownloadButton"] button p { color: #FFFFFF !important; font-weight: 800 !important; }
@@ -3106,7 +3137,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                     /* Browse Files (Dosya Seç) Butonu (Mor/Eflatun) */
                     [data-testid="stFileUploader"] button { background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4) !important; font-weight: 800 !important; }
                     [data-testid="stFileUploader"] button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 25px rgba(139, 92, 246, 0.6) !important; }
-                    </style>
+</style>
                 """, unsafe_allow_html=True)
 
                 st.markdown("### 📁 Kurumsal Döküman Arşivi")
@@ -3123,14 +3154,14 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                             yol = os.path.join(klasor, yuklenen_dosya.name)
                             yol = storage_utils.dosya_kaydet(os.path.dirname(yol), os.path.basename(yol), yuklenen_dosya)
                             
-                            c.execute('''CREATE TABLE IF NOT EXISTS laboratuvar_dokumanlari (Tarih TEXT, Dokuman_Adi TEXT, Dosya_Yolu TEXT, Dosya_Turu TEXT)''')
-                            c.execute("INSERT INTO laboratuvar_dokumanlari VALUES (?,?,?,?)", (datetime.now().strftime("%Y-%m-%d"), d_ad, yol, yuklenen_dosya.type))
+                            c.execute('''CREATE TABLE IF NOT EXISTS laboratuvar_dokumanlari (id SERIAL PRIMARY KEY, Tarih TEXT, Dokuman_Adi TEXT, Dosya_Yolu TEXT, Dosya_Turu TEXT)''')
+                            c.execute("INSERT INTO laboratuvar_dokumanlari (Tarih, Dokuman_Adi, Dosya_Yolu, Dosya_Turu) VALUES (?,?,?,?)", (datetime.now().strftime("%Y-%m-%d"), d_ad, yol, yuklenen_dosya.type))
                             conn.commit(); st.success("Döküman arşive eklendi!"); st.rerun()
                 
                 st.markdown("---")
                 
                 # --- AKILLI ARAMA VE LİSTELEME ---
-                try: df_dok = pd.read_sql("SELECT rowid, Dokuman_Adi, Tarih, Dosya_Yolu FROM laboratuvar_dokumanlari", conn)
+                try: df_dok = pd.read_sql("SELECT id, Dokuman_Adi, Tarih, Dosya_Yolu FROM laboratuvar_dokumanlari", conn)
                 except: df_dok = pd.DataFrame() 
                 
                 if not df_dok.empty:
@@ -3156,7 +3187,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                             
                             if os.path.exists(r['Dosya_Yolu']):
                                 with open(r['Dosya_Yolu'], "rb") as f: dosya_byte = f.read()
-                                col_d2.download_button("📥 Bilgisayara İndir", dosya_byte, file_name=os.path.basename(r['Dosya_Yolu']), use_container_width=True, key=f"dl_{r['rowid']}")
+                                col_d2.download_button("📥 Bilgisayara İndir", dosya_byte, file_name=os.path.basename(r['Dosya_Yolu']), use_container_width=True, key=f"dl_{r['id']}")
                             else:
                                 col_d1.error("Dosya sunucuda bulunamadı!")
                 else: 
@@ -3311,11 +3342,11 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
         banner_olustur("🔧", "Cihaz Bakımı ve Makine Parkuru", "Makine ömürlerini uzatın, periyodik bakımları yönetin ve akıllı mühendislik asistanından yararlanın.")
         # 💎 GÖRSEL YAMA: Cihaz Modülü Yükleme Butonları 💎
         st.markdown("""
-            <style>
+<style>
             [data-testid="stFileUploader"] button { background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4) !important; font-weight: 800 !important; }
             [data-testid="stFileUploaderDropzone"] { background-color: rgba(30, 41, 59, 0.6) !important; border: 2px dashed rgba(56, 189, 248, 0.5) !important; border-radius: 15px !important; transition: border 0.3s ease; }
             [data-testid="stFileUploaderDropzone"]:hover { border-color: #8B5CF6 !important; background-color: rgba(30, 41, 59, 0.8) !important; }
-            </style>
+</style>
         """, unsafe_allow_html=True)
         tab_cihaz, tab_bakim, tab_yeni, tab_guncelle, tab_sil = st.tabs(["📊 Cihaz Durumları & Timer", "🔧 Bakım İşle", "➕ Yeni Cihaz Ekle", "✏️ Düzenle", "🗑️ Cihaz Sil"])
         
@@ -3482,7 +3513,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                 if secilen_ayar == "🏢 Kurumsal Kimlik":
                     # 💎 CSS YAMASI: Logo Yükleme Alanını Estetik Hale Getirir 💎
                     st.markdown("""
-                        <style>
+<style>
                         /* Sürükle-Bırak Alanı */
                         [data-testid="stFileUploaderDropzone"] { background-color: rgba(30, 41, 59, 0.6) !important; border: 2px dashed rgba(56, 189, 248, 0.5) !important; border-radius: 15px !important; }
                         [data-testid="stFileUploaderDropzone"]:hover { border-color: #8B5CF6 !important; background-color: rgba(30, 41, 59, 0.8) !important; }
@@ -3490,7 +3521,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                         /* Browse Files Butonu (Mor) */
                         [data-testid="stFileUploader"] button { background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4) !important; font-weight: 800 !important; }
                         [data-testid="stFileUploader"] button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 25px rgba(139, 92, 246, 0.6) !important; }
-                        </style>
+</style>
                     """, unsafe_allow_html=True)
                     
                     st.markdown("### 🏢 Kurumsal Kimlik Ayarları")
@@ -3584,11 +3615,11 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                 elif secilen_ayar == "🗄️ Veri & Yedekleme":
                     # 💎 CSS YAMASI: İndirme butonlarının görünmez olma sorununu Zümrüt Yeşili ile çözer 💎
                     st.markdown("""
-                        <style>
+<style>
                         [data-testid="stDownloadButton"] button { background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important; border: none !important; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important; border-radius: 10px !important;}
                         [data-testid="stDownloadButton"] button p { color: #FFFFFF !important; font-weight: 900 !important; }
                         [data-testid="stDownloadButton"] button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6) !important; }
-                        </style>
+</style>
                     """, unsafe_allow_html=True)
                     
                     st.markdown("### 🗄️ Veri ve Arşiv Yönetimi")
@@ -3707,7 +3738,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
     elif sayfa == "🤖 OMG AI Asistan":
         # 🚨 CYBER-TEAL TEXTBOX ZIRHI - DÜZELTİLMİŞ (OK VE KUTU YAN YANA) 🚨
         st.markdown("""
-            <style>
+<style>
             /* 1. İçerideki o iğrenç beyaz arka planı tamamen kazıyoruz */
             [data-testid="stChatInput"] div {
                 background-color: transparent !important;
@@ -3755,7 +3786,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
             [data-testid="stChatInput"] svg {
                 fill: #00FFFF !important;
             }
-            </style>
+</style>
         """, unsafe_allow_html=True)
 
         st.title("🤖 OMG AI - Laboratuvar Zekası")
@@ -3874,7 +3905,7 @@ if "aktif_panel" not in st.session_state:
 if aktif_kullanici != "Misafir":
 
     st.markdown("""
-        <style>
+<style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         /* 1. ANA BUTON VE KASA ZIRHI */
@@ -3902,7 +3933,7 @@ if aktif_kullanici != "Misafir":
         .mesaj-kutusu { padding: 8px 12px; margin: 2px 10px; border-radius: 14px; max-width: 80%; font-size: 13px; font-family: 'Inter', sans-serif; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .mesaj-gonderen { background: #1877F2; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .mesaj-alici { background: #F0F2F5; color: #050505; align-self: flex-start; border-bottom-left-radius: 4px; }
-        </style>
+</style>
     """, unsafe_allow_html=True)
 
 # ==================================================
@@ -3944,12 +3975,12 @@ if toplam_bildirim > 0:
     buton_ismi = f"💬 İletişim & Destek 🔴 ({toplam_bildirim})"
 
 st.markdown("""
-    <style>
+<style>
     /* ANA AÇILIR PANELİ BUTONA DOĞRU YAKLAŞTIRAN YERÇEKİMİ KODU */
     div[data-testid="stPopoverBody"] {
         transform: translateY(18px) !important; /* Bu değer panelin aşağı inme miktarıdır */
     }
-    </style>
+</style>
 """, unsafe_allow_html=True)    
 
 # 🚨 TEK VE GERÇEK POPOVER BUTONU BURADA AÇILIYOR 🚨
@@ -3989,7 +4020,7 @@ with st.popover(buton_ismi):
             """
 
         st.markdown(f"""
-            <style>
+<style>
             .messenger-header {{ padding: 15px 15px 25px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #E4E6EB; }}
             .header-title {{ font-size: 22px; font-weight: 700; color: #050505 !important; font-family: 'Inter', sans-serif; }}
             
@@ -4024,7 +4055,7 @@ with st.popover(buton_ismi):
             div[data-testid="stPopoverBody"] div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] .stButton > button * {{ color: #1877F2 !important; margin: 0 !important; font-weight: 700 !important; font-size: 11px !important; }}
             div[data-testid="stPopoverBody"] div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] .stButton > button:hover {{ background: #1877F2 !important; }}
             div[data-testid="stPopoverBody"] div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] .stButton > button:hover * {{ color: #ffffff !important; }}
-            </style>
+</style>
         """, unsafe_allow_html=True)
         
         # 🚨 TEK VE GERÇEK ÜST BAR (Ekstra div'ler çöpe atıldı) 🚨
@@ -4114,7 +4145,7 @@ with st.popover(buton_ismi):
                 div[data-testid="stPopoverBody"] div[data-testid="stForm"] div[data-testid="column"]:nth-child(2) button { background: transparent !important; color: transparent !important; border: none !important; border-radius: 50% !important; width: 36px !important; height: 36px !important; padding: 0 !important; display: flex !important; justify-content: center !important; align-items: center !important; transition: 0.2s !important; position: relative; margin: 0 auto !important; box-shadow: none !important; outline:none !important;}
                 div[data-testid="stPopoverBody"] div[data-testid="stForm"] div[data-testid="column"]:nth-child(2) button:hover { background: #E7F3FF !important; transform: scale(1.1) !important; }
                 div[data-testid="stPopoverBody"] div[data-testid="stForm"] div[data-testid="column"]:nth-child(2) button::after { content: ''; display: block; width: 18px; height: 18px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231877F2'%3E%3Cpath d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z'/%3E%3C/svg%3E"); background-size: contain; background-repeat: no-repeat; background-position: center; margin-left: 2px; }
-            </style>""", unsafe_allow_html=True)
+</style>""", unsafe_allow_html=True)
             
             y_mesaj = col_in.text_input("Mesaj", label_visibility="collapsed", placeholder="Sisteme genel duyuru yaz...")
             btn_send = col_send.form_submit_button("➤")
@@ -4134,7 +4165,7 @@ with st.popover(buton_ismi):
 
         st.markdown('<style>div[data-testid="stPopoverBody"] { width: 380px !important; max-width: 95vw !important; padding: 10px !important; }</style>', unsafe_allow_html=True)
         st.markdown("""
-            <style>
+<style>
             .messenger-header { padding: 5px 0px 10px 0px; display: flex; align-items: center; justify-content: flex-start; min-height: 40px; }
             .header-title { font-size: 22px; font-weight: 700; color: #050505 !important; font-family: 'Inter', sans-serif; white-space: nowrap; }
             div[data-baseweb="tooltip"] > div { background-color: #050505 !important; color: #ffffff !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 12px !important; padding: 6px 10px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important; }
@@ -4199,7 +4230,7 @@ with st.popover(buton_ismi):
             div[data-testid="stCheckbox"] { background-color: #ffffff !important; border: 1px solid #CED0D4 !important; border-radius: 8px !important; padding: 10px 15px !important; margin-bottom: 8px !important; min-height: 44px !important; display: flex !important; align-items: center !important; }
             div[data-testid="stCheckbox"] label { display: flex !important; align-items: center !important; width: 100% !important; }
             div[data-testid="stCheckbox"] p { color: #050505 !important; font-weight: 600 !important; font-size: 13px !important; margin: 0 !important; padding-left: 10px !important; line-height: 1.2 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;}
-            </style>
+</style>
         """, unsafe_allow_html=True)
 
         col_geri, col_baslik, col_grup = st.columns([1, 4.5, 1.5])
@@ -4314,7 +4345,7 @@ with st.popover(buton_ismi):
         
         conn = db_baglanti.get_connection('dentflow.db')
         c = conn.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS engellemeler (engelleyen_id TEXT, engellenen_id TEXT)")
+        c.execute("CREATE TABLE IF NOT EXISTS engellemeler (id SERIAL PRIMARY KEY, engelleyen_id TEXT, engellenen_id TEXT)")
         c.execute("SELECT COUNT(*) FROM engellemeler WHERE engelleyen_id = ? AND engellenen_id = ?", (benim_id, karsi_id))
         ben_engelledim = c.fetchone()[0] > 0
         c.execute("SELECT COUNT(*) FROM engellemeler WHERE engelleyen_id = ? AND engellenen_id = ?", (karsi_id, benim_id))
@@ -4324,7 +4355,7 @@ with st.popover(buton_ismi):
         # Öpüşme mesafesi 18px duruyor, alt boşluk korundu
         st.markdown('<style>div[data-testid="stPopoverBody"] { width: 360px !important; max-width: 95vw !important; padding: 10px 10px 15px 10px !important; transform: translateY(18px) !important; }</style>', unsafe_allow_html=True)
         st.markdown("""
-            <style>
+<style>
             .chat-header { padding: 10px 5px 10px 0px; display: flex; align-items: center; border-bottom: 1px solid #E4E6EB; margin-top: -5px; margin-bottom: 10px; justify-content: flex-start; min-height: 46px; }
             .chat-header-left { display: flex; align-items: center; }
             .chat-avatar { width: 36px; height: 36px; border-radius: 50%; background-color: #E4E6EB; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; color: #050505; font-size: 16px; }
@@ -4402,7 +4433,7 @@ with st.popover(buton_ismi):
             div[data-testid="stToast"] * { color: #050505 !important; font-weight: 700 !important; font-size: 14px !important; }
             div[data-baseweb="tooltip"] > div { background-color: #050505 !important; color: #ffffff !important; border-radius: 6px !important; }
             div[data-baseweb="select"] svg { fill: #1877F2 !important; color: #1877F2 !important; }
-            </style>
+</style>
         """, unsafe_allow_html=True)
 
         block_buton_metni = "✅ Engeli Aç" if ben_engelledim else "🚫 Engelle"
@@ -4657,7 +4688,7 @@ with st.popover(buton_ismi):
             
             if btn_emoji: 
                 animasyonlu_html = """
-                <style>
+<style>
                 @keyframes alttanDogus {
                     0% { transform: translateY(30px); opacity: 0; }
                     5% { transform: translateY(0px); opacity: 1; }
@@ -4671,7 +4702,7 @@ with st.popover(buton_ismi):
                     box-shadow: 0 4px 10px rgba(0,0,0,0.4); width: 80%;
                     pointer-events: none;
                 }
-                </style>
+</style>
                 <div style='display: flex; justify-content: center; overflow: hidden; padding-bottom: 5px; margin-bottom: 5px;'>
                     <div class='sihirli-balon'>💡 Klavyeden Emojiler için: <b>Windows + .</b> (Nokta)</div>
                 </div>
