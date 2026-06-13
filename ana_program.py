@@ -2440,41 +2440,39 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                             elif row['Mevcut Miktar'] <= row['Kritik Sınır']: return ['background-color: rgba(248, 113, 113, 0.2)'] * len(row) 
                             else: return [''] * len(row)
                             
-                        st.dataframe(df_filtre.style.format({"Mevcut Miktar": "{:.0f}", "Kritik Sınır": "{:.0f}"}).apply(satir_renk, axis=1), hide_index=True, use_container_width=True)
+                        col_tablo, col_islemler = st.columns([3.5, 1.5])
+                        
+                        with col_tablo:
+                            st.dataframe(df_filtre.style.format({"Mevcut Miktar": "{:.0f}", "Kritik Sınır": "{:.0f}"}).apply(satir_renk, axis=1), hide_index=True, use_container_width=True)
 
-                        # ✏️ İŞLEMLER PANELİ (Güncelle / Sil)
-                        st.markdown("---")
-                        st.markdown("<h5 style='color:#38bdf8;margin-bottom:8px;'>⚡ İşlemler</h5>", unsafe_allow_html=True)
-                        
-                        islem_urun_secenekleri = [f"{r['Ürün Kodu']} | {r['Ürün Adı']}{f' (Renk: {r[chr(82)+chr(101)+chr(110)+chr(107)]}' if r.get('Renk') and r['Renk'] not in ['-',''] else ''}{')' if r.get('Renk') and r['Renk'] not in ['-',''] else ''} — Mevcut: {int(r['Mevcut Miktar'])}" for _, r in df_filtre.iterrows()]
-                        
-                        col_sec, col_bos = st.columns([2, 3])
-                        secilen_islem_urun = col_sec.selectbox(
-                            "İşlem Yapılacak Ürünü Seçin", 
-                            ["— Seçiniz —"] + islem_urun_secenekleri,
-                            key=f"islem_urun_{kat_adi}"
-                        )
-                        
-                        if secilen_islem_urun != "— Seçiniz —":
-                            secilen_kod = secilen_islem_urun.split("|")[0].strip()
-                            mevcut_kayit = c.execute("SELECT Urun_Adi, Mevcut_Miktar, Renk FROM stok WHERE Urun_Kodu=?", (secilen_kod,)).fetchone()
+                        with col_islemler:
+                            # ✏️ İŞLEMLER PANELİ (Güncelle / Sil)
+                            st.markdown("<h5 style='color:#38bdf8;margin-bottom:8px;'>⚡ İşlemler</h5>", unsafe_allow_html=True)
                             
-                            if mevcut_kayit:
-                                col_guncelle, col_sil = st.columns([3, 1])
+                            islem_urun_secenekleri = [f"{r['Ürün Kodu']} | {r['Ürün Adı']}{f' (Renk: {r[chr(82)+chr(101)+chr(110)+chr(107)]}' if r.get('Renk') and r['Renk'] not in ['-',''] else ''}{')' if r.get('Renk') and r['Renk'] not in ['-',''] else ''} — Mevcut: {int(r['Mevcut Miktar'])}" for _, r in df_filtre.iterrows()]
+                            
+                            secilen_islem_urun = st.selectbox(
+                                "İşlem Yapılacak Ürünü Seçin", 
+                                ["— Seçiniz —"] + islem_urun_secenekleri,
+                                key=f"islem_urun_{kat_adi}"
+                            )
+                            
+                            if secilen_islem_urun != "— Seçiniz —":
+                                secilen_kod = secilen_islem_urun.split("|")[0].strip()
+                                mevcut_kayit = c.execute("SELECT Urun_Adi, Mevcut_Miktar, Renk FROM stok WHERE Urun_Kodu=?", (secilen_kod,)).fetchone()
                                 
-                                with col_guncelle:
+                                if mevcut_kayit:
                                     with st.form(f"guncelle_form_{kat_adi}_{secilen_kod}"):
                                         st.markdown(f"**✏️ Güncelle:** `{secilen_kod}`")
-                                        g_col1, g_col2 = st.columns(2)
-                                        yeni_miktar = g_col1.number_input(
+                                        yeni_miktar = st.number_input(
                                             "Yeni Miktar", 
                                             min_value=0.0, 
                                             value=float(mevcut_kayit[1]) if mevcut_kayit[1] else 0.0,
                                             step=1.0,
                                             key=f"yeni_mik_{kat_adi}_{secilen_kod}"
                                         )
-                                        yeni_renk = g_col2.text_input(
-                                            "Yeni Renk (Örn: A1, A2, BL2)",
+                                        yeni_renk = st.text_input(
+                                            "Yeni Renk (Örn: A1)",
                                             value=str(mevcut_kayit[2]) if mevcut_kayit[2] else "-",
                                             key=f"yeni_renk_{kat_adi}_{secilen_kod}"
                                         )
@@ -2483,14 +2481,12 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                                                 c.execute("UPDATE stok SET Mevcut_Miktar=?, Renk=? WHERE Urun_Kodu=?",
                                                          (yeni_miktar, yeni_renk.strip().upper() if yeni_renk.strip() != "" else "-", secilen_kod))
                                                 conn.commit()
-                                                st.success(f"✅ Güncellendi! {secilen_kod} → Miktar: {yeni_miktar}, Renk: {yeni_renk.upper()}")
+                                                st.success(f"✅ Güncellendi!")
                                                 st.rerun()
                                             except Exception as e:
                                                 st.error(f"Hata: {e}")
-                                
-                                with col_sil:
+                                                
                                     st.markdown("**🗑️ Sil**")
-                                    st.warning(f"`{secilen_kod}`\nsilinecek!")
                                     if st.button("🗑️ Sil", key=f"sil_btn_{kat_adi}_{secilen_kod}", type="primary", use_container_width=True):
                                         try:
                                             c.execute("DELETE FROM stok WHERE Urun_Kodu=?", (secilen_kod,))
