@@ -2305,38 +2305,87 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
             if not is_yeni:
                 c1, c2 = st.columns(2)
                 k_sec = c1.selectbox("Kategori Filtresi", STOK_KATEGORILER, key="manual_stok_kat")
-                u_list = c.execute("SELECT Urun_Kodu, Urun_Adi, Mevcut_Miktar, Birim FROM stok WHERE Kategori=?", (k_sec,)).fetchall()
+                u_list = c.execute("SELECT Urun_Kodu, Urun_Adi, Mevcut_Miktar, Birim, Renk FROM stok WHERE Kategori=?", (k_sec,)).fetchall()
                 if u_list:
-                    u_dict = {f"{u[0]} | {u[1]} (Mevcut: {u[2]:.0f} {u[3]})": u[0] for u in u_list}
+                    u_dict = {f"{u[0]} | {u[1]}{f' (Renk: {u[4]})' if u[4] and u[4] != '-' else ''} (Mevcut: {u[2]:.0f} {u[3]})": u[0] for u in u_list}
                     s_u = c2.selectbox("İşlem Yapılacak Ürün", list(u_dict.keys()), key="manual_stok_urun")
-                    col_y, col_m = st.columns(2)
-                    i_yon = col_y.radio("Yön", ["➕ Ekle (Giriş)", "➖ Düş (Çıkış)"], horizontal=True)
-                    m_mik = col_m.number_input("Miktar", min_value=1.0, value=1.0, key="manual_stok_mik")
-                    if st.button("Stoğu Güncelle"):
+                    
+                    with st.form("manuel_stok_guncelleme_formu"):
+                        girilen_renk = st.text_input("Renk Belirtin (Örn: A1, A2 - Yeni bir renk varyantı eklemek için buraya yazın)", value="-")
+                        
+                        col_y, col_m = st.columns(2)
+                        i_yon = col_y.radio("Yön", ["➕ Ekle (Giriş)", "➖ Düş (Çıkış)"], horizontal=True)
+                        m_mik = col_m.number_input("Miktar", min_value=1.0, value=1.0, key="manual_stok_mik")
+                        
+                        guncelle_btn = st.form_submit_button("Stoğu Güncelle")
+
+                    if guncelle_btn:
                         sec_kod_guncelle = s_u.split("|")[0].strip()
-                        mevcut = c.execute("SELECT Mevcut_Miktar FROM stok WHERE Urun_Kodu=?", (sec_kod_guncelle,)).fetchone()[0]
-                        if "➖" in i_yon:
-                            if mevcut < m_mik: st.error("Stok Yetersiz!")
-                            else: c.execute("UPDATE stok SET Mevcut_Miktar=? WHERE Urun_Kodu=?", (mevcut - m_mik, sec_kod_guncelle)); conn.commit(); st.success("Düşüldü!"); st.rerun()
-                        else: c.execute("UPDATE stok SET Mevcut_Miktar=? WHERE Urun_Kodu=?", (mevcut + m_mik, sec_kod_guncelle)); conn.commit(); st.success("Eklendi!"); st.rerun()
+                        
+                        hedef_kod = sec_kod_guncelle
+                        if girilen_renk.strip() != "" and girilen_renk.strip() != "-":
+                            hedef_kod = f"{sec_kod_guncelle}-{girilen_renk.strip().upper()}"
+                            
+                        mevcut_urun = c.execute("SELECT Mevcut_Miktar, Urun_Adi, Kategori, Birim, Kritik_Sinir, Satis_Fiyati, Durum FROM stok WHERE Urun_Kodu=?", (hedef_kod,)).fetchone()
+                        
+                        try:
+                            if not mevcut_urun:
+                                if "➖" in i_yon:
+                                    st.error(f"'{girilen_renk}' renginde stok kaydı bulunmuyor, çıkış yapılamaz!")
+                                else:
+                                    base_urun = c.execute("SELECT Urun_Adi, Kategori, Birim, Kritik_Sinir, Satis_Fiyati, Durum FROM stok WHERE Urun_Kodu=?", (sec_kod_guncelle,)).fetchone()
+                                    if not base_urun:
+                                        st.error("Ana ürün bulunamadı!")
+                                    else:
+                                        c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum, Renk) VALUES (?,?,?,?,?,?,?,?,?)", 
+                                                  (hedef_kod, base_urun[0], base_urun[1], m_mik, base_urun[2], base_urun[3], base_urun[4], base_urun[5], girilen_renk.strip().upper()))
+                                        conn.commit()
+                                        st.success(f"Başarılı! Yeni Varyant Eklendi: {hedef_kod}")
+                            else:
+                                mevcut = mevcut_urun[0]
+                                if "➖" in i_yon:
+                                    if mevcut < m_mik: st.error("Stok Yetersiz!")
+                                    else: 
+                                        c.execute("UPDATE stok SET Mevcut_Miktar=? WHERE Urun_Kodu=?", (mevcut - m_mik, hedef_kod))
+                                        conn.commit()
+                                        st.success(f"Düşüldü! Kalan: {mevcut - m_mik}")
+                                else: 
+                                    c.execute("UPDATE stok SET Mevcut_Miktar=? WHERE Urun_Kodu=?", (mevcut + m_mik, hedef_kod))
+                                    conn.commit()
+                                    st.success(f"Eklendi! Yeni Miktar: {mevcut + m_mik}")
+                        except Exception as e:
+                            st.error(f"Veritabanı Hatası: {str(e)}")
+                            
+                        # Sayfayı yenileme butonu
+                        if st.button("Sayfayı Yenile ve Sonucu Gör"):
+                            st.rerun()
             else:
                 with st.form("yeni_stok_formu"):
-                    c1, c2 = st.columns(2)
+                    c1, c2, c3 = st.columns(3)
                     kod = c1.text_input("Yeni Ürün Kodu")
                     ad = c2.text_input("Yeni Ürün Adı")
+                    renk = c3.text_input("Renk (Opsiyonel)", value="-")
+                    
                     kat = c1.selectbox("Kategori", STOK_KATEGORILER)
                     durum = c2.selectbox("Ürün Durumu", ["Aktif (Alarm Verir)", "Pasif (Alarm Vermez)"])
-                    fiy = c1.number_input("Satış Fiyatı (TL)", value=0.0)
-                    mik = c2.number_input("Miktar", value=1.0)
-                    bir = c1.selectbox("Birim", ["Adet", "Gram", "Litre", "Kutu"])
-                    sinir = c2.number_input("Kritik Sınır", value=5.0)
+                    fiy = c3.number_input("Satış Fiyatı (TL)", value=0.0)
+                    
+                    mik = c1.number_input("Miktar", value=1.0)
+                    bir = c2.selectbox("Birim", ["Adet", "Gram", "Litre", "Kutu"])
+                    sinir = c3.number_input("Kritik Sınır", value=5.0)
+                    
                     if st.form_submit_button("Kaydet") and kod and ad:
                         d_str = "Aktif" if "Aktif" in durum else "Pasif"
-                        c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum) VALUES (?,?,?,?,?,?,?,?)", (kod, ad, kat, mik, bir, sinir, fiy, d_str))
+                        hedef_kod = kod
+                        if renk.strip() != "" and renk.strip() != "-":
+                            hedef_kod = f"{kod}-{renk.strip().upper()}"
+                            
+                        c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum, Renk) VALUES (?,?,?,?,?,?,?,?,?)", 
+                                  (hedef_kod, ad, kat, mik, bir, sinir, fiy, d_str, renk.strip().upper() if renk.strip() != "-" else "-"))
                         conn.commit(); st.success("Eklendi!"); st.rerun()
         with t2:
             st.info("Kullanmadığınız ürünleri 'Pasif' yaparak Stok Alarmından çıkarabilirsiniz. Pasif ürünler listenin en altına gri renkte yerleşir.")
-            df_stok = pd.read_sql("SELECT * FROM stok", conn)
+            df_stok = pd.read_sql("SELECT * FROM stok ORDER BY Urun_Kodu ASC", conn)
             
             c_aktif1, c_aktif2 = st.columns(2)
             degisecek_urun = c_aktif1.selectbox("Durumunu Değiştirmek İstediğiniz Ürün", ["-- Seçiniz --"] + [f"{r['Urun_Kodu']} | {r['Urun_Adi']} (Şu an: {r['Durum']})" for _, r in df_stok.iterrows()])
@@ -2361,7 +2410,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
             
             st.markdown("<br>", unsafe_allow_html=True)
 
-            df_stok.columns = ["id", "Ürün Kodu", "Ürün Adı", "Kategori", "Mevcut Miktar", "Birim", "Kritik Sınır", "Satış Fiyatı (TL)", "Durum"]
+            df_stok.columns = ["id", "Ürün Kodu", "Ürün Adı", "Kategori", "Mevcut Miktar", "Birim", "Kritik Sınır", "Satış Fiyatı (TL)", "Durum", "Renk"]
             df_stok_gorsel = df_stok.drop(columns=["id", "Satış Fiyatı (TL)"]) 
             
             # ARAMA FİLTRESİNİ UYGULA
@@ -2389,6 +2438,64 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                             else: return [''] * len(row)
                             
                         st.dataframe(df_filtre.style.format({"Mevcut Miktar": "{:.0f}", "Kritik Sınır": "{:.0f}"}).apply(satir_renk, axis=1), hide_index=True, use_container_width=True)
+
+                        # ✏️ İŞLEMLER PANELİ (Güncelle / Sil)
+                        st.markdown("---")
+                        st.markdown("<h5 style='color:#38bdf8;margin-bottom:8px;'>⚡ İşlemler</h5>", unsafe_allow_html=True)
+                        
+                        islem_urun_secenekleri = [f"{r['Ürün Kodu']} | {r['Ürün Adı']}{f' (Renk: {r[chr(82)+chr(101)+chr(110)+chr(107)]}' if r.get('Renk') and r['Renk'] not in ['-',''] else ''}{')' if r.get('Renk') and r['Renk'] not in ['-',''] else ''} — Mevcut: {int(r['Mevcut Miktar'])}" for _, r in df_filtre.iterrows()]
+                        
+                        col_sec, col_bos = st.columns([2, 3])
+                        secilen_islem_urun = col_sec.selectbox(
+                            "İşlem Yapılacak Ürünü Seçin", 
+                            ["— Seçiniz —"] + islem_urun_secenekleri,
+                            key=f"islem_urun_{kat_adi}"
+                        )
+                        
+                        if secilen_islem_urun != "— Seçiniz —":
+                            secilen_kod = secilen_islem_urun.split("|")[0].strip()
+                            mevcut_kayit = c.execute("SELECT Urun_Adi, Mevcut_Miktar, Renk FROM stok WHERE Urun_Kodu=?", (secilen_kod,)).fetchone()
+                            
+                            if mevcut_kayit:
+                                col_guncelle, col_sil = st.columns([3, 1])
+                                
+                                with col_guncelle:
+                                    with st.form(f"guncelle_form_{kat_adi}_{secilen_kod}"):
+                                        st.markdown(f"**✏️ Güncelle:** `{secilen_kod}`")
+                                        g_col1, g_col2 = st.columns(2)
+                                        yeni_miktar = g_col1.number_input(
+                                            "Yeni Miktar", 
+                                            min_value=0.0, 
+                                            value=float(mevcut_kayit[1]) if mevcut_kayit[1] else 0.0,
+                                            step=1.0,
+                                            key=f"yeni_mik_{kat_adi}_{secilen_kod}"
+                                        )
+                                        yeni_renk = g_col2.text_input(
+                                            "Yeni Renk (Örn: A1, A2, BL2)",
+                                            value=str(mevcut_kayit[2]) if mevcut_kayit[2] else "-",
+                                            key=f"yeni_renk_{kat_adi}_{secilen_kod}"
+                                        )
+                                        if st.form_submit_button("💾 Güncelle", use_container_width=True):
+                                            try:
+                                                c.execute("UPDATE stok SET Mevcut_Miktar=?, Renk=? WHERE Urun_Kodu=?",
+                                                         (yeni_miktar, yeni_renk.strip().upper() if yeni_renk.strip() != "" else "-", secilen_kod))
+                                                conn.commit()
+                                                st.success(f"✅ Güncellendi! {secilen_kod} → Miktar: {yeni_miktar}, Renk: {yeni_renk.upper()}")
+                                                st.rerun()
+                                            except Exception as e:
+                                                st.error(f"Hata: {e}")
+                                
+                                with col_sil:
+                                    st.markdown("**🗑️ Sil**")
+                                    st.warning(f"`{secilen_kod}`\nsilinecek!")
+                                    if st.button("🗑️ Sil", key=f"sil_btn_{kat_adi}_{secilen_kod}", type="primary", use_container_width=True):
+                                        try:
+                                            c.execute("DELETE FROM stok WHERE Urun_Kodu=?", (secilen_kod,))
+                                            conn.commit()
+                                            st.success(f"✅ {secilen_kod} silindi!")
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"Hata: {e}")
                     else:
                         if stok_arama_terimi:
                             st.info(f"Arama sonucunda '{kat_adi}' kategorisinde '{stok_arama_terimi}' ile eşleşen bir ürün bulunamadı.")
@@ -2407,25 +2514,31 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
                         sutunlar = [str(col).strip().upper() for col in df_toplu.columns]
                         df_toplu.columns = sutunlar
                         
-                        kod_kolonu = next((col for col in sutunlar if "KOD" in col), None)
-                        adi_kolonu = next((col for col in sutunlar if "AD" in col or "ÜRÜN" in col or "MALZEME" in col and col != kod_kolonu), None)
-                        fiyat_kolonu = next((col for col in sutunlar if "FİYAT" in col or "FIYAT" in col), None)
-                        kat_kolonu = next((col for col in sutunlar if "KATEGORİ" in col or "KATEGORI" in col), None)
+                        kod_kolonu = next((col for col in sutunlar if any(x in col for x in ["KOD", "CODE", "NO", "NUM"])), sutunlar[0] if len(sutunlar) > 0 else None)
+                        adi_kolonu = next((col for col in sutunlar if any(x in col for x in ["AD", "ÜRÜN", "URUN", "MALZEME", "TANIM", "DESC", "NAME", "AÇIKLAMA", "ACIKLAMA"]) and col != kod_kolonu), sutunlar[1] if len(sutunlar) > 1 else kod_kolonu)
+                        fiyat_kolonu = next((col for col in sutunlar if "FİYAT" in col or "FIYAT" in col or "PRICE" in col or "TUTAR" in col), None)
+                        kat_kolonu = next((col for col in sutunlar if "KATEGORİ" in col or "KATEGORI" in col or "CAT" in col), None)
                         
                         eklenen = 0
                         for _, row in df_toplu.iterrows():
-                            kodu = str(row[kod_kolonu])
-                            adi = str(row[adi_kolonu])
-                            # Kategori hücresini oku, yoksa 'Sarf Malzeme' ata
-                            kategorisi = str(row[kat_kolonu]) if kat_kolonu and str(row[kat_kolonu]) != 'nan' else "Sarf Malzeme"
+                            if not kod_kolonu: continue
                             
-                            try: fiyati = float(row[fiyat_kolonu]) if fiyat_kolonu else 0.0
+                            kodu = str(row.get(kod_kolonu, ""))
+                            adi = str(row.get(adi_kolonu, ""))
+                            
+                            # Kategori hücresini oku, yoksa 'Sarf Malzeme' ata
+                            kategorisi = str(row.get(kat_kolonu, "Sarf Malzeme")) if kat_kolonu else "Sarf Malzeme"
+                            if kategorisi == "nan" or not kategorisi.strip(): kategorisi = "Sarf Malzeme"
+                            
+                            try: fiyati = float(row.get(fiyat_kolonu, 0.0)) if fiyat_kolonu else 0.0
                             except: fiyati = 0.0
                             
-                            if kodu.strip() != "" and kodu != "nan" and not c.execute("SELECT * FROM stok WHERE Urun_Kodu=?", (kodu,)).fetchone():
-                                c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum) VALUES (?,?,?,?,?,?,?,'Aktif')", 
-                                          (kodu, adi, kategorisi, 0.0, "Adet", 5.0, fiyati))
-                                eklenen += 1
+                            if kodu.strip() != "" and kodu != "nan":
+                                mevcut_mu = c.execute("SELECT id FROM stok WHERE Urun_Kodu=?", (kodu,)).fetchone()
+                                if not mevcut_mu:
+                                    c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum) VALUES (?,?,?,?,?,?,?,'Aktif')", 
+                                              (kodu, adi, kategorisi, 0.0, "Adet", 5.0, fiyati))
+                                    eklenen += 1
                         conn.commit()
                         if eklenen > 0: st.success(f"✅ {eklenen} yeni ürün/demirbaş başarıyla eklendi!"); st.balloons()
                         else: st.warning("Yeni ürün bulunamadı veya tüm ürünler zaten kayıtlı.")
@@ -3789,6 +3902,7 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
 </style>
         """, unsafe_allow_html=True)
 
+        st.sidebar.success("🔥 Sürüm: V3 - Renk Sistemi Aktif")
         st.title("🤖 OMG AI - Laboratuvar Zekası")
         st.markdown("Merhaba Hocam! Laboratuvarın tüm finansal, üretim ve stok verileri anlık olarak beynimde. Bana ne sormak istersiniz?")
         
