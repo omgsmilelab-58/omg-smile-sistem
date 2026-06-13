@@ -2413,6 +2413,9 @@ elif rol in ["Admin", "Sekreter", "Teknisyen"]:
             df_stok.columns = ["id", "Ürün Kodu", "Ürün Adı", "Kategori", "Mevcut Miktar", "Birim", "Kritik Sınır", "Satış Fiyatı (TL)", "Durum", "Renk"]
             df_stok_gorsel = df_stok.drop(columns=["id", "Satış Fiyatı (TL)"]) 
             
+            # SADECE STOKTA VAR OLANLARI GÖSTER (Mevcut Miktar > 0)
+            df_stok_gorsel = df_stok_gorsel[df_stok_gorsel['Mevcut Miktar'] > 0]
+            
             # ARAMA FİLTRESİNİ UYGULA
             if stok_arama_terimi:
                 # Hem ürün kodunda hem de ürün adında küçük/büyük harf duyarsız arama yapar
