@@ -2675,7 +2675,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 
                 # 🚨 FİLTRE DARALTILDI 🚨
                 col_filtre, col_fbos = st.columns([1.5, 4])
-                min_uye_filtre = col_filtre.number_input("🔍 Min Kalan Üye Filtresi:", min_value=1, max_value=22, value=1)
+                min_uye_filtre = col_filtre.number_input("🔍 Min Kalan Üye Filtresi:", min_value=0, max_value=22, value=0)
                 
                 # 🚨 TABLO YERİNE DİNAMİK YÖNETİM KARTLARI (İLAVE/ÇÖPE AT) 🚨
                 df_bloklar = pd.read_sql("SELECT id, Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye, Durum FROM cam_bloklar WHERE Durum='Yarım' ORDER BY Blok_Kodu ASC", conn)
