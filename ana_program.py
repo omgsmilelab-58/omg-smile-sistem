@@ -4095,7 +4095,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         except:
             klinikler = []
 
-        tab_tahsilat, tab_ekstre, tab_gider, tab_analitik, tab_nakit, tab_fiyat = st.tabs(["💵 Tahsilat Gir", "🧾 Cari Ekstre", "💸 Giderler", "📈 Gerçek Kârlılık (CFO)", "🌊 Nakit Radarı & FP&A Tahminleme", "🏷️ İş Fiyatlandırma"])
+        tab_tahsilat, tab_ekstre, tab_gider, tab_analitik, tab_nakit, tab_fiyat, tab_ekstre_arsiv = st.tabs(["💵 Tahsilat Gir", "💳 Cari Bakiye", "💸 Giderler", "📈 Gerçek Kârlılık (CFO)", "🌊 Nakit Radarı & FP&A Tahminleme", "🏷️ İş Fiyatlandırma", "📂 Hesap Ekstreleri"])
         
         with tab_fiyat:
             st.markdown("#### 🏷️ İş Fiyatlandırma")
@@ -4256,29 +4256,129 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         conn.commit(); st.success("✅ Tahsilat işlendi, cari bakiye güncellendi!"); st.rerun()
 
         with tab_ekstre:
+            st.markdown("#### 💳 Cari Bakiye ve Hesap Ekstresi")
             if klinikler:
-                secilen_klinik_ekstre = st.selectbox("Ekstresini Çıkarmak İstediğiniz Klinik", klinikler, key="ekstre_klinik")
-                if st.button("📊 Ekstreyi Hazırla", use_container_width=True):
-                    anlik_bakiye = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (secilen_klinik_ekstre,)).fetchone()[0]
+                secilen_klinik_ekstre = st.selectbox("Klinik Seçin", klinikler, key="ekstre_klinik")
+                
+                # --- Cari Bakiye Kartı ---
+                try:
+                    anlik_bakiye_goster = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (secilen_klinik_ekstre,)).fetchone()[0] or 0.0
+                    para_birimi_k = ayar_getir("Para_Birimi", "TL")
+                    renk = "#ef4444" if anlik_bakiye_goster > 0 else "#22c55e"
+                    st.markdown(f"""
+                    <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid {renk}40; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px;'>
+                        <div style='color: #94a3b8; font-size: 14px; margin-bottom: 8px;'>⚡ Güncel Cari Bakiye</div>
+                        <div style='color: {renk}; font-size: 42px; font-weight: 800;'>{anlik_bakiye_goster:,.2f} {para_birimi_k}</div>
+                        <div style='color: #64748b; font-size: 12px; margin-top: 8px;'>{secilen_klinik_ekstre}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                except:
+                    anlik_bakiye_goster = 0.0
+
+                col_b1, col_b2 = st.columns(2)
+                # --- Bakiye Sıfırla ---
+                with col_b1.expander("⚙️ Bakiyeyi Manuel Düzenle"):
+                    yeni_bakiye_manuel = st.number_input("Yeni Bakiye Değeri (TL)", value=float(anlik_bakiye_goster), step=100.0, key="bky_manuel")
+                    if st.button("💾 Bakiyeyi Güncelle", type="primary", use_container_width=True, key="bky_guncelle"):
+                        c.execute("UPDATE cariler SET Bakiye=? WHERE Klinik_Unvani=?", (float(yeni_bakiye_manuel), secilen_klinik_ekstre))
+                        conn.commit()
+                        st.success(f"✅ {secilen_klinik_ekstre} bakiyesi {yeni_bakiye_manuel:,.2f} TL olarak güncellendi!")
+                        st.rerun()
+
+                st.markdown("---")
+
+                # --- Hesap Ekstresi Oluştur ---
+                if col_b2.button("📄 Hesap Ekstresi Oluştur", type="primary", use_container_width=True, key="ekstre_olustur"):
+                    anlik_bakiye = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (secilen_klinik_ekstre,)).fetchone()[0] or 0.0
                     df_borc = pd.read_sql(f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak FROM isler WHERE Klinik_Unvani='{secilen_klinik_ekstre}' AND Tutar_TL > 0", conn)
                     df_alacak = pd.read_sql(f"SELECT Tarih, Odeme_Turu || ' Ödemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak FROM tahsilatlar WHERE Klinik_Unvani='{secilen_klinik_ekstre}'", conn)
                     df_borc = df_borc.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
                     df_alacak = df_alacak.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
-                    
+
                     df_ekstre = pd.concat([df_borc, df_alacak]).sort_values(by="Tarih").reset_index(drop=True)
                     toplam_yazilan_borc = df_ekstre['Borc'].sum() if not df_ekstre.empty else 0
                     toplam_alinan_odeme = df_ekstre['Alacak'].sum() if not df_ekstre.empty else 0
                     devreden_bakiye = anlik_bakiye - toplam_yazilan_borc + toplam_alinan_odeme
-                    
+
                     ilk_satir = pd.DataFrame({"Tarih": ["-"], "Islem": ["Devreden Bakiyesi"], "Borc": [devreden_bakiye if devreden_bakiye > 0 else 0], "Alacak": [abs(devreden_bakiye) if devreden_bakiye < 0 else 0]})
                     df_ekstre = pd.concat([ilk_satir, df_ekstre], ignore_index=True)
                     df_ekstre['Kümülatif Bakiye'] = df_ekstre['Borc'].cumsum() - df_ekstre['Alacak'].cumsum()
-                    
-                    st.dataframe(df_ekstre.style.format({"Borc": "{:,.2f}", "Alacak": "{:,.2f}", "Kümülatif Bakiye": "{:,.2f}"}), hide_index=True, use_container_width=True)
+
+                    st.session_state["son_ekstre_df"] = df_ekstre
+                    st.session_state["son_ekstre_klinik"] = secilen_klinik_ekstre
+                    st.session_state["son_ekstre_bakiye"] = anlik_bakiye
+                    st.session_state["ekstre_gosteriliyor"] = True
+
+                if st.session_state.get("ekstre_gosteriliyor") and st.session_state.get("son_ekstre_klinik") == secilen_klinik_ekstre:
+                    df_ekstre_goster = st.session_state["son_ekstre_df"]
+                    anlik_bakiye = st.session_state["son_ekstre_bakiye"]
+                    st.dataframe(df_ekstre_goster.style.format({"Borc": "{:,.2f}", "Alacak": "{:,.2f}", "Kümülatif Bakiye": "{:,.2f}"}), hide_index=True, use_container_width=True)
                     try:
-                        pdf_dosyasi_admin = ekstre_pdf_uret(secilen_klinik_ekstre, df_ekstre, anlik_bakiye)
-                        st.download_button("📥 PDF Olarak İndir & Yazdır", data=pdf_dosyasi_admin, file_name=f"{secilen_klinik_ekstre}_Ekstre.pdf", mime="application/pdf", use_container_width=True)
-                    except: pass
+                        pdf_dosyasi_admin = ekstre_pdf_uret(secilen_klinik_ekstre, df_ekstre_goster, anlik_bakiye)
+                        # Arşive kaydet
+                        arsiv_tarih = datetime.now().strftime("%Y-%m-%d %H:%M")
+                        arsiv_dosya_adi = f"{secilen_klinik_ekstre}_Ekstre_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+                        try:
+                            c.execute("INSERT INTO ekstre_arsiv (Tarih, Klinik_Unvani, Dosya_Adi, PDF_Verisi, Son_Bakiye) VALUES (?,?,?,?,?)",
+                                      (arsiv_tarih, secilen_klinik_ekstre, arsiv_dosya_adi, pdf_dosyasi_admin, float(anlik_bakiye)))
+                            conn.commit()
+                        except:
+                            pass  # Tablo yoksa sessizce geç
+                        st.download_button("📥 Hesap Ekstresini PDF Olarak İndir", data=pdf_dosyasi_admin,
+                                           file_name=arsiv_dosya_adi, mime="application/pdf", use_container_width=True)
+                    except Exception as e:
+                        st.error(f"PDF oluşturulamadı: {e}")
+
+        with tab_ekstre_arsiv:
+            st.markdown("#### 📂 Hesap Ekstresi Arşivi")
+            st.caption("Daha önce oluşturulmuş hesap ekstrelerini klinik bazında görüntüleyebilir ve PDF olarak indirebilirsiniz.")
+            
+            try:
+                c.execute("""CREATE TABLE IF NOT EXISTS ekstre_arsiv (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Tarih TEXT,
+                    Klinik_Unvani TEXT,
+                    Dosya_Adi TEXT,
+                    PDF_Verisi BLOB,
+                    Son_Bakiye REAL
+                )""")
+                conn.commit()
+            except:
+                pass
+
+            try:
+                df_arsiv = pd.read_sql("SELECT id, Tarih, Klinik_Unvani, Dosya_Adi, Son_Bakiye FROM ekstre_arsiv ORDER BY id DESC", conn)
+                if not df_arsiv.empty:
+                    # Filtre
+                    arsiv_klinik_sec = st.selectbox("🔍 Kliniğe Göre Filtrele", ["Tümü"] + list(df_arsiv["Klinik_Unvani"].unique()), key="arsiv_filtre")
+                    df_goster = df_arsiv if arsiv_klinik_sec == "Tümü" else df_arsiv[df_arsiv["Klinik_Unvani"] == arsiv_klinik_sec]
+                    
+                    st.markdown(f"**Toplam {len(df_goster)} ekstre arşivde bulunuyor.**")
+                    
+                    for _, row in df_goster.iterrows():
+                        with st.container(border=True):
+                            ca1, ca2, ca3 = st.columns([3, 2, 2])
+                            ca1.markdown("🏥 **" + str(row["Klinik_Unvani"]) + "**  \n📅 " + str(row["Tarih"]))
+                            ca2.markdown(f"💰 Son Bakiye: **{float(row['Son_Bakiye'] or 0):,.2f} TL**")
+                            # PDF indir butonu
+                            try:
+                                pdf_raw = c.execute("SELECT PDF_Verisi FROM ekstre_arsiv WHERE id=?", (int(row["id"]),)).fetchone()
+                                if pdf_raw and pdf_raw[0]:
+                                    pdf_bytes = bytes(pdf_raw[0]) if not isinstance(pdf_raw[0], bytes) else pdf_raw[0]
+                                    ca3.download_button(
+                                        "📥 PDF İndir",
+                                        data=pdf_bytes,
+                                        file_name=str(row["Dosya_Adi"]),
+                                        mime="application/pdf",
+                                        use_container_width=True,
+                                        key=f"arsiv_indir_{row['id']}"
+                                    )
+                            except:
+                                ca3.caption("PDF mevcut değil")
+                else:
+                    st.info("📭 Henüz arşivlenmiş hesap ekstresi bulunmuyor. 'Cari Bakiye' sekmesinden 'Hesap Ekstresi Oluştur' butonunu kullandığınızda ekstreler otomatik olarak buraya kaydedilecektir.")
+            except Exception as e:
+                st.error(f"Arşiv yüklenemedi: {e}")
 
         with tab_gider:
             with st.container(border=True):
