@@ -2679,10 +2679,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 if filtre_uygula:
                     min_uye_filtre = col_filtre.number_input("🔍 Min Kalan Üye:", min_value=1, max_value=22, value=1)
                 else:
-                    min_uye_filtre = 0
+                    min_uye_filtre = -9999
 
                 # 🚨 TABLO YERİNE DİNAMİK YÖNETİM KARTLARI (İLAVE/ÇÖPE AT) 🚨
-                df_bloklar = pd.read_sql("SELECT id, Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye, Durum FROM cam_bloklar WHERE Durum='Yarım' ORDER BY Blok_Kodu ASC", conn)
+                df_bloklar = pd.read_sql("SELECT id, Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye, Durum FROM cam_bloklar WHERE Durum IN ('Yarım', 'Aktif') ORDER BY Blok_Kodu ASC", conn)
                 
                 if not df_bloklar.empty: 
                     gosterilecekler = df_bloklar[df_bloklar['Kalan_Uye'] >= min_uye_filtre]
@@ -3833,7 +3833,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             0,
                             Kullanici,
                             CASE 
-                                WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = m.Urun_Kodu AND c.Durum = 'Yarım') THEN 'Aktif'
+                                WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = m.Urun_Kodu AND c.Durum IN ('Yarım', 'Aktif')) THEN 'Aktif'
                                 WHEN EXISTS (SELECT 1 FROM aktif_frezler f WHERE f.frez_kod = m.Urun_Kodu AND f.durum = 'Aktif') THEN 'Aktif'
                                 ELSE 'Pasif'
                             END
@@ -3851,7 +3851,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             COALESCE(dakika, 0),
                             'Sistem (Üretim Logu)',
                             CASE 
-                                WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = u.malzeme_kodu AND c.Durum = 'Yarım') THEN 'Aktif'
+                                WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = u.malzeme_kodu AND c.Durum IN ('Yarım', 'Aktif')) THEN 'Aktif'
                                 WHEN EXISTS (SELECT 1 FROM aktif_frezler f WHERE f.frez_kod = u.malzeme_kodu AND f.durum = 'Aktif') THEN 'Aktif'
                                 ELSE 'Pasif'
                             END
