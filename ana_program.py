@@ -946,6 +946,63 @@ def ekstre_pdf_uret(klinik, df, son_bakiye):
     pdf_out = pdf.output(dest='S')
     return pdf_out.encode('latin1') if hasattr(pdf_out, 'encode') else bytes(pdf_out)
 
+
+def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, aciklama=""):
+    """Fatura PDF oluşturur ve bytes döner."""
+    def tr(metin): return str(metin).replace('ı','i').replace('ş','s').replace('ğ','g').replace('ö','o').replace('ç','c').replace('ü','u').replace('İ','I').replace('Ş','S').replace('Ğ','G').replace('Ö','O').replace('Ç','C').replace('Ü','U')
+    pdf = FPDF(orientation='P', unit='mm', format='A4')
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    logo_yolu = ayar_getir("Kurumsal_Logo", "-")
+    if logo_yolu != "-" and os.path.exists(logo_yolu):
+        pdf.image(logo_yolu, x=10, y=10, w=35)
+        pdf.set_y(25)
+
+    # Başlık
+    pdf.set_font("Courier", "B", 18); pdf.set_text_color(30, 58, 138)
+    pdf.cell(0, 10, "FATURA", ln=True, align="C")
+    pdf.set_font("Courier", "B", 11); pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 7, tr(f"Fatura No: {fatura_no}"), ln=True, align="C")
+    pdf.ln(3)
+
+    # Bilgi satırları
+    pdf.set_font("Courier", "", 10)
+    pdf.cell(0, 6, tr(f"Klinik: {klinik}"), ln=True)
+    pdf.cell(0, 6, tr(f"Fatura Tarihi: {fatura_tarihi}"), ln=True)
+    if aciklama:
+        pdf.cell(0, 6, tr(f"Aciklama: {aciklama}"), ln=True)
+    pdf.ln(5)
+
+    # Tablo başlığı
+    pdf.set_fill_color(220, 220, 220); pdf.set_font("Courier", "B", 9)
+    pdf.cell(25, 8, "Tarih", border=1, fill=True)
+    pdf.cell(95, 8, tr("Islem"), border=1, fill=True)
+    pdf.cell(30, 8, "Borc (TL)", border=1, align="R", fill=True)
+    pdf.cell(30, 8, "Alacak (TL)", border=1, align="R", ln=True, fill=True)
+
+    pdf.set_font("Courier", "", 8)
+    for _, row in ekstre_df.iterrows():
+        islem = str(row.get('Islem', ''))
+        if len(islem) > 47: islem = islem[:44] + "..."
+        borc = float(row.get('Borc', 0) or 0)
+        alacak = float(row.get('Alacak', 0) or 0)
+        pdf.cell(25, 6, str(row.get('Tarih', '-')), border=1)
+        pdf.cell(95, 6, tr(islem), border=1)
+        pdf.cell(30, 6, f"{borc:,.2f}", border=1, align="R")
+        pdf.cell(30, 6, f"{alacak:,.2f}", border=1, align="R", ln=True)
+
+    # Toplam
+    pdf.ln(5)
+    pdf.set_font("Courier", "B", 12); pdf.set_text_color(220, 38, 38)
+    para_birimi = ayar_getir("Para_Birimi", "TL")
+    pdf.cell(0, 10, tr(f"TOPLAM TAHAKKUK: {toplam_tutar:,.2f} {para_birimi}"), ln=True, align="R")
+    pdf.set_font("Courier", "", 9); pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 6, tr("Bu fatura elektronik ortamda uretilmistir."), ln=True, align="C")
+
+    pdf_out = pdf.output(dest='S')
+    return pdf_out.encode('latin1') if hasattr(pdf_out, 'encode') else bytes(pdf_out)
+
 # 💎 AYARLAR (SESSION STATE) 💎
 if "w_ciro" not in st.session_state: st.session_state.update({"w_ciro": True, "w_radar": True, "w_grafikler": True})
 
@@ -4331,72 +4388,317 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         st.error(f"PDF oluşturulamadı: {e}")
 
         with tab_ekstre_arsiv:
-            st.markdown("#### 📂 Hesap Ekstresi Arşivi")
-            st.caption("Daha önce oluşturulmuş hesap ekstrelerini klinik bazında görüntüleyebilir ve PDF olarak indirebilirsiniz.")
-            
-            try:
-                # PostgreSQL için
-                c.execute("""CREATE TABLE IF NOT EXISTS ekstre_arsiv (
-                    id SERIAL PRIMARY KEY,
-                    Tarih TEXT,
-                    Klinik_Unvani TEXT,
-                    Dosya_Adi TEXT,
-                    PDF_Verisi BYTEA,
-                    Son_Bakiye REAL
-                )""")
-                conn.commit()
-            except Exception as e_pg:
-                try:
-                    conn.rollback()
-                except: pass
-                try:
-                    # SQLite için fallback
-                    c.execute("""CREATE TABLE IF NOT EXISTS ekstre_arsiv (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        Tarih TEXT,
-                        Klinik_Unvani TEXT,
-                        Dosya_Adi TEXT,
-                        PDF_Verisi BLOB,
-                        Son_Bakiye REAL
-                    )""")
-                    conn.commit()
-                except Exception as e_sl:
-                    st.error(f"Tablo oluşturulamadı! PG Hatası: {e_pg} | SL Hatası: {e_sl}")
-                    st.stop()
+            st.markdown("#### 📋 Hesap Ekstreleri & Fatura Yönetimi")
 
-            try:
-                df_arsiv = pd.read_sql("SELECT id, Tarih, Klinik_Unvani, Dosya_Adi, Son_Bakiye FROM ekstre_arsiv ORDER BY id DESC", conn)
-                if not df_arsiv.empty:
-                    # Filtre
-                    arsiv_klinik_sec = st.selectbox("🔍 Kliniğe Göre Filtrele", ["Tümü"] + list(df_arsiv["Klinik_Unvani"].unique()), key="arsiv_filtre")
-                    df_goster = df_arsiv if arsiv_klinik_sec == "Tümü" else df_arsiv[df_arsiv["Klinik_Unvani"] == arsiv_klinik_sec]
-                    
-                    st.markdown(f"**Toplam {len(df_goster)} ekstre arşivde bulunuyor.**")
-                    
-                    for _, row in df_goster.iterrows():
-                        with st.container(border=True):
-                            ca1, ca2, ca3 = st.columns([3, 2, 2])
-                            ca1.markdown("🏥 **" + str(row["Klinik_Unvani"]) + "**  \n📅 " + str(row["Tarih"]))
-                            ca2.markdown(f"💰 Son Bakiye: **{float(row['Son_Bakiye'] or 0):,.2f} TL**")
-                            # PDF indir butonu
+            alt_tab1, alt_tab2, alt_tab3 = st.tabs(["📋 Yeni Ekstre Oluştur", "🧾 Faturalar", "📂 Arşiv"])
+
+            # ============================================================
+            # ALT SEKME 1: YENİ EKSTRE OLUŞTUR
+            # ============================================================
+            with alt_tab1:
+                st.markdown("##### 📋 Geriye Dönük Hesap Ekstresi Oluştur")
+                if klinikler:
+                    e_klinik = st.selectbox("Klinik Seçin", klinikler, key="yeni_ekstre_klinik")
+
+                    col_d1, col_d2 = st.columns(2)
+                    e_baslangic = col_d1.date_input("Başlangıç Tarihi", key="e_bas", value=None)
+                    e_bitis = col_d2.date_input("Bitiş Tarihi", key="e_bit", value=None)
+
+                    if e_baslangic and e_bitis:
+                        if e_bitis < e_baslangic:
+                            st.error("Bitiş tarihi başlangıç tarihinden önce olamaz!")
+                        else:
+                            bas_str = str(e_baslangic)
+                            bit_str = str(e_bitis)
+
+                            # Ön izleme
                             try:
-                                pdf_raw = c.execute("SELECT PDF_Verisi FROM ekstre_arsiv WHERE id=?", (int(row["id"]),)).fetchone()
-                                if pdf_raw and pdf_raw[0]:
-                                    pdf_bytes = bytes(pdf_raw[0]) if not isinstance(pdf_raw[0], bytes) else pdf_raw[0]
-                                    ca3.download_button(
+                                df_prev_borc = pd.read_sql(
+                                    f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak "
+                                    f"FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Tutar_TL > 0 "
+                                    f"AND Tarih >= '{bas_str}' AND Tarih <= '{bit_str}'", conn)
+                                df_prev_alacak = pd.read_sql(
+                                    f"SELECT Tarih, Odeme_Turu || ' Odemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak "
+                                    f"FROM tahsilatlar WHERE Klinik_Unvani='{e_klinik}' "
+                                    f"AND Tarih >= '{bas_str}' AND Tarih <= '{bit_str}'", conn)
+
+                                df_prev = pd.concat([df_prev_borc, df_prev_alacak]).sort_values(by="Tarih").reset_index(drop=True)
+                                toplam_borc_prev = float(df_prev["Borc"].sum())
+                                toplam_alacak_prev = float(df_prev["Alacak"].sum())
+                                net_bakiye_prev = toplam_borc_prev - toplam_alacak_prev
+
+                                # Özet kartlar
+                                m1, m2, m3 = st.columns(3)
+                                m1.metric("📤 Toplam Borç", f"{toplam_borc_prev:,.2f} TL")
+                                m2.metric("📥 Toplam Alacak", f"{toplam_alacak_prev:,.2f} TL")
+                                m3.metric("⚖️ Net Bakiye", f"{net_bakiye_prev:,.2f} TL",
+                                         delta_color="inverse")
+
+                                if not df_prev.empty:
+                                    st.dataframe(df_prev.style.format({"Borc": "{:,.2f}", "Alacak": "{:,.2f}"}),
+                                                 hide_index=True, use_container_width=True)
+                                else:
+                                    st.info("Seçilen dönemde kayıt bulunamadı.")
+
+                                col_btn_e1, col_btn_e2 = st.columns(2)
+                                if col_btn_e1.button("💾 Ekstreyi Oluştur ve Arşive Kaydet", type="primary",
+                                                      use_container_width=True, key="ekstre_kaydet_btn"):
+                                    try:
+                                        ekstre_pdf = ekstre_pdf_uret(e_klinik, df_prev, net_bakiye_prev)
+                                        dosya_adi = f"{e_klinik}_Ekstre_{bas_str}_{bit_str}.pdf"
+                                        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+                                        c.execute(
+                                            "INSERT INTO hesap_ekstreleri (Olusturma_Tarihi, Klinik_Unvani, Baslangic_Tarihi, Bitis_Tarihi, "
+                                            "Toplam_Borc, Toplam_Alacak, Net_Bakiye, PDF_Verisi, Dosya_Adi, Durum) "
+                                            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                                            (now_str, e_klinik, bas_str, bit_str,
+                                             toplam_borc_prev, toplam_alacak_prev, net_bakiye_prev,
+                                             ekstre_pdf, dosya_adi, "Taslak"))
+                                        conn.commit()
+                                        st.success(f"✅ Ekstre arşive kaydedildi! ({bas_str} - {bit_str})")
+                                        st.session_state["son_yeni_ekstre_pdf"] = ekstre_pdf
+                                        st.session_state["son_yeni_ekstre_dosya"] = dosya_adi
+                                        st.session_state["son_yeni_ekstre_df"] = df_prev
+                                        st.session_state["son_yeni_ekstre_net"] = net_bakiye_prev
+                                        st.session_state["son_yeni_ekstre_klinik"] = e_klinik
+                                        st.rerun()
+                                    except Exception as e_save:
+                                        st.error(f"Kayıt hatası: {e_save}")
+
+                                # PDF indir butonu (son kaydedilen için)
+                                if st.session_state.get("son_yeni_ekstre_klinik") == e_klinik and st.session_state.get("son_yeni_ekstre_pdf"):
+                                    col_btn_e2.download_button(
                                         "📥 PDF İndir",
-                                        data=pdf_bytes,
-                                        file_name=str(row["Dosya_Adi"]),
-                                        mime="application/pdf",
-                                        use_container_width=True,
-                                        key=f"arsiv_indir_{row['id']}"
+                                        data=st.session_state["son_yeni_ekstre_pdf"],
+                                        file_name=st.session_state["son_yeni_ekstre_dosya"],
+                                        mime="application/pdf", use_container_width=True,
+                                        key="ekstre_pdf_indir"
                                     )
-                            except:
-                                ca3.caption("PDF mevcut değil")
-                else:
-                    st.info("📭 Henüz arşivlenmiş hesap ekstresi bulunmuyor. 'Cari Bakiye' sekmesinden 'Hesap Ekstresi Oluştur' butonunu kullandığınızda ekstreler otomatik olarak buraya kaydedilecektir.")
-            except Exception as e:
-                st.error(f"Arşiv yüklenemedi: {e}")
+
+                            except Exception as e_prev:
+                                st.error(f"Önizleme hatası: {e_prev}")
+                    else:
+                        st.info("📅 Lütfen başlangıç ve bitiş tarihlerini seçin.")
+
+            # ============================================================
+            # ALT SEKME 2: FATURALAR
+            # ============================================================
+            with alt_tab2:
+                st.markdown("##### 🧾 Fatura Yönetimi")
+
+                # Faturalanmamış ekstreler
+                try:
+                    df_bekleyen = pd.read_sql(
+                        "SELECT id, Olusturma_Tarihi, Klinik_Unvani, Baslangic_Tarihi, Bitis_Tarihi, Net_Bakiye, Durum "
+                        "FROM hesap_ekstreleri WHERE Durum='Taslak' ORDER BY id DESC", conn)
+                    if not df_bekleyen.empty:
+                        with st.expander(f"📌 Faturalanmayı Bekleyen {len(df_bekleyen)} Ekstre", expanded=True):
+                            for _, row_e in df_bekleyen.iterrows():
+                                with st.container(border=True):
+                                    fe1, fe2, fe3 = st.columns([3, 2, 2])
+                                    fe1.markdown("🏥 **" + str(row_e["Klinik_Unvani"]) + "**  \n📅 " + str(row_e["Baslangic_Tarihi"]) + " → " + str(row_e["Bitis_Tarihi"]))
+                                    fe2.metric("Net Bakiye", f"{float(row_e['Net_Bakiye'] or 0):,.2f} TL")
+                                    if fe3.button("🧾 Faturalandır", key=f"fat_btn_{row_e['id']}", type="primary", use_container_width=True):
+                                        st.session_state["faturalandirilacak_ekstre_id"] = int(row_e["id"])
+                                        st.session_state["faturalandirilacak_klinik"] = str(row_e["Klinik_Unvani"])
+                                        st.session_state["faturalandirilacak_tutar"] = float(row_e["Net_Bakiye"] or 0)
+                except Exception:
+                    pass
+
+                # Fatura oluşturma formu
+                if st.session_state.get("faturalandirilacak_ekstre_id"):
+                    ekstre_id_f = st.session_state["faturalandirilacak_ekstre_id"]
+                    fat_klinik = st.session_state["faturalandirilacak_klinik"]
+                    fat_tutar = st.session_state["faturalandirilacak_tutar"]
+
+                    st.markdown("---")
+                    st.markdown("#### 📝 Fatura Oluştur — " + str(fat_klinik))
+                    with st.form("fatura_olustur_form"):
+                        # Otomatik fatura no
+                        try:
+                            son_id = c.execute("SELECT COUNT(*) FROM faturalar").fetchone()[0]
+                        except:
+                            son_id = 0
+                        otomatik_fatura_no = f"OMG-{datetime.now().year}-{str(son_id+1).zfill(4)}"
+                        fc1, fc2 = st.columns(2)
+                        fatura_no_input = fc1.text_input("Fatura No", value=otomatik_fatura_no)
+                        fatura_tarihi_input = fc2.text_input("Fatura Tarihi", value=datetime.now().strftime("%Y-%m-%d"))
+                        fatura_tutar_input = st.number_input("Fatura Tutarı (TL)", value=float(fat_tutar), step=100.0)
+                        fatura_aciklama = st.text_area("Açıklama", placeholder="Fatura açıklaması...")
+
+                        if st.form_submit_button("✅ Fatura Oluştur ve PDF Kaydet", type="primary"):
+                            try:
+                                # Ekstre PDF'ini al
+                                ekstre_row = c.execute("SELECT PDF_Verisi FROM hesap_ekstreleri WHERE id=?", (ekstre_id_f,)).fetchone()
+                                ekstre_pdf_bytes = bytes(ekstre_row[0]) if ekstre_row and ekstre_row[0] else b""
+
+                                # Ekstre DataFrame'i al
+                                df_ekstre_fat = pd.DataFrame()
+                                try:
+                                    ekstre_data = c.execute("SELECT Baslangic_Tarihi, Bitis_Tarihi FROM hesap_ekstreleri WHERE id=?", (ekstre_id_f,)).fetchone()
+                                    if ekstre_data:
+                                        df_b = pd.read_sql(f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak FROM isler WHERE Klinik_Unvani='{fat_klinik}' AND Tarih >= '{ekstre_data[0]}' AND Tarih <= '{ekstre_data[1]}'", conn)
+                                        df_a = pd.read_sql(f"SELECT Tarih, Odeme_Turu || ' Odemesi' as Islem, 0.0 as Borc, Tutar as Alacak FROM tahsilatlar WHERE Klinik_Unvani='{fat_klinik}' AND Tarih >= '{ekstre_data[0]}' AND Tarih <= '{ekstre_data[1]}'", conn)
+                                        df_ekstre_fat = pd.concat([df_b, df_a]).sort_values("Tarih").reset_index(drop=True)
+                                except:
+                                    pass
+
+                                fatura_pdf = fatura_pdf_uret(fatura_no_input, fat_klinik, df_ekstre_fat, fatura_tutar_input, fatura_tarihi_input, fatura_aciklama)
+                                dosya_fat = f"Fatura_{fatura_no_input}_{fat_klinik}.pdf"
+                                c.execute(
+                                    "INSERT INTO faturalar (Fatura_No, Fatura_Tarihi, Klinik_Unvani, Ekstre_ID, "
+                                    "Toplam_Tutar, Odenen_Tutar, Kalan_Tutar, Durum, PDF_Verisi, Dosya_Adi, Aciklama) "
+                                    "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                                    (fatura_no_input, fatura_tarihi_input, fat_klinik, ekstre_id_f,
+                                     float(fatura_tutar_input), 0.0, float(fatura_tutar_input),
+                                     "Beklemede", fatura_pdf, dosya_fat, fatura_aciklama))
+                                fatura_id_yeni = c.execute("SELECT id FROM faturalar ORDER BY id DESC LIMIT 1").fetchone()[0]
+                                c.execute("UPDATE hesap_ekstreleri SET Durum=?, Fatura_ID=? WHERE id=?", ("Faturalanmış", fatura_id_yeni, ekstre_id_f))
+                                conn.commit()
+                                st.success(f"✅ Fatura {fatura_no_input} oluşturuldu!")
+                                st.session_state["son_fatura_pdf"] = fatura_pdf
+                                st.session_state["son_fatura_dosya"] = dosya_fat
+                                st.session_state.pop("faturalandirilacak_ekstre_id", None)
+                                st.rerun()
+                            except Exception as e_fat:
+                                st.error(f"Fatura oluşturma hatası: {e_fat}")
+
+                # Son fatura PDF indir
+                if st.session_state.get("son_fatura_pdf"):
+                    st.download_button("📥 Fatura PDF İndir", data=st.session_state["son_fatura_pdf"],
+                                       file_name=st.session_state.get("son_fatura_dosya", "fatura.pdf"),
+                                       mime="application/pdf", use_container_width=True, key="son_fat_indir")
+
+                st.markdown("---")
+                st.markdown("##### 📊 Tüm Faturalar")
+
+                # Fatura listesi
+                durum_renk = {"Beklemede": "🔴", "Kısmi Ödendi": "🟡", "Ödendi": "🟢"}
+                filtre_klinik_fat = st.selectbox("Kliniğe Göre Filtrele", ["Tümü"] + klinikler, key="fat_filtre")
+
+                try:
+                    q_fat = "SELECT id, Fatura_No, Fatura_Tarihi, Klinik_Unvani, Toplam_Tutar, Odenen_Tutar, Kalan_Tutar, Durum FROM faturalar"
+                    if filtre_klinik_fat != "Tümü":
+                        df_faturalar = pd.read_sql(f"{q_fat} WHERE Klinik_Unvani='{filtre_klinik_fat}' ORDER BY id DESC", conn)
+                    else:
+                        df_faturalar = pd.read_sql(f"{q_fat} ORDER BY id DESC", conn)
+
+                    if not df_faturalar.empty:
+                        for _, fat_row in df_faturalar.iterrows():
+                            durum_icon = durum_renk.get(str(fat_row.get("Durum", "")), "⚪")
+                            with st.container(border=True):
+                                fa1, fa2, fa3, fa4 = st.columns([3, 2, 2, 2])
+                                fa1.markdown(str(durum_icon) + " **" + str(fat_row["Fatura_No"]) + "**  \n🏥 " + str(fat_row["Klinik_Unvani"]) + "  \n📅 " + str(fat_row["Fatura_Tarihi"]))
+                                fa2.metric("Toplam", f"{float(fat_row['Toplam_Tutar'] or 0):,.2f} TL")
+                                fa3.metric("Kalan", f"{float(fat_row['Kalan_Tutar'] or 0):,.2f} TL",
+                                          delta=f"-{float(fat_row['Odenen_Tutar'] or 0):,.2f} ödendi")
+
+                                # PDF indir
+                                try:
+                                    pdf_raw_f = c.execute("SELECT PDF_Verisi FROM faturalar WHERE id=?", (int(fat_row["id"]),)).fetchone()
+                                    if pdf_raw_f and pdf_raw_f[0]:
+                                        pdf_bytes_f = bytes(pdf_raw_f[0]) if not isinstance(pdf_raw_f[0], bytes) else pdf_raw_f[0]
+                                        fa4.download_button("📥 PDF", data=pdf_bytes_f,
+                                                            file_name=str(fat_row.get("Dosya_Adi", "fatura.pdf")),
+                                                            mime="application/pdf", use_container_width=True,
+                                                            key=f"fat_pdf_{fat_row['id']}")
+                                except:
+                                    pass
+
+                                # Tahsilat giriş formu
+                                if float(fat_row.get("Kalan_Tutar", 0) or 0) > 0:
+                                    with st.expander(f"💵 Tahsilat Gir — {fat_row['Fatura_No']}"):
+                                        with st.form(f"tah_form_{fat_row['id']}"):
+                                            t1, t2, t3 = st.columns(3)
+                                            tah_tutar = t1.number_input("Tutar (TL)", min_value=0.0,
+                                                                         max_value=float(fat_row["Kalan_Tutar"] or 0),
+                                                                         step=100.0, key=f"tah_t_{fat_row['id']}")
+                                            tah_tur = t2.selectbox("Ödeme Türü", ["Havale/EFT", "Nakit", "Kredi Kartı", "Çek/Senet"],
+                                                                    key=f"tah_tur_{fat_row['id']}")
+                                            tah_acik = t3.text_input("Dekont/Not", key=f"tah_a_{fat_row['id']}")
+                                            if st.form_submit_button("✅ Tahsilatı Kaydet", type="primary") and tah_tutar > 0:
+                                                tah_tarih = datetime.now().strftime("%Y-%m-%d")
+                                                c.execute("INSERT INTO fatura_tahsilatlar (Fatura_ID, Tarih, Tutar, Odeme_Turu, Aciklama, Klinik_Unvani) VALUES (?,?,?,?,?,?)",
+                                                          (int(fat_row["id"]), tah_tarih, float(tah_tutar), tah_tur, tah_acik, str(fat_row["Klinik_Unvani"])))
+                                                yeni_odenen = float(fat_row["Odenen_Tutar"] or 0) + float(tah_tutar)
+                                                yeni_kalan = float(fat_row["Toplam_Tutar"] or 0) - yeni_odenen
+                                                yeni_durum = "Ödendi" if yeni_kalan <= 0 else "Kısmi Ödendi"
+                                                c.execute("UPDATE faturalar SET Odenen_Tutar=?, Kalan_Tutar=?, Durum=? WHERE id=?",
+                                                          (yeni_odenen, max(0.0, yeni_kalan), yeni_durum, int(fat_row["id"])))
+                                                c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani=?",
+                                                          (float(tah_tutar), str(fat_row["Klinik_Unvani"])))
+                                                c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)",
+                                                          (tah_tarih, str(fat_row["Klinik_Unvani"]), tah_tur, float(tah_tutar), f"Fatura: {fat_row['Fatura_No']} - {tah_acik}"))
+                                                conn.commit()
+                                                st.success(f"✅ {tah_tutar:,.2f} TL tahsilat kaydedildi, bakiye güncellendi!")
+                                                st.rerun()
+                    else:
+                        st.info("📭 Henüz fatura bulunmuyor.")
+                except Exception as e_fat_list:
+                    st.error(f"Fatura listesi yüklenemedi: {e_fat_list}")
+
+            # ============================================================
+            # ALT SEKME 3: ARŞİV
+            # ============================================================
+            with alt_tab3:
+                st.markdown("##### 📂 Ekstre ve Fatura Arşivi")
+                arsiv_klinik = st.selectbox("Kliniğe Göre Filtrele", ["Tümü"] + klinikler, key="arsiv_klinik_sec")
+
+                try:
+                    q_arsiv = ("SELECT id, Olusturma_Tarihi, Klinik_Unvani, Baslangic_Tarihi, Bitis_Tarihi, "
+                               "Net_Bakiye, Durum, Fatura_ID FROM hesap_ekstreleri")
+                    if arsiv_klinik != "Tümü":
+                        df_arsiv2 = pd.read_sql(f"{q_arsiv} WHERE Klinik_Unvani='{arsiv_klinik}' ORDER BY id DESC", conn)
+                    else:
+                        df_arsiv2 = pd.read_sql(f"{q_arsiv} ORDER BY id DESC", conn)
+
+                    if not df_arsiv2.empty:
+                        for _, ar_row in df_arsiv2.iterrows():
+                            fat_durum = ""
+                            fat_id_ar = ar_row.get("Fatura_ID")
+                            if fat_id_ar:
+                                try:
+                                    fat_info = c.execute("SELECT Fatura_No, Durum, Kalan_Tutar FROM faturalar WHERE id=?", (int(fat_id_ar),)).fetchone()
+                                    if fat_info:
+                                        d_icon = {"Beklemede": "🔴", "Kısmi Ödendi": "🟡", "Ödendi": "🟢"}.get(fat_info[1], "⚪")
+                                        fat_durum = f"{d_icon} Fatura: **{fat_info[0]}** — {fat_info[1]} (Kalan: {float(fat_info[2] or 0):,.2f} TL)"
+                                except:
+                                    pass
+
+                            durum_icon_ar = "📄" if str(ar_row.get("Durum")) == "Taslak" else "🧾"
+                            with st.container(border=True):
+                                ar1, ar2, ar3 = st.columns([4, 2, 2])
+                                ar1.markdown(str(durum_icon_ar) + " **" + str(ar_row["Klinik_Unvani"]) + "** (" + str(ar_row["Durum"]) + ")  \n📅 " + str(ar_row["Baslangic_Tarihi"]) + " → " + str(ar_row["Bitis_Tarihi"]) + ("  \n" + fat_durum if fat_durum else ""))
+                                ar2.metric("Net Bakiye", f"{float(ar_row['Net_Bakiye'] or 0):,.2f} TL")
+                                try:
+                                    pdf_raw_ar = c.execute("SELECT PDF_Verisi FROM hesap_ekstreleri WHERE id=?", (int(ar_row["id"]),)).fetchone()
+                                    if pdf_raw_ar and pdf_raw_ar[0]:
+                                        pdf_bytes_ar = bytes(pdf_raw_ar[0]) if not isinstance(pdf_raw_ar[0], bytes) else pdf_raw_ar[0]
+                                        ar3.download_button("📥 Ekstre PDF",
+                                                            data=pdf_bytes_ar,
+                                                            file_name=f"Ekstre_{ar_row['Klinik_Unvani']}_{ar_row['Baslangic_Tarihi']}.pdf",
+                                                            mime="application/pdf", use_container_width=True,
+                                                            key=f"ar_pdf_{ar_row['id']}")
+                                except:
+                                    ar3.caption("PDF yok")
+
+                                # Bağlı fatura varsa onu da göster
+                                if fat_id_ar:
+                                    try:
+                                        fat_pdf_raw = c.execute("SELECT PDF_Verisi, Dosya_Adi FROM faturalar WHERE id=?", (int(fat_id_ar),)).fetchone()
+                                        if fat_pdf_raw and fat_pdf_raw[0]:
+                                            fat_pdf_bytes = bytes(fat_pdf_raw[0]) if not isinstance(fat_pdf_raw[0], bytes) else fat_pdf_raw[0]
+                                            ar3.download_button("📥 Fatura PDF",
+                                                                data=fat_pdf_bytes,
+                                                                file_name=str(fat_pdf_raw[1] or "fatura.pdf"),
+                                                                mime="application/pdf", use_container_width=True,
+                                                                key=f"fat_ar_pdf_{fat_id_ar}")
+                                    except:
+                                        pass
+                    else:
+                        st.info("📭 Henüz arşivlenmiş ekstre bulunmuyor. 'Yeni Ekstre Oluştur' sekmesinden başlayın.")
+                except Exception as e_arsiv2:
+                    st.error(f"Arşiv yüklenemedi: {e_arsiv2}")
 
         with tab_gider:
             with st.container(border=True):

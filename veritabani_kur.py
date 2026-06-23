@@ -75,7 +75,7 @@ def omg_erp_db_kur():
             Aciklama TEXT DEFAULT '-')''',
         
         '''CREATE TABLE IF NOT EXISTS stok (id SERIAL PRIMARY KEY, Urun_Kodu TEXT, Urun_Adi TEXT, Kategori TEXT, Mevcut_Miktar REAL, 
-            Birim TEXT, Kritik_Sinir REAL, Satis_Fiyati REAL, Durum TEXT DEFAULT 'Aktif', Renk TEXT DEFAULT '-', Guncelleme_Tarihi TEXT DEFAULT '-')''',
+            Birim TEXT, Kritik_Sinir REAL, Satis_Fiyati REAL, Durum TEXT DEFAULT 'Aktif', Renk TEXT DEFAULT '-', Guncelleme_Tarihi TEXT DEFAULT '-', Marka TEXT DEFAULT '-')''',
         
         '''CREATE TABLE IF NOT EXISTS fiyat_listesi (id SERIAL PRIMARY KEY, Hizmet_Adi TEXT, Kategori TEXT, Fiyat REAL, Para_Birimi TEXT)''',
         
@@ -117,6 +117,10 @@ def omg_erp_db_kur():
         '''CREATE TABLE IF NOT EXISTS ayarlar 
            (Ayar_Adi TEXT PRIMARY KEY, Ayar_Degeri TEXT)''',
         
+        '''CREATE TABLE IF NOT EXISTS uretim_loglari
+           (id SERIAL PRIMARY KEY, is_id INTEGER, is_adi TEXT, malzeme_turu TEXT, 
+            malzeme_kodu TEXT, malzeme_adi TEXT, uye_sayisi INTEGER, tarih TEXT, dakika INTEGER DEFAULT 0)''',
+        
         '''CREATE TABLE IF NOT EXISTS personel_finans (id SERIAL PRIMARY KEY, Tarih TEXT, Personel_Adi TEXT, Islem_Turu TEXT, Tutar REAL, Aciklama TEXT)''',
         
         '''CREATE TABLE IF NOT EXISTS personel_izinler (id SERIAL PRIMARY KEY, Tarih TEXT, Personel_Adi TEXT, Baslangic_Tarihi TEXT, 
@@ -147,7 +151,31 @@ def omg_erp_db_kur():
            (id SERIAL PRIMARY KEY, Tarih TEXT, Urun_Kodu TEXT, Urun_Adi TEXT DEFAULT '-', Miktar REAL, Neden TEXT, Kullanici TEXT, Kalan_Omur TEXT DEFAULT '-')''',
 
         '''CREATE TABLE IF NOT EXISTS malzeme_arsivi
-           (id SERIAL PRIMARY KEY, Tarih TEXT, Urun_Kodu TEXT, Urun_Adi TEXT, Miktar REAL, Islem_Turu TEXT, Aciklama TEXT, Kullanici TEXT)'''
+           (id SERIAL PRIMARY KEY, Tarih TEXT, Urun_Kodu TEXT, Urun_Adi TEXT, Miktar REAL, Islem_Turu TEXT, Aciklama TEXT, Kullanici TEXT)''',
+
+        '''CREATE TABLE IF NOT EXISTS ekstre_arsiv
+           (id SERIAL PRIMARY KEY, Tarih TEXT, Klinik_Unvani TEXT, Dosya_Adi TEXT, PDF_Verisi BYTEA, Son_Bakiye REAL)''',
+
+        '''CREATE TABLE IF NOT EXISTS hesap_ekstreleri
+           (id SERIAL PRIMARY KEY, Olusturma_Tarihi TEXT, Klinik_Unvani TEXT,
+            Baslangic_Tarihi TEXT, Bitis_Tarihi TEXT,
+            Toplam_Borc REAL DEFAULT 0, Toplam_Alacak REAL DEFAULT 0,
+            Net_Bakiye REAL DEFAULT 0, PDF_Verisi BYTEA,
+            Dosya_Adi TEXT, Durum TEXT DEFAULT 'Taslak',
+            Fatura_ID INTEGER DEFAULT NULL)''',
+
+        '''CREATE TABLE IF NOT EXISTS faturalar
+           (id SERIAL PRIMARY KEY, Fatura_No TEXT, Fatura_Tarihi TEXT,
+            Klinik_Unvani TEXT, Ekstre_ID INTEGER,
+            Toplam_Tutar REAL DEFAULT 0, Odenen_Tutar REAL DEFAULT 0,
+            Kalan_Tutar REAL DEFAULT 0,
+            Durum TEXT DEFAULT 'Beklemede',
+            PDF_Verisi BYTEA, Dosya_Adi TEXT, Aciklama TEXT DEFAULT '')''',
+
+        '''CREATE TABLE IF NOT EXISTS fatura_tahsilatlar
+           (id SERIAL PRIMARY KEY, Fatura_ID INTEGER, Tarih TEXT,
+            Tutar REAL, Odeme_Turu TEXT, Aciklama TEXT,
+            Klinik_Unvani TEXT)'''
     ]
     
     for tablo_sql in tablolar:
@@ -157,6 +185,12 @@ def omg_erp_db_kur():
     try:
         c.execute("ALTER TABLE stok ADD COLUMN Renk TEXT DEFAULT '-'")
         print("[ERP] stok tablosuna Renk sütunu eklendi.")
+    except Exception as e:
+        pass # Zaten ekliyse hata verir, yoksay.
+        
+    try:
+        c.execute("ALTER TABLE uretim_loglari ADD COLUMN dakika INTEGER DEFAULT 0")
+        print("[ERP] uretim_loglari tablosuna dakika sütunu eklendi.")
     except Exception as e:
         pass # Zaten ekliyse hata verir, yoksay.
     
@@ -241,85 +275,7 @@ def omg_erp_db_kur():
         c.executemany("INSERT INTO fiyat_listesi (Hizmet_Adi, Kategori, Fiyat, Para_Birimi) VALUES (?, ?, ?, ?)", varsayilan_fiyatlar)
         print("[ERP] Fiyat listesi eski yedekten otomatik oluşturuldu.")
         
-    # Varsayılan BGS Blokları (Boşsa doldur - Eski SQLite verilerinden)
-    if c.execute("SELECT count(*) FROM stok WHERE Kategori='Zirkonyum Blok'").fetchone()[0] == 0:
-        bgs_bloklar = [
-            ('BGS-5DML-12', 'BGS 5D ML 12mm', 'Zirkonyum Blok', 75.0),
-            ('BGS-5DML-14', 'BGS 5D ML 14mm', 'Zirkonyum Blok', 80.0),
-            ('BGS-5DML-16', 'BGS 5D ML 16mm', 'Zirkonyum Blok', 85.0),
-            ('BGS-5DML-18', 'BGS 5D ML 18mm', 'Zirkonyum Blok', 90.0),
-            ('BGS-5DML-20', 'BGS 5D ML 20mm', 'Zirkonyum Blok', 95.0),
-            ('BGS-5DML-25', 'BGS 5D ML 25mm', 'Zirkonyum Blok', 100.0),
-            ('BGS-4DML-12', 'BGS 4D ML 12mm', 'Zirkonyum Blok', 70.0),
-            ('BGS-4DML-14', 'BGS 4D ML 14mm', 'Zirkonyum Blok', 75.0),
-            ('BGS-4DML-16', 'BGS 4D ML 16mm', 'Zirkonyum Blok', 80.0),
-            ('BGS-4DML-18', 'BGS 4D ML 18mm', 'Zirkonyum Blok', 85.0),
-            ('BGS-4DML-20', 'BGS 4D ML 20mm', 'Zirkonyum Blok', 90.0),
-            ('BGS-4DML-25', 'BGS 4D ML 25mm', 'Zirkonyum Blok', 95.0),
-            ('BGS-3DPFS-12', 'BGS 3D PRO F.S 12mm', 'Zirkonyum Blok', 65.0),
-            ('BGS-3DPFS-14', 'BGS 3D PRO F.S 14mm', 'Zirkonyum Blok', 70.0),
-            ('BGS-3DPFS-16', 'BGS 3D PRO F.S 16mm', 'Zirkonyum Blok', 75.0),
-            ('BGS-3DPFS-18', 'BGS 3D PRO F.S 18mm', 'Zirkonyum Blok', 80.0),
-            ('BGS-3DPFS-20', 'BGS 3D PRO F.S 20mm', 'Zirkonyum Blok', 85.0),
-            ('BGS-3DPFS-25', 'BGS 3D PRO F.S 25mm', 'Zirkonyum Blok', 90.0),
-            ('BGS-3DPML-12', 'BGS 3D PRO ML 12mm', 'Zirkonyum Blok', 60.0),
-            ('BGS-3DPML-14', 'BGS 3D PRO ML 14mm', 'Zirkonyum Blok', 65.0),
-            ('BGS-3DPML-16', 'BGS 3D PRO ML 16mm', 'Zirkonyum Blok', 70.0),
-            ('BGS-3DPML-18', 'BGS 3D PRO ML 18mm', 'Zirkonyum Blok', 75.0),
-            ('BGS-3DPML-20', 'BGS 3D PRO ML 20mm', 'Zirkonyum Blok', 80.0),
-            ('BGS-3DPML-25', 'BGS 3D PRO ML 25mm', 'Zirkonyum Blok', 85.0),
-            ('BGS-3DML-12', 'BGS 3D ML 12mm', 'Zirkonyum Blok', 55.0),
-            ('BGS-3DML-14', 'BGS 3D ML 14mm', 'Zirkonyum Blok', 60.0),
-            ('BGS-3DML-16', 'BGS 3D ML 16mm', 'Zirkonyum Blok', 65.0),
-            ('BGS-3DML-18', 'BGS 3D ML 18mm', 'Zirkonyum Blok', 70.0),
-            ('BGS-3DML-20', 'BGS 3D ML 20mm', 'Zirkonyum Blok', 75.0),
-            ('BGS-3DML-25', 'BGS 3D ML 25mm', 'Zirkonyum Blok', 80.0),
-            ('BGS-STML-12', 'BGS ST ML 12mm', 'Zirkonyum Blok', 55.0),
-            ('BGS-STML-14', 'BGS ST ML 14mm', 'Zirkonyum Blok', 60.0),
-            ('BGS-STML-16', 'BGS ST ML 16mm', 'Zirkonyum Blok', 65.0),
-            ('BGS-STML-18', 'BGS ST ML 18mm', 'Zirkonyum Blok', 70.0),
-            ('BGS-STML-20', 'BGS ST ML 20mm', 'Zirkonyum Blok', 75.0),
-            ('BGS-STML-25', 'BGS ST ML 25mm', 'Zirkonyum Blok', 80.0),
-            ('BGS-STC-12', 'BGS ST-C 12mm', 'Zirkonyum Blok', 30.0),
-            ('BGS-STC-14', 'BGS ST-C 14mm', 'Zirkonyum Blok', 35.0),
-            ('BGS-STC-16', 'BGS ST-C 16mm', 'Zirkonyum Blok', 40.0),
-            ('BGS-STC-18', 'BGS ST-C 18mm', 'Zirkonyum Blok', 45.0),
-            ('BGS-STC-20', 'BGS ST-C 20mm', 'Zirkonyum Blok', 50.0),
-            ('BGS-STC-25', 'BGS ST-C 25mm', 'Zirkonyum Blok', 55.0),
-            ('BGS-UTC-12', 'BGS UT-C 12mm', 'Zirkonyum Blok', 30.0),
-            ('BGS-UTC-14', 'BGS UT-C 14mm', 'Zirkonyum Blok', 35.0),
-            ('BGS-UTC-16', 'BGS UT-C 16mm', 'Zirkonyum Blok', 40.0),
-            ('BGS-UTC-18', 'BGS UT-C 18mm', 'Zirkonyum Blok', 45.0),
-            ('BGS-UTC-20', 'BGS UT-C 20mm', 'Zirkonyum Blok', 50.0),
-            ('BGS-UTC-25', 'BGS UT-C 25mm', 'Zirkonyum Blok', 55.0),
-            ('BGS-SHT-12', 'BGS SHT 12mm', 'Zirkonyum Blok', 30.0),
-            ('BGS-SHT-14', 'BGS SHT 14mm', 'Zirkonyum Blok', 35.0),
-            ('BGS-SHT-16', 'BGS SHT 16mm', 'Zirkonyum Blok', 40.0),
-            ('BGS-SHT-18', 'BGS SHT 18mm', 'Zirkonyum Blok', 45.0),
-            ('BGS-SHT-20', 'BGS SHT 20mm', 'Zirkonyum Blok', 50.0),
-            ('BGS-SHT-25', 'BGS SHT 25mm', 'Zirkonyum Blok', 55.0),
-            ('BGS-ST-12', 'BGS ST 12mm', 'Zirkonyum Blok', 25.0),
-            ('BGS-ST-14', 'BGS ST 14mm', 'Zirkonyum Blok', 30.0),
-            ('BGS-ST-16', 'BGS ST 16mm', 'Zirkonyum Blok', 35.0),
-            ('BGS-ST-18', 'BGS ST 18mm', 'Zirkonyum Blok', 40.0),
-            ('BGS-ST-20', 'BGS ST 20mm', 'Zirkonyum Blok', 45.0),
-            ('BGS-ST-25', 'BGS ST 25mm', 'Zirkonyum Blok', 50.0),
-            ('BGS-UT-12', 'BGS UT 12mm ', 'Zirkonyum Blok', 25.0),
-            ('BGS-UT-14', 'BGS UT 14mm ', 'Zirkonyum Blok', 30.0),
-            ('BGS-UT-16', 'BGS UT 16mm ', 'Zirkonyum Blok', 35.0),
-            ('BGS-UT-18', 'BGS UT 18mm ', 'Zirkonyum Blok', 40.0),
-            ('BGS-UT-20', 'BGS UT 20mm ', 'Zirkonyum Blok', 45.0),
-            ('BGS-UT-25', 'BGS UT 25mm ', 'Zirkonyum Blok', 50.0),
-            ('BGS-HT-12', 'BGS HT 12mm', 'Zirkonyum Blok', 20.0),
-            ('BGS-HT-14', 'BGS HT 14mm', 'Zirkonyum Blok', 25.0),
-            ('BGS-HT-16', 'BGS HT 16mm', 'Zirkonyum Blok', 30.0),
-            ('BGS-HT-18', 'BGS HT 18mm', 'Zirkonyum Blok', 35.0),
-            ('BGS-HT-20', 'BGS HT 20mm', 'Zirkonyum Blok', 40.0),
-            ('BGS-HT-25', 'BGS HT 25mm', 'Zirkonyum Blok', 45.0)
-        ]
-        # Insert them into stok
-        c.executemany("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Satis_Fiyati, Mevcut_Miktar, Birim, Kritik_Sinir, Durum) VALUES (?, ?, ?, ?, 0.0, 'Adet', 5.0, 'Aktif')", bgs_bloklar)
-        print("[ERP] BGS Blok listesi eski yedekten otomatik oluşturuldu.")
+    # BGS Blok Oto-Ekleme İptal Edildi
     
     conn.commit()
     conn.close()
