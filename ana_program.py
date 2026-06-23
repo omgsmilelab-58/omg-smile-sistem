@@ -4335,17 +4335,33 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             st.caption("Daha önce oluşturulmuş hesap ekstrelerini klinik bazında görüntüleyebilir ve PDF olarak indirebilirsiniz.")
             
             try:
+                # PostgreSQL için
                 c.execute("""CREATE TABLE IF NOT EXISTS ekstre_arsiv (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id SERIAL PRIMARY KEY,
                     Tarih TEXT,
                     Klinik_Unvani TEXT,
                     Dosya_Adi TEXT,
-                    PDF_Verisi BLOB,
+                    PDF_Verisi BYTEA,
                     Son_Bakiye REAL
                 )""")
                 conn.commit()
             except:
-                pass
+                try:
+                    conn.rollback()
+                except: pass
+                try:
+                    # SQLite için fallback
+                    c.execute("""CREATE TABLE IF NOT EXISTS ekstre_arsiv (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Tarih TEXT,
+                        Klinik_Unvani TEXT,
+                        Dosya_Adi TEXT,
+                        PDF_Verisi BLOB,
+                        Son_Bakiye REAL
+                    )""")
+                    conn.commit()
+                except:
+                    pass
 
             try:
                 df_arsiv = pd.read_sql("SELECT id, Tarih, Klinik_Unvani, Dosya_Adi, Son_Bakiye FROM ekstre_arsiv ORDER BY id DESC", conn)
