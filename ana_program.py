@@ -2692,7 +2692,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             cb1.markdown(f"🧱 **{r['Blok_Kodu']}** | 🏷️ {r['Boyut_Renk']}")
                             cb1.caption(f"Ürün: {r['Urun_Adi']}")
                             
-                            yuzde = int((r['Kalan_Uye'] / 22.0) * 100) if r['Kalan_Uye'] <= 22 else 100
+                            yuzde = max(0, min(100, int((r['Kalan_Uye'] / 22.0) * 100)))
                             cb2.progress(yuzde / 100.0, text=f"Kalan: {r['Kalan_Uye']} Üye")
                             
                             with cb3:
