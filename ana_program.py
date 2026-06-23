@@ -2574,7 +2574,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                             conn.commit(); st.rerun()
                                             
                                         with st.expander("⚙️ İşlemler", expanded=False):
-                                            frez_unique_key = f"{idx}_{r['id']}"
+                                            frez_unique_key = str(r['id'])
                                             yeni_dk = st.number_input("Dk Ekle", min_value=1, step=15, value=15, key=f"dk_{frez_unique_key}")
                                             if st.button("⏱️ İşle", key=f"btn_dk_{frez_unique_key}"):
                                                 c.execute("UPDATE aktif_frezler SET kullanilan_dk = kullanilan_dk + ? WHERE id=?", (int(yeni_dk), int(r['id'])))
