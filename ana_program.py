@@ -23,6 +23,38 @@ except ImportError:
     mesh = None  # numpy-stl kurulu değilse STL özellikleri devre dışı
 import numpy as np
 import re
+import xml.etree.ElementTree as ET
+import urllib.request
+
+def tcmb_kur_getir(doviz_cinsi='EUR'):
+    import ssl
+    import json
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    try:
+        url = "https://www.tcmb.gov.tr/kurlar/today.xml"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=3, context=ctx) as response:
+            xml_data = response.read()
+        root = ET.fromstring(xml_data)
+        for currency in root.findall('Currency'):
+            if currency.get('CurrencyCode') == doviz_cinsi:
+                return float(currency.find('ForexSelling').text)
+    except Exception:
+        pass
+        
+    try:
+        # TCMB başarısız olursa alternatif bir API kullan (Google Cloud Run TCMB'yi engelleyebiliyor)
+        alt_url = "https://api.exchangerate-api.com/v4/latest/" + doviz_cinsi
+        req2 = urllib.request.Request(alt_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req2, timeout=3, context=ctx) as response2:
+            data = json.loads(response2.read().decode('utf-8'))
+            return float(data['rates']['TRY'])
+    except Exception:
+        pass
+        
+    return None
 
 # --- YÖNETİCİ READ-ONLY YAMASI ---
 from streamlit.delta_generator import DeltaGenerator
@@ -530,7 +562,7 @@ st.markdown("""
 
 GOREVLER = ["Genel Müdür", "Laboratuvar Müdürü", "Sekreterya", "CAD/CAM Uzmanı", "Teknisyen", "Alçı & Model Teknisyeni", "Döküm Teknisyeni", "Tesviye Teknisyeni", "Seramist", "Akrilik & İskelet Teknisyeni", "Teknik Ekip", "Lojistik / Kurye"]    
 KATEGORILER = ["ZİRKONYUM/ FULL SERAMİK RESTARASYONLAR", "LAZER SİNTERLEME", "FULL SERAMİK RESTARASYONLAR", "İSKELET DÖKÜM PROTEZLER", "CAD/CAM MILLING", "HAREKETLİ PROTEZLER", "TAMİR PROTEZLER", "ORTODONTİK APAREYLER", "ÖZEL İŞLEMLER"]
-STOK_KATEGORILER = ["Zirkonyum Blok", "Frez", "Metal", "Porselen", "Sarf Malzeme", "Demirbaşlar"]
+STOK_KATEGORILER = ["Blok", "Frez", "Metal Tozu", "Porselen", "Sarf Malzeme"]
 
 BAKIM_RECELERI = {
     "redon gtr": ["Spindle İçi Havayla Temizlendi", "ATC Yuvaları Kontrol Edildi", "Su Tankı ve Filtre Değişimi", "Pens Lityum Gres İle Yağlandı"],
@@ -558,8 +590,18 @@ except Exception:
     conn.commit()
 
 c.execute('''CREATE TABLE IF NOT EXISTS cariler (id SERIAL PRIMARY KEY, Klinik_Unvani TEXT, Yetkili_Kisi TEXT, Telefon TEXT, Email TEXT, Bakiye REAL, Risk_Limiti REAL, Indirim_Orani REAL DEFAULT 0.0, Sifre TEXT DEFAULT '1234')''')
-c.execute('''CREATE TABLE IF NOT EXISTS isler (id SERIAL PRIMARY KEY, Tarih TEXT, Klinik_Unvani TEXT, Hasta_Adi TEXT, Is_Turu TEXT, Renk TEXT, Asama TEXT, Tutar_TL REAL DEFAULT 0.0, Sorumlu_Personel TEXT DEFAULT '-', Harcanan_Malzeme TEXT DEFAULT '-', Teslim_Tarihi TEXT DEFAULT '2026-01-01', Barkod TEXT DEFAULT '-', Lot_Numarasi TEXT DEFAULT '-', Sertifika_No TEXT DEFAULT '-')''')
-c.execute('''CREATE TABLE IF NOT EXISTS stok (id SERIAL PRIMARY KEY, Urun_Kodu TEXT, Urun_Adi TEXT, Kategori TEXT, Mevcut_Miktar REAL, Birim TEXT, Kritik_Sinir REAL, Satis_Fiyati REAL, Durum TEXT DEFAULT 'Aktif')''')
+c.execute('''CREATE TABLE IF NOT EXISTS isler (id SERIAL PRIMARY KEY, Tarih TEXT, Klinik_Unvani TEXT, Hasta_Adi TEXT, Is_Turu TEXT, Renk TEXT, Asama TEXT, Tutar_TL REAL DEFAULT 0.0, Sorumlu_Personel TEXT DEFAULT '-', Harcanan_Malzeme TEXT DEFAULT '-', Teslim_Tarihi TEXT DEFAULT '2026-01-01', Barkod TEXT DEFAULT '-', Lot_Numarasi TEXT DEFAULT '-', Sertifika_No TEXT DEFAULT '-', Adet INTEGER DEFAULT 1, Sinter_Sarfiyati TEXT DEFAULT '-')''')
+try: c.execute("ALTER TABLE isler ADD COLUMN Adet INTEGER DEFAULT 1")
+except: pass
+try: c.execute("ALTER TABLE isler ADD COLUMN Sinter_Sarfiyati TEXT DEFAULT '-'")
+except: pass
+try: c.execute("ALTER TABLE isler ADD COLUMN Fatura_Tarihi TEXT DEFAULT '-'")
+except: pass
+try: c.execute("ALTER TABLE isler ADD COLUMN Iskonto REAL DEFAULT 0.0")
+except: pass
+try: c.execute("ALTER TABLE isler ADD COLUMN Hasta_Kodu TEXT DEFAULT '-'")
+except: pass
+c.execute('''CREATE TABLE IF NOT EXISTS stok (id SERIAL PRIMARY KEY, Urun_Kodu TEXT, Urun_Adi TEXT, Kategori TEXT, Mevcut_Miktar REAL, Birim TEXT, Kritik_Sinir REAL, Satis_Fiyati REAL, Durum TEXT DEFAULT 'Aktif', Renk TEXT DEFAULT '-', Guncelleme_Tarihi TEXT DEFAULT '-', Marka TEXT DEFAULT '-')''')
 c.execute('''CREATE TABLE IF NOT EXISTS fiyat_listesi (id SERIAL PRIMARY KEY, Hizmet_Adi TEXT, Kategori TEXT, Fiyat REAL, Para_Birimi TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS hizmet_maliyetleri (id SERIAL PRIMARY KEY, hizmet_id INTEGER, kalem_adi TEXT, tutar REAL)''')
 c.execute('''CREATE TABLE IF NOT EXISTS personeller (id SERIAL PRIMARY KEY, Ad_Soyad TEXT, Gorevi TEXT, Telefon TEXT, Maas REAL, Baslama_Tarihi TEXT, Ayrilma_Tarihi TEXT, Durum TEXT)''')
@@ -606,8 +648,15 @@ def ayar_getir(ayar_adi, varsayilan=""):
     return sorgu[0] if sorgu else varsayilan
 
 def ayar_kaydet(ayar_adi, deger):
-    c.execute("INSERT INTO ayarlar (Ayar_Adi, Ayar_Degeri) VALUES (?, ?)", (ayar_adi, str(deger)))
+    # Eğer ayar varsa günceller, yoksa ekler
+    c.execute("INSERT OR REPLACE INTO ayarlar (Ayar_Adi, Ayar_Degeri) VALUES (?, ?)", (ayar_adi, str(deger)))
     conn.commit()
+
+def ayar_varsayilan_ekle(ayar_adi, deger):
+    try:
+        c.execute("INSERT OR IGNORE INTO ayarlar (Ayar_Adi, Ayar_Degeri) VALUES (?, ?)", (ayar_adi, str(deger)))
+        conn.commit()
+    except: pass
 
 if not c.execute("SELECT count(*) FROM ayarlar").fetchone()[0] > 0:
     ayar_kaydet("Barkod_Onek", "OMG")
@@ -618,9 +667,96 @@ if not c.execute("SELECT count(*) FROM ayarlar").fetchone()[0] > 0:
     ayar_kaydet("Kurye_Sablonu", "Sayın [Hekim_Adı],\nKurye talebiniz alınmıştır. Kuryemiz en kısa sürede adresinize yönlendirilecektir.\nTeşekkür ederiz.")
     ayar_kaydet("Sistem_Kilitli", "Hayır")
 
+ayar_varsayilan_ekle("Elektrik_kWh_Fiyati", "3.0")
+ayar_varsayilan_ekle("Uretim_Disi_Maliyet", "0")
+ayar_varsayilan_ekle("Manuel_Euro_Kuru", "35.0")
+ayar_varsayilan_ekle("Kur_Guncelleme_Saati", "1970-01-01 00:00")
+
+try:
+    c.execute('''CREATE TABLE IF NOT EXISTS uretim_loglari
+               (id SERIAL PRIMARY KEY, is_id INTEGER, is_adi TEXT, malzeme_turu TEXT, 
+                malzeme_kodu TEXT, malzeme_adi TEXT, uye_sayisi INTEGER, tarih TEXT)''')
+    conn.commit()
+except:
+    pass
+
+def guncel_euro_kuru_getir():
+    manuel_kur = float(ayar_getir("Manuel_Euro_Kuru", "35.0"))
+    if 'canli_euro_kuru' not in st.session_state:
+        yeni_kur = tcmb_kur_getir('EUR')
+        if yeni_kur:
+            try:
+                ayar_kaydet("Manuel_Euro_Kuru", str(yeni_kur))
+            except: pass
+            st.session_state['canli_euro_kuru'] = yeni_kur
+        else:
+            st.session_state['canli_euro_kuru'] = manuel_kur
+    return st.session_state['canli_euro_kuru']
+
+def kazima_makinelerini_getir():
+    try:
+        makineler = [row[0] for row in c.execute("SELECT Cihaz_Adi FROM cihazlar WHERE Kategori='Kazıma Makinesi (Milling)' AND Durum='Aktif'").fetchall()]
+        return makineler if makineler else ["Redon GTR", "Redon Hybrid", "Roland DWX", "Diğer"]
+    except:
+        return ["Redon GTR", "Redon Hybrid", "Roland DWX", "Diğer"]
+
+def otomatik_maliyetleri_guncelle():
+    """Tüm hizmet maliyetlerini canlı kurlara, elektriğe ve depo fiyatlarına göre yeniden hesaplar."""
+    euro_kuru = guncel_euro_kuru_getir()
+    kwh_fiyat = float(ayar_getir("Elektrik_kWh_Fiyati", "3.0"))
+    try:
+        maliyetler = c.execute("SELECT h.id, h.hizmet_id, h.kalem_adi, h.tutar, f.Para_Birimi FROM hizmet_maliyetleri h JOIN fiyat_listesi f ON h.hizmet_id = f.id").fetchall()
+        for m in maliyetler:
+            m_id, s_id, kalem_adi, eski_tutar, s_pb = m
+            yeni_tutar = None
+            
+            match_mak = re.search(r'Makine Üretimi - (.+) \((\d+(?:\.\d+)?) Dk\)', kalem_adi)
+            if match_mak:
+                secili_mak = match_mak.group(1).strip()
+                makine_dk = float(match_mak.group(2))
+                m_data = c.execute("SELECT Guc_kW FROM cihazlar WHERE Cihaz_Adi=? AND Durum='Aktif'", (secili_mak,)).fetchone()
+                kw_guc = float(m_data[0]) if m_data else float(ayar_getir("Makine_Gucu_kW", "2.5"))
+                elektrik_tl_maliyet = (kw_guc * kwh_fiyat) / 60.0 * makine_dk
+                yeni_tutar = float(elektrik_tl_maliyet / euro_kuru if euro_kuru > 0 else 0) if s_pb in ["EUR", "Euro"] else float(elektrik_tl_maliyet)
+            
+            match_stok = re.search(r'Stok Tüketimi(?: \((Ortalama|Miktar)\))? - (.+) \((\d+(?:\.\d+)?) (.+)\)', kalem_adi)
+            if match_stok:
+                hesap_tipi = match_stok.group(1) # Ortalama, Miktar veya None
+                urun_adi = match_stok.group(2).strip()
+                adet_veya_uye = float(match_stok.group(3))
+                s_data = c.execute("SELECT Satis_Fiyati, Kategori FROM stok WHERE Urun_Adi=? AND Durum='Aktif'", (urun_adi,)).fetchone()
+                if s_data:
+                    fiyat = float(s_data[0])
+                    kat = str(s_data[1]).lower()
+                    fiyat_tl = fiyat * euro_kuru if 'blok' in kat else fiyat
+                    
+                    if hesap_tipi == "Ortalama":
+                        ort_data = c.execute('''
+                            SELECT CAST(SUM(uye_sayisi) AS FLOAT) / COUNT(DISTINCT malzeme_kodu) 
+                            FROM uretim_loglari WHERE malzeme_adi=?
+                        ''', (urun_adi,)).fetchone()
+                        ortalama_verim = ort_data[0] if ort_data and ort_data[0] else 1.0
+                        if ortalama_verim <= 0: ortalama_verim = 1.0
+                        toplam_tl = (fiyat_tl / ortalama_verim) * adet_veya_uye
+                    else:
+                        toplam_tl = fiyat_tl * adet_veya_uye
+                        
+                    yeni_tutar = float(toplam_tl / euro_kuru if euro_kuru > 0 else 0) if s_pb in ["EUR", "Euro"] else float(toplam_tl)
+                    
+            if yeni_tutar is not None and abs(yeni_tutar - (eski_tutar if eski_tutar else 0)) > 0.001:
+                c.execute("UPDATE hizmet_maliyetleri SET tutar=? WHERE id=?", (yeni_tutar, m_id))
+        conn.commit()
+    except Exception as e:
+        pass
+
+otomatik_maliyetleri_guncelle()
+
 def tablo_yama_uygula(tablo_adi, sutun_adi, sutun_turu):
-    try: c.execute(f"ALTER TABLE {tablo_adi} ADD COLUMN {sutun_adi} {sutun_turu}")
-    except: pass
+    try: 
+        c.execute(f"ALTER TABLE {tablo_adi} ADD COLUMN {sutun_adi} {sutun_turu}")
+        conn.commit()
+    except: 
+        conn.rollback()
 
 tablo_yama_uygula("cariler", "Indirim_Orani", "REAL DEFAULT 0.0")
 tablo_yama_uygula("cariler", "Sifre", "TEXT DEFAULT '1234'")
@@ -628,6 +764,9 @@ tablo_yama_uygula("cariler", "Adres", "TEXT DEFAULT '-'")
 tablo_yama_uygula("cariler", "Firma_Unvani", "TEXT DEFAULT '-'")
 tablo_yama_uygula("cariler", "Vergi_Dairesi", "TEXT DEFAULT '-'")
 tablo_yama_uygula("cariler", "Vergi_No", "TEXT DEFAULT '-'")
+tablo_yama_uygula("stok", "Renk", "TEXT DEFAULT '-'")
+tablo_yama_uygula("stok", "Guncelleme_Tarihi", "TEXT DEFAULT '-'")
+tablo_yama_uygula("stok", "Marka", "TEXT DEFAULT '-'")
 tablo_yama_uygula("cariler", "IBAN", "TEXT DEFAULT '-'")
 tablo_yama_uygula("isler", "Barkod", "TEXT DEFAULT '-'")
 tablo_yama_uygula("stok", "Guncelleme_Tarihi", "TEXT DEFAULT '-'")
@@ -639,6 +778,7 @@ tablo_yama_uygula("cihazlar", "Gorsel_Yolu", "TEXT DEFAULT '-'")
 tablo_yama_uygula("cihazlar", "Haftalik_Hedef", f"TEXT DEFAULT '{datetime.now().strftime('%Y-%m-%d')}'")
 tablo_yama_uygula("cihazlar", "Aylik_Hedef", f"TEXT DEFAULT '{datetime.now().strftime('%Y-%m-%d')}'")
 tablo_yama_uygula("cihazlar", "Yillik_Hedef", f"TEXT DEFAULT '{datetime.now().strftime('%Y-%m-%d')}'")
+tablo_yama_uygula("cihazlar", "Guc_kW", "REAL DEFAULT 0.0")
 tablo_yama_uygula("kurye_islemleri", "Saat", "TEXT DEFAULT '00:00'")
 
 tablo_yama_uygula("personeller", "TC_No", "TEXT DEFAULT '-'")
@@ -900,9 +1040,9 @@ rol = st.session_state["kullanici_rolu"]; kullanici_adi = st.session_state['kull
 ana_klinik = st.session_state.get('ana_klinik', '')
 if "aktif_sayfa" not in st.session_state: st.session_state.aktif_sayfa = "🎯 Komuta Merkezi"
 
-if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Analizi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Cihaz Bakımı", "📋 Fiyat Listesi", "🔐 Kullanıcı & Yetki Yönetimi"]
-elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik", "📋 Fiyat Listesi"]
-elif rol == "Teknisyen": menu = ["⚙️ İş Akışı", "📺 Lobi / TV Ekranı", "📱 Teknisyen Terminali", "📦 Stok Yönetimi", "🏭 Tedarikçi Yönetimi", "🔧 Cihaz Bakımı"]
+if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi"]
+elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik"]
+elif rol == "Teknisyen": menu = ["⚙️ İş Akışı", "📺 Lobi / TV Ekranı", "📱 Teknisyen Terminali", "📦 Stok Yönetimi", "🏭 Tedarikçi Yönetimi", "🔧 Makine Parkuru ve Bakımı"]
 elif rol == "Klinik": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🧾 Detaylı Ekstre"]
 elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)"]
 elif rol == "Kurye": menu = ["🛵 Kurye Mobil Terminali", "📺 Lobi / TV Ekranı"]
@@ -1120,9 +1260,27 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         
         kat_sec = st.selectbox("İşlem Kategorisi", KATEGORILER, index=kat_idx)
         
+        import random
+        c_out1, c_out2 = st.columns([2, 1])
+        ha = c_out1.text_input("Hasta Adı / Dosya No", key="hekim_ha_input")
+        h_kodu = ""
+        if ha:
+            mevcut_kodlar = [m[0] for m in c.execute("SELECT DISTINCT Hasta_Kodu FROM isler WHERE Hasta_Adi=? AND Hasta_Kodu != '-' AND Klinik_Unvani=?", (ha, ana_klinik)).fetchall()]
+            if mevcut_kodlar:
+                h_kodu_secim = c_out2.selectbox("Hasta Kodu (Kayıtlı)", mevcut_kodlar + ["Yeni Kod Oluştur"])
+                if h_kodu_secim == "Yeni Kod Oluştur":
+                    h_kodu = f"OMG-HST-{random.randint(100000, 999999)}"
+                    c_out2.info(f"Yeni kod oluşturulacak: {h_kodu}")
+                else:
+                    h_kodu = h_kodu_secim
+            else:
+                h_kodu = f"OMG-HST-{random.randint(100000, 999999)}"
+                c_out2.text_input("Hasta Kodu", value=h_kodu, disabled=True)
+        else:
+            c_out2.text_input("Hasta Kodu", disabled=True)
+
         with st.form("klinik_yeni_is"):
-            c1, c2 = st.columns(2)
-            ha = c1.text_input("Hasta Adı / Dosya No")
+            c1, c2 = st.columns([1, 1])
             
             hizmetler = c.execute("SELECT Hizmet_Adi FROM fiyat_listesi WHERE Kategori=?", (kat_sec,)).fetchall()
             hizmet_listesi = [h[0] for h in hizmetler] if hizmetler else ["-"]
@@ -1139,11 +1297,11 @@ if rol in ["Klinik", "Klinik_Asistan"]:
             
             if st.form_submit_button("🚀 Siparişi Onayla"):
                 if ha and hizmetler:
-                    c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                              (datetime.now().strftime("%Y-%m-%d"), ana_klinik, ha, secilen, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", "-", teslim_tarihi, "-", "-", "-", "-"))
+                    c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama, Hasta_Kodu) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                              (datetime.now().strftime("%Y-%m-%d"), ana_klinik, ha, secilen, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", "-", teslim_tarihi, "-", "-", "-", "-", h_kodu))
                     yeni_id = c.lastrowid
                     onek = ayar_getir("Barkod_Onek", "OMG")
-                    yeni_barkod = f"{onek}-{yeni_id:04d}"
+                    yeni_barkod = f"{onek}-{yeni_id:06d}"
                     c.execute("UPDATE isler SET Barkod=? WHERE id=?", (yeni_barkod, yeni_id))
                     
                     hedef_klasor = akilli_klasor_yolu(ana_klinik, ha)
@@ -1174,6 +1332,8 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         
         df_borc = pd.read_sql(f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak FROM isler WHERE Klinik_Unvani='{kullanici_adi}' AND Tutar_TL > 0", conn)
         df_alacak = pd.read_sql(f"SELECT Tarih, Odeme_Turu || ' Ödemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak FROM tahsilatlar WHERE Klinik_Unvani='{kullanici_adi}'", conn)
+        df_borc = df_borc.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
+        df_alacak = df_alacak.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
         
         if not df_borc.empty or not df_alacak.empty:
             df_ekstre = pd.concat([df_borc, df_alacak]).sort_values(by="Tarih").reset_index(drop=True)
@@ -1303,7 +1463,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             """, unsafe_allow_html=True)
             
         if st.session_state.w_ciro:
-            toplam_gelir = df_isler['Tutar_TL'].sum() if not df_isler.empty else 0
+            toplam_gelir = pd.to_numeric(df_isler['Tutar_TL'], errors='coerce').sum() if not df_isler.empty else 0
             bugun_gun = datetime.now().day
             if bugun_gun == 0: bugun_gun = 1
             ai_tahmin = (toplam_gelir / bugun_gun) * 30
@@ -1483,7 +1643,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             klinikler = [row[0] for row in c.execute("SELECT Klinik_Unvani FROM cariler WHERE Durum='Aktif'").fetchall()]
             if klinikler:
                 g_klinik = st.selectbox("Güncellenecek Klinik", klinikler)
-                k_veri = c.execute("SELECT Indirim_Orani, Sifre, Yetkili_Kisi, Telefon, Email, Adres, Firma_Unvani, Vergi_Dairesi, Vergi_No, IBAN FROM cariler WHERE Klinik_Unvani=?", (g_klinik,)).fetchone()
+                k_veri = c.execute("SELECT Indirim_Orani, Sifre, Yetkili_Kisi, Telefon, Email, Adres, Firma_Unvani, Vergi_Dairesi, Vergi_No, IBAN, Bakiye FROM cariler WHERE Klinik_Unvani=?", (g_klinik,)).fetchone()
                 with st.form("guncelle_klinik"):
                     c1, c2 = st.columns(2)
                     yeni_yetkili = c1.text_input("Yetkili", value=k_veri[2])
@@ -1497,13 +1657,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     yeni_vno = v2.text_input("Vergi Numarası", value=k_veri[8])
                     yeni_iban = st.text_input("IBAN", value=k_veri[9])
 
-                    b1, b2 = st.columns(2)
-                    yeni_indirim = b1.number_input("Yeni İndirim Oranı (%)", min_value=0.0, max_value=100.0, value=float(k_veri[0]))
-                    yeni_sifre = b2.text_input("Yeni Giriş Şifresi", value=k_veri[1])
+                    b1, b2, b3 = st.columns(3)
+                    yeni_bakiye = b1.number_input("Güncel Bakiye (TL)", value=float(k_veri[10]) if k_veri[10] else 0.0, step=100.0)
+                    yeni_indirim = b2.number_input("Yeni İndirim Oranı (%)", min_value=0.0, max_value=100.0, value=float(k_veri[0]))
+                    yeni_sifre = b3.text_input("Yeni Giriş Şifresi", value=k_veri[1])
 
                     if st.form_submit_button("Bilgileri Güncelle"):
-                        c.execute("UPDATE cariler SET Indirim_Orani=?, Sifre=?, Yetkili_Kisi=?, Telefon=?, Email=?, Adres=?, Firma_Unvani=?, Vergi_Dairesi=?, Vergi_No=?, IBAN=? WHERE Klinik_Unvani=?", 
-                                  (yeni_indirim, yeni_sifre, yeni_yetkili, yeni_tel, yeni_email, yeni_adres, yeni_funvan, yeni_vdaire, yeni_vno, yeni_iban, g_klinik))
+                        c.execute("UPDATE cariler SET Indirim_Orani=?, Sifre=?, Yetkili_Kisi=?, Telefon=?, Email=?, Adres=?, Firma_Unvani=?, Vergi_Dairesi=?, Vergi_No=?, IBAN=?, Bakiye=? WHERE Klinik_Unvani=?", 
+                                  (yeni_indirim, yeni_sifre, yeni_yetkili, yeni_tel, yeni_email, yeni_adres, yeni_funvan, yeni_vdaire, yeni_vno, yeni_iban, yeni_bakiye, g_klinik))
                         conn.commit(); st.success("Güncellendi!"); st.rerun()
         
         with tab_liste:
@@ -1625,7 +1786,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 </style>
         """, unsafe_allow_html=True)
 
-        tab_takip, tab_manuel_is = st.tabs(["🚀 Üretim Takibi & Güncelleme", "➕ Yeni Manuel İş Kaydı (Laboratuvar)"])
+        tab_takip, tab_manuel_is, tab_cam = st.tabs(["🚀 Üretim Takibi & Güncelleme", "➕ Yeni Manuel İş Kaydı (Laboratuvar)", "💿 CAM Envanteri (Blok & Frez)"])
         
         with tab_manuel_is:
             st.markdown("### 📝 Laboratuvar İçi Reçete Kaydı")
@@ -1637,9 +1798,26 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             st.markdown("---")
             
             # 1. SATIR: Çok Daraltılmış ve Kısaltılmış Girdiler
-            c1, c2, c3, c4 = st.columns([2.5, 1.5, 1, 1.2])
+            import random
+            c1, c2, c_kodu, c3, c4 = st.columns([2.5, 1.5, 1.5, 1, 1.2])
             k_secim = c1.selectbox("Klinik / Hekim", klinikler) if klinikler else c1.text_input("Klinik Adı (Kayıtlı Değil)")
             ha = c2.text_input("Hasta/Dosya No")
+            
+            h_kodu = ""
+            if ha:
+                mevcut_kodlar = [m[0] for m in c.execute("SELECT DISTINCT Hasta_Kodu FROM isler WHERE Hasta_Adi=? AND Hasta_Kodu != '-'", (ha,)).fetchall()]
+                if mevcut_kodlar:
+                    h_kodu_secim = c_kodu.selectbox("Hasta Kodu (Kayıtlı)", mevcut_kodlar + ["Yeni Kod Oluştur"])
+                    if h_kodu_secim == "Yeni Kod Oluştur":
+                        h_kodu = f"OMG-HST-{random.randint(100000, 999999)}"
+                        st.info(f"Yeni kod oluşturulacak: {h_kodu}")
+                    else:
+                        h_kodu = h_kodu_secim
+                else:
+                    h_kodu = f"OMG-HST-{random.randint(100000, 999999)}"
+                    c_kodu.text_input("Hasta Kodu", value=h_kodu, disabled=True)
+            else:
+                c_kodu.text_input("Hasta Kodu", disabled=True)
             renk = c3.text_input("Renk")
             teslim_tarihi = c4.date_input("Teslim").strftime("%Y-%m-%d")
             
@@ -1664,7 +1842,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             if cam_kullan:
                 with st.container(border=True):
                     col_mak_m, col_uye_m, col_mbos_m = st.columns([2, 0.8, 3])
-                    secili_makine_m = col_mak_m.selectbox("Kazıma Yapılan Makine", ["Redon GTR", "Redon Hybrid", "Roland DWX", "Diğer"], key="m_mak")
+                    secili_makine_m = col_mak_m.selectbox("Kazıma Yapılan Makine", kazima_makinelerini_getir(), key="m_mak")
                     harcanan_uye_m = col_uye_m.number_input("Kazınan Üye", min_value=1, value=1, key="m_uye")
                     
                     cam_b_m = c.execute("SELECT Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye FROM cam_bloklar WHERE Durum='Yarım'").fetchall()
@@ -1714,14 +1892,36 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         harcanan_m_metni = f"CAM: {b_kodu} ({harcanan_uye_m} Üye), Makine: {secili_makine_m}, Top. {harcanan_dk_m} Dk (Takım başı {frez_basina_dk_m} Dk)"
 
                     # Her şeyi ana tabloya kaydet
-                    c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                              (tarih_saat, k_secim, ha, islem_adi, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", harcanan_m_metni, teslim_tarihi, "-", "-", "-", aciklama if aciklama else "-"))
+                    c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama, Hasta_Kodu) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                              (tarih_saat, k_secim, ha, islem_adi, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", harcanan_m_metni, teslim_tarihi, "-", "-", "-", aciklama if aciklama else "-", h_kodu))
                     yeni_id = c.lastrowid
                     onek = ayar_getir("Barkod_Onek", "OMG")
-                    yeni_barkod = f"{onek}-{yeni_id:04d}"
+                    yeni_barkod = f"{onek}-{yeni_id:06d}"
                     c.execute("UPDATE isler SET Barkod=? WHERE id=?", (yeni_barkod, yeni_id))
+                    
+                    # --- ÜRETİM LOGLARINI EKLE (Malzeme Arşivi İçin) ---
+                    if cam_kullan and b_kodu:
+                        is_adi_tam = f"{k_secim} - {ha}"
+                        b_adi = sec_blok_m.split("|")[1].split("(")[0].strip()
+                        try:
+                            c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih, dakika) VALUES (?,?,?,?,?,?,?,?)",
+                                      (yeni_id, is_adi_tam, "Blok", b_kodu, b_adi, harcanan_uye_m, tarih_saat, harcanan_dk_m))
+                        except:
+                            c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih) VALUES (?,?,?,?,?,?,?)",
+                                      (yeni_id, is_adi_tam, "Blok", b_kodu, b_adi, harcanan_uye_m, tarih_saat))
+                        
+                        for fr in sec_frezler_m:
+                            f_kodu_m = fr.split("|")[0].strip()
+                            f_adi = fr.split("|")[1].split("(")[0].strip().replace("-", "").strip()
+                            try:
+                                c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih, dakika) VALUES (?,?,?,?,?,?,?,?)",
+                                          (yeni_id, is_adi_tam, "Frez", f_kodu_m, f_adi, harcanan_uye_m, tarih_saat, frez_basina_dk_m))
+                            except:
+                                c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih) VALUES (?,?,?,?,?,?,?)",
+                                          (yeni_id, is_adi_tam, "Frez", f_kodu_m, f_adi, harcanan_uye_m, tarih_saat))
+                    # ----------------------------------------------------
                     conn.commit()
-                    st.success(f"✅ Manuel iş oluşturuldu ve reçeteye eklendi! Barkod: {yeni_barkod}")
+                    st.success(f"✅ Manuel iş oluşturuldu, malzemeler stoktan düşüldü ve arşive loglandı! Barkod: {yeni_barkod}")
 
         with tab_takip:
             with st.container(border=True):
@@ -1752,7 +1952,13 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             c.execute("UPDATE isler SET Asama=?, Sorumlu_Personel=? WHERE id=?", (h_asama, h_sorumlu, b_rowid))
                             conn.commit(); st.rerun()
 
-            df_isler = pd.read_sql('SELECT id, Barkod, Tarih as "Kayıt Zamanı", Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Aciklama, Lot_Numarasi, Sertifika_No FROM isler', conn)
+            df_isler = pd.read_sql('SELECT id, Barkod, Tarih, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Renk, Adet as "Adet", Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Aciklama, Lot_Numarasi, Sertifika_No FROM isler', conn)
+            if 'adet' in df_isler.columns: df_isler = df_isler.rename(columns={'adet': 'Adet'})
+            
+            # İşleri tarihe göre sırala (En yeniler üstte)
+            df_isler = df_isler.sort_values(by=["Tarih", "id"], ascending=[False, False]).reset_index(drop=True)
+            # Sıra No Sütunu Ekle
+            df_isler.insert(0, 'SIRA NO', range(1, len(df_isler) + 1))
             st.subheader("📋 Reçeteler ve Üretim Takibi")
             
             @st.dialog("🧑‍⚕️ Hasta Kartı", width="large")
@@ -1761,7 +1967,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 st.markdown(f"**Klinik / Hekim:** {klinik_unvani}")
                 st.markdown("---")
                 
-                h_isler = pd.read_sql("SELECT Is_Turu, Asama, Tarih, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Aciklama FROM isler WHERE Hasta_Adi=? AND Klinik_Unvani=? ORDER BY id DESC", conn, params=(hasta_adi, klinik_unvani))
+                h_isler = pd.read_sql("SELECT Tarih, Is_Turu, Adet, Asama, Aciklama, Harcanan_Malzeme, Sinter_Sarfiyati, Sorumlu_Personel FROM isler WHERE Hasta_Adi=? AND Klinik_Unvani=? ORDER BY Tarih ASC", conn, params=(hasta_adi, klinik_unvani))
                 
                 if not h_isler.empty:
                     toplam_is = len(h_isler)
@@ -1774,19 +1980,42 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     c3.metric("Devam Eden", devam_eden)
                     
                     st.markdown("#### 📜 Yapılan İşlemler (Reçeteler)")
-                    st.dataframe(h_isler.drop(columns=["Harcanan_Malzeme"]), hide_index=True, use_container_width=True)
+                    if 'adet' in h_isler.columns: h_isler = h_isler.rename(columns={'adet': 'Adet'})
+                    if 'sinter_sarfiyati' in h_isler.columns: h_isler = h_isler.rename(columns={'sinter_sarfiyati': 'Sinter_Sarfiyati'})
+                    if 'harcanan_malzeme' in h_isler.columns: h_isler = h_isler.rename(columns={'harcanan_malzeme': 'Harcanan_Malzeme'})
+                    h_isler_goster = h_isler.rename(columns={"Tarih": "TARİH", "Is_Turu": "İŞİN TÜRÜ", "Adet": "ADET", "Asama": "AŞAMA", "Aciklama": "AÇIKLAMA"})
+                    st.dataframe(h_isler_goster[["TARİH", "İŞİN TÜRÜ", "ADET", "AŞAMA", "AÇIKLAMA"]], hide_index=True, use_container_width=True)
                     
-                    st.markdown("#### 💎 Kullanılan Malzemeler")
+                    st.markdown("#### 💎 Kullanılan Malzemeler ve Fırınlar")
                     malzemeler = []
+                    import json
                     for _, r in h_isler.iterrows():
+                        satir_bilgi = []
                         if pd.notna(r['Harcanan_Malzeme']) and str(r['Harcanan_Malzeme']).strip() != "-" and str(r['Harcanan_Malzeme']).strip() != "":
-                            malzemeler.append(f"**{r['Is_Turu']} ({r['Tarih']})**: {r['Harcanan_Malzeme']}")
+                            satir_bilgi.append(f"**CAM:** {r['Harcanan_Malzeme']}")
+                        
+                        s_sarf = r['Sinter_Sarfiyati']
+                        if pd.notna(s_sarf) and str(s_sarf).strip() != "-" and str(s_sarf).strip() != "" and str(s_sarf).startswith("{"):
+                            try:
+                                s_data = json.loads(s_sarf)
+                                s_metin = ""
+                                if s_data.get("f1") and s_data["f1"] != "-- Seçiniz --" and s_data.get("s1", 0) > 0:
+                                    s_metin += f"Fırın 1: {s_data['f1']} ({s_data['s1']} Dk)"
+                                if s_data.get("f2") and s_data["f2"] != "-- Seçiniz --" and s_data.get("s2", 0) > 0:
+                                    if s_metin: s_metin += " | "
+                                    s_metin += f"Fırın 2: {s_data['f2']} ({s_data['s2']} Dk)"
+                                if s_metin:
+                                    satir_bilgi.append(f"**Sinter:** {s_metin}")
+                            except: pass
+                            
+                        if satir_bilgi:
+                            malzemeler.append(f"**{r['Is_Turu']} ({r['Tarih']})** 👉 " + " | ".join(satir_bilgi))
                     
                     if malzemeler:
                         for m in malzemeler:
                             st.markdown(f"- {m}")
                     else:
-                        st.info("Bu hastaya ait özel malzeme sarfiyatı kaydedilmemiş.")
+                        st.info("Bu hastaya ait özel malzeme veya fırın sarfiyatı kaydedilmemiş.")
                         
                     st.markdown("#### 👨‍🔧 İlgili Teknisyen(ler)")
                     teknisyenler = h_isler['Sorumlu_Personel'].unique()
@@ -1800,14 +2029,39 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.warning("Bu hastaya ait detaylı veri bulunamadı.")
 
             if not df_isler.empty:
-                df_goster = df_isler.drop(columns=["id", "Lot_Numarasi", "Sertifika_No"])
+                for c_name in ["barkod", "tarih", "teslim_tarihi", "klinik_unvani", "hasta_adi", "hasta_kodu", "is_turu", "renk", "adet", "asama", "sorumlu_personel"]:
+                    if c_name in df_isler.columns:
+                        correct = "".join(w.capitalize() for w in c_name.split('_')) if '_' in c_name else c_name.capitalize()
+                        if c_name == "teslim_tarihi": correct = "Teslim_Tarihi"
+                        if c_name == "klinik_unvani": correct = "Klinik_Unvani"
+                        if c_name == "hasta_adi": correct = "Hasta_Adi"
+                        if c_name == "hasta_kodu": correct = "Hasta_Kodu"
+                        if c_name == "is_turu": correct = "Is_Turu"
+                        if c_name == "sorumlu_personel": correct = "Sorumlu_Personel"
+                        df_isler = df_isler.rename(columns={c_name: correct})
+                
+                df_goster = df_isler[["SIRA NO", "Barkod", "Tarih", "Teslim_Tarihi", "Klinik_Unvani", "Hasta_Adi", "Hasta_Kodu", "Is_Turu", "Renk", "Adet", "Asama", "Sorumlu_Personel"]].copy()
+                df_goster = df_goster.rename(columns={
+                    "SIRA NO": "SIRA NO",
+                    "Barkod": "BARKOD NO",
+                    "Tarih": "İŞ TARİHİ",
+                    "Teslim_Tarihi": "TESLİM TARİHİ",
+                    "Klinik_Unvani": "KLİNİK",
+                    "Hasta_Adi": "HASTA ADI",
+                    "Hasta_Kodu": "HASTA KODU",
+                    "Is_Turu": "İŞ TÜRÜ",
+                    "Renk": "RENK",
+                    "Adet": "ADET",
+                    "Asama": "AŞAMA",
+                    "Sorumlu_Personel": "SORUMLU PERSONEL"
+                })
                 st.caption("💡 İpucu: Hastanın geçmişini ve kullanılan malzemeleri görmek için tablodan satırına tıklayın.")
                 event = st.dataframe(df_goster, hide_index=True, use_container_width=True, on_select="rerun", selection_mode="single-row", key="uretim_tablosu")
                 
                 if event and len(event.selection.rows) > 0:
                     secili_idx = event.selection.rows[0]
-                    s_hasta = df_goster.iloc[secili_idx]["Hasta_Adi"]
-                    s_klinik = df_goster.iloc[secili_idx]["Klinik_Unvani"]
+                    s_hasta = df_isler.iloc[secili_idx]["Hasta_Adi"]
+                    s_klinik = df_isler.iloc[secili_idx]["Klinik_Unvani"]
                     
                     if st.session_state.get("son_acilan_hasta") != f"{s_hasta}_{s_klinik}":
                         st.session_state.son_acilan_hasta = f"{s_hasta}_{s_klinik}"
@@ -1821,17 +2075,29 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     secilen_index = [f"{r['Barkod']} | {r['Klinik_Unvani']} - {r['Hasta_Adi']} ({r['Is_Turu']})" for _, r in df_isler.iterrows()].index(is_secin)
                     s_rowid = int(df_isler.iloc[secilen_index]["id"])
                     s_barkod = df_isler.iloc[secilen_index]["Barkod"]
-                    is_verisi = c.execute("SELECT Asama, Sorumlu_Personel, Lot_Numarasi, Sertifika_No, Klinik_Unvani, Hasta_Adi, Is_Turu, Tarih FROM isler WHERE id=?",(s_rowid,)).fetchone()
+                    is_verisi = c.execute("SELECT Asama, Sorumlu_Personel, Lot_Numarasi, Sertifika_No, Klinik_Unvani, Hasta_Adi, Is_Turu, Tarih, Teslim_Tarihi, Renk, Adet, Tutar_TL, Aciklama FROM isler WHERE id=?",(s_rowid,)).fetchone()
                     
-                    t1, t2, t3, t4 = st.tabs(["🔄 Aşama Güncelle", "📸 Medya & Arşiv", "📜 Garanti", "⚙️ CAM Sarfiyatı"])
+                    t1, t_bilgi, t2, t3, t4, t5 = st.tabs(["🔄 Aşama Güncelle", "✏️ Bilgileri Güncelle", "📸 Medya & Arşiv", "📜 Garanti", "⚙️ CAM Sarfiyatı", "🔥 Sinter Sarfiyatı"])
                     
                     with t1:
                         col_a, col_b = st.columns(2)
                         y_asama = col_a.selectbox("Yeni Aşama", ["Sipariş Alındı (Hekim Girdi)", "Tasarım Bekliyor", "Kazıma/Döküm", "Tesviye", "Seramik/Fırın", "Teslim Edildi"], index=["Sipariş Alındı (Hekim Girdi)", "Tasarım Bekliyor", "Kazıma/Döküm", "Tesviye", "Seramik/Fırın", "Teslim Edildi"].index(is_verisi[0]) if is_verisi[0] in ["Sipariş Alındı (Hekim Girdi)", "Tasarım Bekliyor", "Kazıma/Döküm", "Tesviye", "Seramik/Fırın", "Teslim Edildi"] else 1)
                         y_sorumlu = col_b.selectbox("Sorumlu Teknisyen", aktif_personeller, index=0)
-                        if st.button("Güncelle", use_container_width=True):
+                        c_btn1, c_btn2 = st.columns(2)
+                        if c_btn1.button("Güncelle", use_container_width=True):
                             c.execute("UPDATE isler SET Asama=?, Sorumlu_Personel=? WHERE id=?", (y_asama, y_sorumlu, s_rowid))
                             conn.commit(); st.rerun()
+                            
+                        if c_btn2.button("🗑️ İşi Tamamen Sil", type="primary", use_container_width=True, key=f"is_sil_t1_{s_rowid}"):
+                            c.execute("DELETE FROM is_fotograflari WHERE Is_ID=?", (s_rowid,))
+                            c.execute("DELETE FROM is_3d_modelleri WHERE Is_ID=?", (s_rowid,))
+                            c.execute("DELETE FROM isler WHERE id=?", (s_rowid,))
+                            log_mesaji = f"[{s_barkod}] Numaralı iş kalıcı olarak silindi. ({is_verisi[4]} - {is_verisi[5]})"
+                            c.execute("INSERT INTO sistem_loglari (Tarih_Saat, Kullanici, Aksiyon, Goruldu) VALUES (?,?,?,0)", 
+                                      (datetime.now().strftime("%Y-%m-%d %H:%M"), st.session_state.get('kullanici_adi', 'Bilinmeyen'), log_mesaji))
+                            conn.commit()
+                            st.success("İş başarıyla silindi!")
+                            st.rerun()
                             
                         st.markdown("---")
                         mevcut_fiyat = c.execute("SELECT Tutar_TL FROM isler WHERE id=?", (s_rowid,)).fetchone()[0]
@@ -1851,6 +2117,46 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                         conn.commit(); st.success("İşlem faturalandırıldı!"); st.rerun()
                                     else: st.error("Tutar giriniz.")
                         else: st.success(f"✅ Bu iş **{mevcut_fiyat:,.2f} TL** olarak faturalandırılmıştır.")
+                        
+                    with t_bilgi:
+                        st.markdown("### ✏️ Reçete Bilgilerini Güncelle")
+                        with st.form(key=f"guncelle_form_{s_rowid}"):
+                            b_k1, b_k2 = st.columns(2)
+                            # Klinik listesi yukarıda 'klinikler' olarak tanımlı
+                            secili_k_index = klinikler.index(is_verisi[4]) if is_verisi[4] in klinikler else 0
+                            y_klinik = b_k1.selectbox("Klinik", klinikler if klinikler else [is_verisi[4]], index=secili_k_index)
+                            y_hasta = b_k2.text_input("Hasta Adı", value=is_verisi[5])
+                            
+                            b_k3, b_k4, b_k5 = st.columns(3)
+                            try:
+                                h_liste = [row[0] for row in c.execute("SELECT Hizmet_Adi FROM fiyat_listesi").fetchall()]
+                            except: h_liste = []
+                            if not h_liste: h_liste = [is_verisi[6]]
+                            elif is_verisi[6] not in h_liste: h_liste.append(is_verisi[6])
+                                
+                            y_is = b_k3.selectbox("İş Türü", h_liste, index=h_liste.index(is_verisi[6]))
+                            y_renk = b_k4.text_input("Renk", value=is_verisi[9])
+                            y_adet = b_k5.number_input("Adet", min_value=1, value=int(is_verisi[10]) if is_verisi[10] else 1)
+                            
+                            b_k6, b_k7 = st.columns(2)
+                            y_tarih = b_k6.text_input("İş Tarihi (YYYY-AA-GG SS:DD)", value=is_verisi[7])
+                            y_teslim = b_k7.text_input("Teslim Tarihi", value=is_verisi[8])
+                            
+                            b_k8, b_k9 = st.columns(2)
+                            y_lot = b_k8.text_input("Lot Numarası", value=is_verisi[2])
+                            y_sertifika = b_k9.text_input("Sertifika No", value=is_verisi[3])
+                            
+                            y_aciklama = st.text_area("Açıklama", value=is_verisi[12])
+                            
+                            if st.form_submit_button("💾 Bilgileri Kaydet", type="primary", use_container_width=True):
+                                c.execute('''UPDATE isler SET 
+                                    Klinik_Unvani=?, Hasta_Adi=?, Is_Turu=?, Renk=?, Adet=?, 
+                                    Tarih=?, Teslim_Tarihi=?, Lot_Numarasi=?, Sertifika_No=?, Aciklama=? 
+                                    WHERE id=?''', 
+                                    (y_klinik, y_hasta, y_is, y_renk, y_adet, y_tarih, y_teslim, y_lot, y_sertifika, y_aciklama, s_rowid))
+                                conn.commit()
+                                st.success("Bilgiler başarıyla güncellendi!")
+                                st.rerun()
                     
                     with t2:
                         q1, q2 = st.columns([1, 2])
@@ -1908,21 +2214,77 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 
                     with t4:
                         # 🚨 NORMAL STOK SİLİNDİ, SADECE HEKİM İŞLERİ İÇİN CAM SARFİYATI BIRAKILDI 🚨
-                        col_mak, col_uye, col_mbos = st.columns([2, 0.8, 3])
-                        secili_makine = col_mak.selectbox("Kazıma Yapılan Makine", ["Redon GTR", "Redon Hybrid", "Roland DWX", "Diğer"], key="t4_mak")
-                        harcanan_uye = col_uye.number_input("Kazınan Üye", min_value=1, value=1, key="t4_uye")
                         
-                        cam_b = c.execute("SELECT Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye FROM cam_bloklar WHERE Durum='Yarım'").fetchall()
+                        mevcut_malzeme_row = c.execute("SELECT Harcanan_Malzeme FROM isler WHERE id=?", (s_rowid,)).fetchone()
+                        mevcut_malzeme = mevcut_malzeme_row[0] if mevcut_malzeme_row and mevcut_malzeme_row[0] != "-" else ""
+                        
+                        eski_b_kodu = ""
+                        eski_uye = 1
+                        eski_makine = ""
+                        eski_dk = 0
+                        eski_frez_basina = 0
+                        eski_frezler_str = ""
+                        
+                        import re
+                        if mevcut_malzeme:
+                            # Önceki kayıtlı metni ayrıştır
+                            match = re.search(r"CAM: (.*?) \((\d+) Üye\), Makine: (.*?), (?:Frezler: (.*?), )?Top\. (\d+) Dk \(Takım başı (\d+) Dk\)", mevcut_malzeme)
+                            if match:
+                                eski_b_kodu = match.group(1).strip()
+                                eski_uye = int(match.group(2))
+                                eski_makine = match.group(3).strip()
+                                eski_frezler_str = match.group(4) if match.group(4) else ""
+                                eski_dk = int(match.group(5))
+                                eski_frez_basina = int(match.group(6))
+                            else:
+                                # Eski formatsız veriyi kurtarmaya çalış
+                                match2 = re.search(r"CAM: (.*?) \((\d+) Üye\), Makine: (.*?), Top\. (\d+) Dk", mevcut_malzeme)
+                                if match2:
+                                    eski_b_kodu = match2.group(1).strip()
+                                    eski_uye = int(match2.group(2))
+                                    eski_makine = match2.group(3).strip()
+                                    eski_dk = int(match2.group(4))
+                                
+                        makineler_list = kazima_makinelerini_getir()
+                        def_makine_idx = makineler_list.index(eski_makine) if eski_makine in makineler_list else 0
+                        
+                        col_mak, col_uye, col_mbos = st.columns([2, 0.8, 3])
+                        secili_makine = col_mak.selectbox("Kazıma Yapılan Makine", makineler_list, index=def_makine_idx, key="t4_mak")
+                        harcanan_uye = col_uye.number_input("Kazınan Üye", min_value=1, value=eski_uye, key="t4_uye")
+                        
+                        cam_b = c.execute("SELECT Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye FROM cam_bloklar WHERE Durum='Yarım' OR Blok_Kodu=?", (eski_b_kodu,)).fetchall()
                         cam_f = c.execute("SELECT frez_kod, frez_adi, yuva_no, toplam_omur_dk, kullanilan_dk FROM aktif_frezler WHERE makine_adi=? AND durum='Aktif'", (secili_makine,)).fetchall()
+                        
+                        def_blok_idx = 0
+                        sec_blok_list = [f"{b[0]} | {b[1]} {b[2]} (Kalan: {b[3]} Üye)" for b in cam_b]
+                        if eski_b_kodu:
+                            for idx, b_str in enumerate(sec_blok_list):
+                                if b_str.startswith(eski_b_kodu):
+                                    def_blok_idx = idx
+                                    break
+                                    
+                        sec_frez_list = [f"{f[0]} | {f[2]} - {f[1]} (Kalan: {f[3]-f[4]} Dk)" for f in cam_f]
+                        def_frezler = []
+                        if eski_frezler_str:
+                            eski_frezler = [x.strip() for x in eski_frezler_str.split(",")]
+                            for f_str in sec_frez_list:
+                                if f_str.split("|")[0].strip() in eski_frezler:
+                                    def_frezler.append(f_str)
                         
                         if cam_b and cam_f:
                             c_b, c_f = st.columns(2)
-                            sec_blok = c_b.selectbox("İşlenen Zirkonyum Blok", [f"{b[0]} | {b[1]} {b[2]} (Kalan: {b[3]} Üye)" for b in cam_b], key="t4_blok")
-                            sec_frezler = c_f.multiselect("Kullanılan Frezler (Çoklu Seçim)", [f"{f[0]} | {f[2]} - {f[1]} (Kalan: {f[3]-f[4]} Dk)" for f in cam_f], key="t4_frez")
+                            sec_blok = c_b.selectbox("İşlenen Zirkonyum Blok", sec_blok_list, index=def_blok_idx, key="t4_blok")
+                            sec_frezler = c_f.multiselect("Kullanılan Frezler (Çoklu Seçim)", sec_frez_list, default=def_frezler, key="t4_frez")
                             
                             tm1, tm2, tm_bos = st.columns([1.2, 1.2, 4])
-                            baslama_saati = tm1.time_input("Başlama", value=datetime.strptime("09:00", "%H:%M").time(), key="t4_bas")
-                            bitis_saati = tm2.time_input("Bitiş", value=datetime.strptime("09:45", "%H:%M").time(), key="t4_bit")
+                            
+                            b_time = datetime.strptime("09:00", "%H:%M").time()
+                            bt_time = datetime.strptime("09:45", "%H:%M").time()
+                            if eski_dk > 0:
+                                bt_time = (datetime.combine(datetime.today(), b_time) + timedelta(minutes=eski_dk)).time()
+                                
+                            baslama_saati = tm1.time_input("Başlama", value=b_time, key="t4_bas")
+                            bitis_saati = tm2.time_input("Bitiş", value=bt_time, key="t4_bit")
                             tm1.caption("💡 Klavyeden yazabilirsiniz.")
                             
                             start_dt = datetime.combine(datetime.today(), baslama_saati); end_dt = datetime.combine(datetime.today(), bitis_saati)
@@ -1931,8 +2293,17 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             frez_sayisi = len(sec_frezler) if len(sec_frezler) > 0 else 1
                             frez_basina_dk = int(harcanan_dk / frez_sayisi)
                             
-                            if st.button("⚙️ CAM Sarfiyatını Kaydet", type="primary"):
+                            btn_text = "⚙️ CAM Sarfiyatını Güncelle" if mevcut_malzeme else "⚙️ CAM Sarfiyatını Kaydet"
+                            
+                            if st.button(btn_text, type="primary"):
                                 if sec_frezler and harcanan_dk > 0:
+                                    if mevcut_malzeme and eski_b_kodu:
+                                        c.execute("UPDATE cam_bloklar SET Kalan_Uye = Kalan_Uye + ?, Durum='Yarım' WHERE Blok_Kodu=?", (eski_uye, eski_b_kodu))
+                                        if eski_frezler_str:
+                                            eski_frezler_list = [x.strip() for x in eski_frezler_str.split(",")]
+                                            for f_kod in eski_frezler_list:
+                                                c.execute("UPDATE aktif_frezler SET kullanilan_dk = MAX(0, kullanilan_dk - ?) WHERE frez_kod=?", (eski_frez_basina, f_kod))
+                                
                                     b_kodu = sec_blok.split("|")[0].strip()
                                     mevcut_uye = c.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (b_kodu,)).fetchone()[0]
                                     yeni_uye = mevcut_uye - harcanan_uye
@@ -1945,15 +2316,364 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                         mevcut = c.execute("SELECT toplam_omur_dk, kullanilan_dk FROM aktif_frezler WHERE frez_kod=?", (f_kodu,)).fetchone()
                                         c.execute("UPDATE aktif_frezler SET kullanilan_dk=? WHERE frez_kod=?", (mevcut[1] + frez_basina_dk, f_kodu))
                                     
-                                    eski_m_row = c.execute("SELECT Harcanan_Malzeme FROM isler WHERE id=?", (s_rowid,)).fetchone()
-                                    eski_m = eski_m_row[0] if eski_m_row else "-"
-                                    yeni_cam_m = f"CAM: {b_kodu} ({harcanan_uye} Üye), Makine: {secili_makine}, Top. {harcanan_dk} Dk (Takım başı {frez_basina_dk} Dk)"
-                                    c.execute("UPDATE isler SET Harcanan_Malzeme=? WHERE id=?", (yeni_cam_m if eski_m == "-" else f"{eski_m}, {yeni_cam_m}", s_rowid))
-                                    conn.commit(); st.success("CAM Sarfiyatı İşlendi!"); st.rerun()
+                                    yeni_cam_m = f"CAM: {b_kodu} ({harcanan_uye} Üye), Makine: {secili_makine}, Frezler: {','.join(frez_isimleri)}, Top. {harcanan_dk} Dk (Takım başı {frez_basina_dk} Dk)"
+                                    c.execute("UPDATE isler SET Harcanan_Malzeme=? WHERE id=?", (yeni_cam_m, s_rowid))
+                                    conn.commit(); st.success("CAM Sarfiyatı Güncellendi!"); st.rerun()
                                 else:
                                     st.error("Lütfen en az bir frez seçin ve bitiş saatinin başlangıçtan sonra olduğundan emin olun.")
                         else:
                             st.warning("Seçilen makinede aktif frez veya sistemde yarım zirkonyum blok bulunamadı.")
+                    with t5:
+                        st.markdown("#### 🔥 Sinter Sarfiyatı Kaydı")
+                        st.caption("İşin geçtiği sinter fırınlarını ve kalma sürelerini (dakika) seçiniz.")
+                        
+                        sinter_firinlari_raw = c.execute("SELECT Cihaz_Adi FROM cihazlar WHERE Kategori='Fırın (Sinter/Porselen)' AND Durum='Aktif'").fetchall()
+                        sinter_firinlari = ["-- Seçiniz --"] + [f[0] for f in sinter_firinlari_raw]
+                        
+                        mevcut_sinter_row = c.execute("SELECT Sinter_Sarfiyati FROM isler WHERE id=?", (s_rowid,)).fetchone()
+                        mevcut_sinter = mevcut_sinter_row[0] if mevcut_sinter_row and mevcut_sinter_row[0] != "-" else ""
+                        
+                        eski_f1 = "-- Seçiniz --"
+                        eski_f2 = "-- Seçiniz --"
+                        eski_s1 = 0
+                        eski_s2 = 0
+                        
+                        import json
+                        if mevcut_sinter and mevcut_sinter.startswith("{"):
+                            try:
+                                s_data = json.loads(mevcut_sinter)
+                                eski_f1 = s_data.get("f1", "-- Seçiniz --")
+                                eski_s1 = s_data.get("s1", 0)
+                                eski_f2 = s_data.get("f2", "-- Seçiniz --")
+                                eski_s2 = s_data.get("s2", 0)
+                            except: pass
+                            
+                        c_f1, c_s1 = st.columns(2)
+                        idx_f1 = sinter_firinlari.index(eski_f1) if eski_f1 in sinter_firinlari else 0
+                        f1_val = c_f1.selectbox("1. Sinter Fırını", sinter_firinlari, index=idx_f1, key=f"t5_f1_{s_rowid}")
+                        s1_val = c_s1.number_input("1. Fırın Süresi (Dk)", min_value=0, value=eski_s1, key=f"t5_s1_{s_rowid}")
+                        
+                        st.markdown("---")
+                        
+                        c_f2, c_s2 = st.columns(2)
+                        idx_f2 = sinter_firinlari.index(eski_f2) if eski_f2 in sinter_firinlari else 0
+                        f2_val = c_f2.selectbox("2. Sinter Fırını (Opsiyonel)", sinter_firinlari, index=idx_f2, key=f"t5_f2_{s_rowid}")
+                        s2_val = c_s2.number_input("2. Fırın Süresi (Dk)", min_value=0, value=eski_s2, key=f"t5_s2_{s_rowid}")
+                        
+                        btn_txt = "🔥 Sinter Sarfiyatını Güncelle" if mevcut_sinter else "🔥 Sinter Sarfiyatını Kaydet"
+                        if st.button(btn_txt, type="primary"):
+                            yeni_sinter_json = json.dumps({"f1": f1_val, "s1": s1_val, "f2": f2_val, "s2": s2_val})
+                            c.execute("UPDATE isler SET Sinter_Sarfiyati=? WHERE id=?", (yeni_sinter_json, s_rowid))
+                            conn.commit()
+                            st.success("Sinter Sarfiyatı başarıyla işlendi!")
+                            st.rerun()
+
+        with tab_cam:
+            # 🚨 SİGORTA VE YENİ SÜTUN (İSİM) EKLENTİSİ 🚨
+            c.execute('''CREATE TABLE IF NOT EXISTS aktif_frezler (
+                id SERIAL PRIMARY KEY, makine_adi TEXT, yuva_no TEXT,
+                frez_kod TEXT, toplam_omur_dk INTEGER, kullanilan_dk INTEGER,
+                birim_fiyat_euro REAL, durum TEXT
+            )''')
+            # Eski kayıtlarda isim sütunu yoksa hata vermeden ekler
+            try: c.execute("ALTER TABLE aktif_frezler ADD COLUMN frez_adi TEXT")
+            except: pass
+            conn.commit()
+
+            st.markdown("### 💿 CAM İstasyonu Envanteri")
+
+            # 💎 İŞTE YENİ CSS ZIRHINI TAM BURAYA, SEKMENİN BAŞINA KOYUYORUZ 💎
+            st.markdown("""
+<style>
+                /* Klasör kapalıyken üzerine gelince (Hover) yazıyı mavi parlat */
+                [data-testid="stExpander"] details summary:hover {
+                    color: #38bdf8 !important;
+                }
+                /* Klasör açıldığında başlığın arka planını Koyu Lacivert ve yazıyı Mavi yap */
+                [data-testid="stExpander"] details[open] summary {
+                    background-color: #0f172a !important; 
+                    color: #38bdf8 !important; 
+                    border-radius: 8px !important;
+                    font-weight: 800 !important;
+                }
+                /* 🚨 KLASÖRÜN (EXPANDER) AÇILAN İÇERİĞİNİ AÇIK MAVİ YAP 🚨 */
+                [data-testid="stExpander"] details[open] > div[role="region"] {
+                    background-color: #e0f2fe !important; /* Tatlı Açık Mavi (Sky 100) */
+                    border-radius: 0 0 8px 8px !important;
+                    padding: 15px !important;
+                }
+                /* İçerideki yazıların okunması için renklerini Koyu Lacivert yap */
+                [data-testid="stExpander"] details[open] > div[role="region"] p,
+                [data-testid="stExpander"] details[open] > div[role="region"] span {
+                    color: #0f172a !important;
+                }
+</style>
+            """, unsafe_allow_html=True)
+            
+            # --- CSS BİTTİ, NORMAL SEKMELERİMİZ BAŞLIYOR ---
+            tab_frez, tab_blok = st.tabs(["⚙️ Frez (Takım) Kokpiti", "🧱 Zirkon Blok Takibi"])
+            
+            # ==========================================
+            # 1. YENİ SİSTEM: DİNAMİK MAGAZİN KOKPİTİ
+            # (Buradan aşağısı sende zaten var, oraya dokunmuyoruz)
+            # ==========================================
+            with tab_frez:
+                st.info("Makinelerinizin magazinlerindeki aktif takımları buradan yönetin. Çıkardığınız frezler aşağıdaki 'Yedek İstasyonu'nda bekler.")
+                # SESSİZ GÜNCELLEME: Senin eski taktığın T1, T2 kayıtlarını otomatik M1, M2 yapar
+                c.execute("UPDATE aktif_frezler SET yuva_no = REPLACE(yuva_no, 'T', 'M') WHERE yuva_no LIKE 'T%'")
+                conn.commit()
+
+                # --- SIFIR FREZ TAKMA BÖLÜMÜ ---
+                with st.expander("➕ Ana Stoktan SIFIR Frez Tak", expanded=False):
+                    frez_stok = c.execute("SELECT Urun_Kodu, Urun_Adi, Malzeme FROM stok WHERE Kategori='Frez' AND Mevcut_Miktar > 0 AND Durum='Aktif'").fetchall()
+                    
+                    if frez_stok:
+                        c1, c2, c3 = st.columns(3)
+                        f_sec = c1.selectbox("Ana Stoktan Frez Seç", [f"{f[0]} / {f[1]} / {f[2]}" for f in frez_stok])
+                        
+                        makine = c2.selectbox("Makine Seç", kazima_makinelerini_getir())
+                        
+                        # AKILLI MAGAZİN FİLTRESİ
+                        dolu_yuvalar = c.execute("SELECT yuva_no FROM aktif_frezler WHERE makine_adi=? AND durum='Aktif'", (makine,)).fetchall()
+                        dolu_yuvalar_listesi = [y[0] for y in dolu_yuvalar]
+                        tum_yuvalar = [f"M{i}" for i in range(1, 16)]
+                        bos_yuvalar = [y for y in tum_yuvalar if y not in dolu_yuvalar_listesi] 
+                        
+                        if bos_yuvalar:
+                            yuva = c3.selectbox("Boş Magazinler", bos_yuvalar)
+                            
+                            # 🚨 BARKOD SİSTEMİ DİNAMİKLEŞTİ (FRZ-T1-0634) 🚨
+                            # Seçilen "M1" magazin numarasını alıp barkodda "T1" olarak gösteriyoruz.
+                            # Zaman damgasını da (Örn: 0634) sonuna ekliyoruz.
+                            oto_barkod = f"FRZ-{yuva.replace('M', 'T')}-{datetime.now().strftime('%H%M%S')}"
+                            
+                            c4, c5, c_bos = st.columns([1, 1, 1])
+                            frez_kod = c4.text_input("Frez Takip Kodu", value=oto_barkod)
+                            omur = c5.number_input("Beklenen Toplam Ömür (Dakika)", min_value=1, value=1500, step=100)
+                            
+                            st.markdown("---")
+                            if st.button("🚀 SIFIR Frezi Tak ve Stoğu Düş", type="primary", use_container_width=True):
+                                f_kod_stok = f_sec.split("/")[0].strip()
+                                f_ad_stok = f_sec.split("/")[1].strip() 
+                                
+                                try:
+                                    f_fiyat_tl = float(c.execute("SELECT Satis_Fiyati FROM stok WHERE Urun_Kodu=?", (f_kod_stok,)).fetchone()[0])
+                                    f_fiyat_euro = f_fiyat_tl / guncel_euro_kuru_getir()
+                                except:
+                                    f_fiyat_euro = 0.0
+                                
+                                c.execute("INSERT INTO aktif_frezler (makine_adi, yuva_no, frez_kod, toplam_omur_dk, kullanilan_dk, birim_fiyat_euro, durum, frez_adi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                                          (makine, yuva, frez_kod, omur, 0, f_fiyat_euro, "Aktif", f_ad_stok))
+                                c.execute("UPDATE stok SET Mevcut_Miktar = Mevcut_Miktar - 1, Guncelleme_Tarihi=? WHERE Urun_Kodu=?", (datetime.now().strftime('%Y-%m-%d %H:%M'), f_kod_stok))
+                                conn.commit()
+                                st.success(f"✅ {f_ad_stok} frezi {makine} makinesinin {yuva} magazinine {frez_kod} koduyla takıldı.")
+                                st.rerun()
+                        else:
+                            st.warning(f"⚠️ {makine} makinesinde boş magazin kalmadı!")
+                    else:
+                        st.error("⚠️ Ana stokta kullanıma hazır Frez bulunmuyor.")
+
+                # --- AKTİF TAKIMLAR BÖLÜMÜ (MAKİNE BAZLI GRUPLANDIRILDI) ---
+                st.markdown("#### 🟢 Magazinlerdeki Aktif Takımlar")
+                
+                try: 
+                    df_aktif = pd.read_sql("SELECT * FROM aktif_frezler WHERE durum='Aktif' ORDER BY frez_kod ASC", conn)
+                except: 
+                    df_aktif = pd.DataFrame()
+
+                if not df_aktif.empty:
+                    # 🚨 SİHİR BURADA: Önce makineleri (GTR, Hybrid vb.) benzersiz olarak çekiyoruz 🚨
+                    makineler = df_aktif['makine_adi'].unique()
+                    
+                    for makine_adi in makineler:
+                        # Her makine için şık bir açılır menü (Expander) oluşturuyoruz
+                        with st.expander(f"🖥️ {makine_adi} MAGAZİNİ", expanded=True):
+                            # Sadece bu makineye ait olan frezleri filtrele
+                            makine_frezleri = df_aktif[df_aktif['makine_adi'] == makine_adi]
+                            
+                            for _, r in makine_frezleri.iterrows():
+                                kalan_dk = r['toplam_omur_dk'] - r['kullanilan_dk']
+                                yuzde = int((r['kullanilan_dk'] / r['toplam_omur_dk']) * 100) if r['toplam_omur_dk'] > 0 else 0
+                                if yuzde > 100: yuzde = 100
+                                
+                                f_adi_goster = r['frez_adi'] if pd.notna(r.get('frez_adi')) and r.get('frez_adi') else "Bilinmeyen Frez"
+                                
+                                with st.container(border=True):
+                                    col_f1, col_f2, col_f3 = st.columns([2.5, 2.5, 1])
+                                    
+                                    # Magazin (M1, M2...) bilgisini ve frez ismini öne çıkarıyoruz
+                                    col_f1.markdown(f"⚙️ **{r['yuva_no']}** | 🏷️ :green[{f_adi_goster}]")
+                                    col_f1.caption(f"Barkod: `{r['frez_kod']}`")
+                                    
+                                    if yuzde < 80: 
+                                        col_f2.progress(yuzde / 100.0, text=f"Kullanım: %{yuzde} ({r['kullanilan_dk']} / {r['toplam_omur_dk']} dk)")
+                                    else: 
+                                        col_f2.progress(yuzde / 100.0, text=f"⚠️ Ömür Bitiyor! Kalan: {kalan_dk} dk")
+                                    
+                                    with col_f3:
+                                        if st.button("⏸️ Yedeğe Al", use_container_width=True, key=f"btn_park_{r['id']}"):
+                                            c.execute("UPDATE aktif_frezler SET durum='Yedekte', yuva_no='-' WHERE id=?", (r['id'],))
+                                            conn.commit(); st.rerun()
+                                            
+                                        with st.expander("⚙️ İşlemler", expanded=False):
+                                            frez_unique_key = f"{idx}_{r['id']}"
+                                            yeni_dk = st.number_input("Dk Ekle", min_value=1, step=15, value=15, key=f"dk_{frez_unique_key}")
+                                            if st.button("⏱️ İşle", key=f"btn_dk_{frez_unique_key}"):
+                                                c.execute("UPDATE aktif_frezler SET kullanilan_dk = kullanilan_dk + ? WHERE id=?", (int(yeni_dk), int(r['id'])))
+                                                conn.commit(); st.rerun()
+                                            st.markdown("---")
+                                            if st.button("💥 Kırıldı", type="primary", use_container_width=True, key=f"btn_kirildi_{r['id']}"):
+                                                c.execute("UPDATE aktif_frezler SET durum='Kırıldı' WHERE id=?", (r['id'],))
+                                                k_omur = str(r['toplam_omur_dk'] - r['kullanilan_dk']) + ' dk'
+                                                c.execute("INSERT INTO fire_kayitlari (Tarih, Urun_Kodu, Urun_Adi, Miktar, Neden, Kullanici, Kalan_Omur) VALUES (?,?,?,?,?,?,?)",
+                                                         (datetime.now().strftime("%Y-%m-%d %H:%M"), r['frez_kod'], r['frez_adi'], 1.0, f"CAM makinesinde ({r['makine_adi']}) kırıldı", st.session_state.get('kullanici_adi', 'Bilinmeyen'), k_omur))
+                                                conn.commit(); st.rerun()
+                                            if st.button("✅ Arşive Kaldır", use_container_width=True, key=f"btn_doldu_{r['id']}"):
+                                                c.execute("UPDATE aktif_frezler SET durum='Ömrü Doldu' WHERE id=?", (r['id'],))
+                                                c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
+                                                          (datetime.now().strftime("%Y-%m-%d %H:%M"), r['frez_kod'], r['frez_adi'], 1.0, "Ömrü Doldu", f"{r['makine_adi']} {r['yuva_no']} yuvasından arşive alındı.", st.session_state.get('kullanici_adi', 'Bilinmeyen')))
+                                                conn.commit(); st.rerun()
+                else:
+                    st.info("Magazinlerde tanımlı aktif frez yok.")
+
+                st.markdown("---")
+                
+                # --- 🚨 YEDEKTE BEKLEYEN (KULLANILMIŞ) FREZLER İSTASYONU 🚨 ---
+                st.markdown("---")
+                st.markdown("#### ⏸️ Yedekte Bekleyen (Kullanılmış) Frezler")
+                st.caption("Daha önce magazinden çıkardığınız yarı-ömürlü frezler burada bekler. Bunları tekrar herhangi bir makineye atayabilirsiniz.")
+                
+                try: 
+                    df_yedek = pd.read_sql("SELECT * FROM aktif_frezler WHERE durum='Yedekte' ORDER BY frez_kod ASC", conn)
+                except: 
+                    df_yedek = pd.DataFrame()
+                
+                if not df_yedek.empty:
+                    for _, r in df_yedek.iterrows():
+                        k_dk = r['toplam_omur_dk'] - r['kullanilan_dk']
+                        f_adi_yedek = r['frez_adi'] if pd.notna(r.get('frez_adi')) and r.get('frez_adi') else "Bilinmeyen Frez"
+                        
+                        with st.container(border=True):
+                            col_y1, col_y2, col_y3 = st.columns([2.5, 2.5, 2])
+                            
+                            col_y1.markdown(f"🏷️ **{f_adi_yedek}**")
+                            col_y1.caption(f"Barkod: `{r['frez_kod']}` | Son Makinesi: {r['makine_adi']}")
+                            
+                            # Kalan ömre göre durum bilgisi
+                            col_y2.warning(f"⏳ **Kalan:** {k_dk} Dk (Kullanım: %{int((r['kullanilan_dk']/r['toplam_omur_dk'])*100)})")
+                            
+                            with col_y3:
+                                # 🚨 MAGAZİNE GERİ TAKMA SİSTEMİ 🚨
+                                with st.expander("🔄 Magazine Geri Tak", expanded=False):
+                                    makine_geri = st.selectbox("Hedef Makine", kazima_makinelerini_getir(), key=f"mak_geri_{r['id']}")
+                                    
+                                    # SEÇİLEN MAKİNEDEKİ BOŞ MAGAZİNLERİ BUL
+                                    d_yuv = c.execute("SELECT yuva_no FROM aktif_frezler WHERE makine_adi=? AND durum='Aktif' ORDER BY yuva_no ASC", (makine_geri,)).fetchall()
+                                    d_list = [y[0] for y in d_yuv]
+                                    b_yuv = [f"M{i}" for i in range(1, 16) if f"M{i}" not in d_list]
+                                    
+                                    if b_yuv:
+                                        yuva_geri = st.selectbox("Boş Magazin Seç", b_yuv, key=f"yuv_geri_{r['id']}")
+                                        if st.button("🚀 Magazine Yerleştir", key=f"btn_akt_{r['id']}", type="primary", use_container_width=True):
+                                            c.execute("UPDATE aktif_frezler SET durum='Aktif', makine_adi=?, yuva_no=? WHERE id=?", (makine_geri, yuva_geri, r['id']))
+                                            conn.commit()
+                                            st.success(f"✅ {r['frez_kod']} başarıyla {makine_geri} - {yuva_geri} magazinine takıldı!")
+                                            st.rerun()
+                                    else:
+                                        st.error("Bu makinede boş magazin yok!")
+                                    
+                                    st.markdown("---")
+                                    # Eğer yedekteki frez artık işe yaramayacaksa çöpe atma seçeneği
+                                    if st.button("🗑️ Arşive Kaldır (Kullanma)", key=f"btn_arsiv_{r['id']}", use_container_width=True):
+                                        c.execute("UPDATE aktif_frezler SET durum='Ömrü Doldu' WHERE id=?", (r['id'],))
+                                        c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
+                                                  (datetime.now().strftime("%Y-%m-%d %H:%M"), r['frez_kod'], r['frez_adi'], 1.0, "Ömrü Doldu (Yedekten)", "Yedek deposundan arşive atıldı.", st.session_state.get('kullanici_adi', 'Bilinmeyen')))
+                                        conn.commit(); st.rerun()
+                else:
+                    st.info("Şu an yedekte bekleyen yarı-ömürlü freziniz bulunmamaktadır.")
+            # ==========================================
+            # 2. ESKİ SİSTEM: ZİRKON BLOK TAKİBİ
+            # ==========================================
+            with tab_blok:
+                st.info("Açılan Zirkonyum blokların üye takiplerini buradan yapabilirsiniz.")
+                
+                # 🚨 YENİ BLOK AÇMA FORMU DARALTILDI VE YAN YANA ALINDI 🚨
+                with st.container(border=True):
+                    c_blok1, c_blok2, c_blok3 = st.columns([2.5, 1.5, 1.5])
+                    
+                    zirkon_stok = c.execute("SELECT Urun_Kodu, Urun_Adi FROM stok WHERE (Kategori='Blok' OR Kategori='Zirkonyum Blok') AND Mevcut_Miktar > 0 AND Durum='Aktif'").fetchall()
+                    if zirkon_stok:
+                        z_sec = c_blok1.selectbox("Açılacak Blok (Stoktan Düşer)", [f"{z[0]} | {z[1]}" for z in zirkon_stok])
+                        b_renk = c_blok2.text_input("Renk ve Boyut")
+                        
+                        c_blok3.markdown("<br>", unsafe_allow_html=True) # Butonu hizalamak için boşluk
+                        if c_blok3.button("🚀 Aç ve CAM'e Ekle", type="primary", use_container_width=True):
+                            z_kod = z_sec.split("|")[0].strip()
+                            z_ad = z_sec.split("|")[1].strip()
+                            yeni_b_kod = f"BLK-{datetime.now().strftime('%H%M%S')}"
+                            c.execute("INSERT INTO cam_bloklar (Blok_Kodu, Urun_Adi, Boyut_Renk, Kapasite_Uye, Kalan_Uye, Durum) VALUES (?,?,?,?,?,?)", (yeni_b_kod, z_ad, b_renk, 22, 22, "Yarım"))
+                            c.execute("UPDATE stok SET Mevcut_Miktar = Mevcut_Miktar - 1, Guncelleme_Tarihi=? WHERE Urun_Kodu=?", (datetime.now().strftime('%Y-%m-%d %H:%M'), z_kod))
+                            conn.commit(); st.success(f"Blok Açıldı: {yeni_b_kod}"); st.rerun()
+                    else: 
+                        st.warning("Ana stokta kullanıma hazır Aktif Zirkonyum Blok kalmamış.")
+
+                st.markdown("---")
+                
+                # 🚨 FİLTRE DARALTILDI 🚨
+                col_filtre, col_fbos = st.columns([1.5, 4])
+                min_uye_filtre = col_filtre.number_input("🔍 Min Kalan Üye Filtresi:", min_value=1, max_value=22, value=1)
+                
+                # 🚨 TABLO YERİNE DİNAMİK YÖNETİM KARTLARI (İLAVE/ÇÖPE AT) 🚨
+                df_bloklar = pd.read_sql("SELECT id, Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye, Durum FROM cam_bloklar WHERE Durum='Yarım' ORDER BY Blok_Kodu ASC", conn)
+                
+                if not df_bloklar.empty: 
+                    gosterilecekler = df_bloklar[df_bloklar['Kalan_Uye'] >= min_uye_filtre]
+                    for _, r in gosterilecekler.iterrows():
+                        with st.container(border=True):
+                            cb1, cb2, cb3 = st.columns([2, 1.5, 2])
+                            cb1.markdown(f"🧱 **{r['Blok_Kodu']}** | 🏷️ {r['Boyut_Renk']}")
+                            cb1.caption(f"Ürün: {r['Urun_Adi']}")
+                            
+                            yuzde = int((r['Kalan_Uye'] / 22.0) * 100) if r['Kalan_Uye'] <= 22 else 100
+                            cb2.progress(yuzde / 100.0, text=f"Kalan: {r['Kalan_Uye']} Üye")
+                            
+                            with cb3:
+                                with st.expander("⚙️ Blok Yönetimi"):
+                                    st.caption("Tahmininizden fazla/az üye sığdıysa buradan düzeltebilirsiniz.")
+                                    
+                                    # Üye ekleme / çıkarma (Mesela +2 yazıp güncelleyebilirsin)
+                                    col_y1, col_y2 = st.columns([1.5, 1.5])
+                                    # Benzersiz key oluşturuyoruz ki aynı blok kodu olsa bile UI karışmasın
+                                    blok_unique_key = f"{r.get('id', idx)}_{r['Blok_Kodu']}"
+                                    ekle_cikar = col_y1.number_input("Miktar Ekle/Çıkar", value=0, step=1, key=f"uye_ayar_{blok_unique_key}")
+                                    
+                                    if col_y2.button("💾 Kalanı Güncelle", key=f"btn_uye_{blok_unique_key}"):
+                                        yeni_uye = r['Kalan_Uye'] + ekle_cikar
+                                        target_id = r.get('id')
+                                        if yeni_uye <= 0:
+                                            if target_id is not None:
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Durum='Bitti' WHERE id=?", (int(target_id),))
+                                            else:
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Durum='Bitti' WHERE Blok_Kodu=?", (str(r['Blok_Kodu']),))
+                                            c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
+                                                      (datetime.now().strftime("%Y-%m-%d %H:%M"), str(r['Blok_Kodu']), str(r['Urun_Adi']), 1.0, "Tükendi (Blok)", "Blok üyesi sıfırlandığı için otomatik arşive alındı.", st.session_state.get('kullanici_adi', 'Bilinmeyen')))
+                                        else:
+                                            if target_id is not None:
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=? WHERE id=?", (int(yeni_uye), int(target_id)))
+                                            else:
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=? WHERE Blok_Kodu=?", (int(yeni_uye), str(r['Blok_Kodu'])))
+                                        conn.commit(); st.rerun()
+                                    
+                                    st.markdown("---")
+                                    # Direkt çöpe atma butonu
+                                    cop_neden = st.text_input("Çöpe Atma Nedeni (Açıklama):", key=f"cop_neden_{r['Blok_Kodu']}")
+                                    if st.button("🗑️ Çöpe At (Arşive Kaldır)", type="primary", use_container_width=True, key=f"btn_cop_{r['Blok_Kodu']}"):
+                                        c.execute("UPDATE cam_bloklar SET Durum='Bitti', Kalan_Uye=0 WHERE Blok_Kodu=?", (r['Blok_Kodu'],))
+                                        c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
+                                                  (datetime.now().strftime("%Y-%m-%d %H:%M"), r['Blok_Kodu'], r['Urun_Adi'], 1.0, "Çöpe Atıldı (Blok)", cop_neden if cop_neden.strip() else "Manuel çöpe atıldı.", st.session_state.get('kullanici_adi', 'Bilinmeyen')))
+                                        conn.commit(); st.success("Blok çöpe atıldı/arşive kaldırıldı!"); st.rerun()
+                else:
+                    st.info("Kriterlere uygun aktif yarım blok bulunmuyor.")
     elif sayfa == "📱 Teknisyen Terminali":
         banner_olustur("📱", "Teknisyen Terminali", "Tablet üzerinden barkod okutun, üretime hız katın.")
         okutulan = st.text_input("📷 Barkod Okuyucu İle Taramak İçin Tıklayın:", placeholder="Barkod Numarası...", key="tablet_barkod")
@@ -2199,13 +2919,13 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             <h2 style="color:#38bdf8; margin:0;">{r['Ad_Soyad']}</h2>
                             <p style="color:#94a3b8; font-weight:bold; letter-spacing:2px;">{r['Gorevi'].upper()}</p>
                             <hr style="border-color:rgba(56,189,248,0.2);">
-                            <p><b>🆔 T.C. Kimlik:</b> {r['TC_No']}</p>
-                            <p><b>📱 Telefon:</b> {r['Telefon']}</p>
-                            <p><b>📧 E-Posta:</b> {r['Email']}</p>
-                            <p><b>📍 Adres:</b> {r['Adres']}</p>
-                            <p><b>🗓️ İşe Giriş:</b> {r['Baslama_Tarihi']}</p>
-                            <p><b>🏖️ Kalan İzin:</b> {r['Kalan_Izin']} Gün</p>
-                            <p><b>💳 IBAN:</b> <code style="color:#34d399;">{r['IBAN']}</code></p>
+                            <p><b>T.C. Kimlik:</b> {r['TC_No']}</p>
+                            <p><b>Telefon:</b> {r['Telefon']}</p>
+                            <p><b>E-Posta:</b> {r['Email']}</p>
+                            <p><b>Adres:</b> {r['Adres']}</p>
+                            <p><b>İşe Giriş:</b> {r['Baslama_Tarihi']}</p>
+                            <p><b>Kalan İzin:</b> {r['Kalan_Izin']} Gün</p>
+                            <p><b>IBAN:</b> <code style="color:#34d399;">{r['IBAN']}</code></p>
                         </div>
                         """, unsafe_allow_html=True)
             else:
@@ -2380,6 +3100,139 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     c.execute("INSERT INTO giderler (Tarih, Kategori, Aciklama, Tutar) VALUES (?,?,?,?)", (datetime.now().strftime("%Y-%m-%d"), "Maaş", gider_notu, net_odenecek))
                     c.execute("INSERT INTO personel_finans (Tarih, Personel_Adi, Islem_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (datetime.now().strftime("%Y-%m-%d"), b_per, "Maaş Ödemesi", net_odenecek, "Ay Sonu Kapanışı"))
                     conn.commit(); st.success(f"{net_odenecek:,.2f} {para_birimi} Maaş ödemesi başarıyla Finans (Giderler) modülüne işlendi!"); st.balloons()
+    elif sayfa == "🏢 Varlık Yönetimi":
+        banner_olustur("🏢", "Varlık ve Demirbaş Yönetimi", "Laboratuvarınızdaki demirbaşları, cihazları ve varlıkları yönetin.")
+        
+        # Tablo yoksa oluştur
+        c.execute("CREATE TABLE IF NOT EXISTS varlik_satislari (Tarih TEXT, Varlik_Kodu TEXT, Varlik_Adi TEXT, Alinan_Fiyat REAL, Satis_Fiyati REAL, Alan_Kisi TEXT, Aciklama TEXT)")
+        conn.commit()
+        
+        t1, t2, t3 = st.tabs(["➕ Yeni Varlık Ekle", "📊 Mevcut Varlıklar", "🗄️ Varlık Arşivi"])
+        with t1:
+            with st.form("yeni_varlik_formu"):
+                c1, c2, c3 = st.columns(3)
+                kod = c1.text_input("Varlık Kodu", value=f"VAR-{datetime.now().strftime('%H%M%S')}")
+                ad = c2.text_input("Varlık Adı")
+                marka = c3.text_input("Marka", value="-")
+                
+                kat = "Demirbaşlar"
+                durum = c1.selectbox("Durum", ["Aktif", "Pasif"])
+                fiy = c2.number_input("Değeri (TL)", value=0.0)
+                mik = c3.number_input("Miktar", value=1.0)
+                
+                bir = "Adet"
+                sinir = 0.0
+                renk = "-"
+                
+                if st.form_submit_button("Sisteme Kaydet") and kod and ad:
+                    c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum, Renk, Guncelleme_Tarihi, Marka) VALUES (?,?,?,?,?,?,?,?,?,?,?)", 
+                              (kod, ad, kat, mik, bir, sinir, fiy, durum, renk, datetime.now().strftime('%Y-%m-%d %H:%M'), marka))
+                    conn.commit(); st.success("Varlık Başarıyla Eklendi!"); st.rerun()
+        
+        with t2:
+            df_varlik = pd.read_sql("SELECT * FROM stok WHERE Kategori='Demirbaşlar' AND Durum != 'Satıldı' ORDER BY Urun_Kodu ASC", conn)
+            st.markdown("<h4 style='color: #38bdf8; margin-top:-10px;'>🔍 Varlık Envanteri</h4>", unsafe_allow_html=True)
+            if df_varlik.empty:
+                st.info("Kayıtlı varlık / demirbaş bulunmamaktadır.")
+            else:
+                isim_haritasi_varlik = {
+                    "id": "id", "Urun_Kodu": "Varlık Kodu", "Urun_Adi": "Varlık Adı", 
+                    "Kategori": "Kategori", "Mevcut_Miktar": "Miktar", "Birim": "Birim", 
+                    "Kritik_Sinir": "Kritik Sınır", "Satis_Fiyati": "Değeri (TL)", "Durum": "Durum", 
+                    "Renk": "Renk", "Guncelleme_Tarihi": "Güncelleme Tarihi", "Marka": "Marka",
+                    "urun_kodu": "Varlık Kodu", "urun_adi": "Varlık Adı", 
+                    "kategori": "Kategori", "mevcut_miktar": "Miktar", "birim": "Birim", 
+                    "kritik_sinir": "Kritik Sınır", "satis_fiyati": "Değeri (TL)", "durum": "Durum", 
+                    "renk": "Renk", "guncelleme_tarihi": "Güncelleme Tarihi", "marka": "Marka"
+                }
+                df_varlik.rename(columns=isim_haritasi_varlik, inplace=True)
+                
+                silinecekler = [k for k in ["id", "Kategori", "Birim", "Kritik Sınır", "Renk", "Barkod", "Lot_Numarasi", "Sertifika_No", "barkod", "lot_numarasi", "sertifika_no"] if k in df_varlik.columns]
+                df_gorsel = df_varlik.drop(columns=silinecekler)
+                
+                col_tablo, col_islemler = st.columns([3.5, 1.5])
+                with col_tablo:
+                    st.dataframe(df_gorsel, hide_index=True, use_container_width=True)
+                with col_islemler:
+                    st.markdown("<h5 style='color:#38bdf8;'>⚡ İşlemler</h5>", unsafe_allow_html=True)
+                    with st.container():
+                        v_secenekler = [f"{r['Varlık Kodu']} | {r['Varlık Adı']}" for _, r in df_varlik.iterrows()]
+                        secilen_v = st.selectbox("İşlem Yapılacak Varlık", ["— Seçiniz —"] + v_secenekler)
+                        if secilen_v != "— Seçiniz —":
+                            v_kod = secilen_v.split("|")[0].strip()
+                            v_isim = secilen_v.split("|")[1].strip()
+                            mevcut_v = c.execute("SELECT Mevcut_Miktar, Durum, Satis_Fiyati FROM stok WHERE Urun_Kodu=?", (v_kod,)).fetchone()
+                            
+                            with st.expander("📝 Düzenle / Güncelle", expanded=False):
+                                yeni_mik = st.number_input("Yeni Miktar", value=float(mevcut_v[0]))
+                                yeni_deger = st.number_input("Yeni Değer (TL)", value=float(mevcut_v[2]))
+                                yeni_durum = st.selectbox("Yeni Durum", ["Aktif", "Pasif"], index=0 if mevcut_v[1]=="Aktif" else 1)
+                                if st.button("💾 Güncelle", use_container_width=True):
+                                    c.execute("UPDATE stok SET Mevcut_Miktar=?, Satis_Fiyati=?, Durum=?, Guncelleme_Tarihi=? WHERE Urun_Kodu=?", (yeni_mik, yeni_deger, yeni_durum, datetime.now().strftime('%Y-%m-%d %H:%M'), v_kod))
+                                    conn.commit(); st.rerun()
+                                
+                                st.markdown("---")
+                                if st.button("🗑️ Sistemden Kaldır", type="primary", use_container_width=True):
+                                    c.execute("DELETE FROM stok WHERE Urun_Kodu=?", (v_kod,))
+                                    conn.commit(); st.rerun()
+
+                            with st.expander("🤝 Varlık Satışı Yap", expanded=False):
+                                st.info("Bu varlığı sattığınızda sistemden düşülecek ve arşive taşınacaktır.")
+                                satis_fiyat = st.number_input("Satış Fiyatı (TL)", min_value=0.0, value=float(mevcut_v[2]))
+                                alan_kisi = st.text_input("Alan Kişi/Kurum")
+                                s_aciklama = st.text_input("Açıklama/Not")
+                                if st.button("Satışı Tamamla", type="primary", use_container_width=True) and alan_kisi:
+                                    c.execute("INSERT INTO varlik_satislari (Tarih, Varlik_Kodu, Varlik_Adi, Alinan_Fiyat, Satis_Fiyati, Alan_Kisi, Aciklama) VALUES (?,?,?,?,?,?,?)",
+                                              (datetime.now().strftime('%Y-%m-%d %H:%M'), v_kod, v_isim, mevcut_v[2], satis_fiyat, alan_kisi, s_aciklama))
+                                    c.execute("UPDATE stok SET Durum='Satıldı', Guncelleme_Tarihi=? WHERE Urun_Kodu=?", (datetime.now().strftime('%Y-%m-%d %H:%M'), v_kod))
+                                    conn.commit(); st.success("Satış işlemi başarıyla kaydedildi!"); st.rerun()
+
+        with t3:
+            df_arsiv = pd.read_sql("SELECT * FROM varlik_satislari ORDER BY Tarih DESC", conn)
+            st.markdown("<h4 style='color: #38bdf8; margin-top:-10px;'>🗄️ Satış Arşivi</h4>", unsafe_allow_html=True)
+            if df_arsiv.empty:
+                st.info("Henüz satışı yapılmış bir varlık bulunmuyor.")
+            else:
+                df_arsiv_gorsel = df_arsiv.copy()
+                df_arsiv_gorsel.columns = ["Tarih", "Varlık Kodu", "Varlık Adı", "Alış/Değer (TL)", "Satış Fiyatı (TL)", "Alan Kişi/Kurum", "Açıklama"]
+                
+                # Kar / Zarar Hesaplama Sütunu
+                df_arsiv_gorsel['Fark (TL)'] = df_arsiv_gorsel['Satış Fiyatı (TL)'] - df_arsiv_gorsel['Alış/Değer (TL)']
+                
+                def color_fark(val):
+                    color = '#10b981' if val > 0 else '#ef4444' if val < 0 else '#f59e0b'
+                    return f'color: {color}'
+                
+                col_tablo, col_islemler = st.columns([3.5, 1.5])
+                with col_tablo:
+                    st.dataframe(df_arsiv_gorsel.style.map(color_fark, subset=['Fark (TL)']), hide_index=True, use_container_width=True)
+                    
+                with col_islemler:
+                    st.markdown("<h5 style='color:#38bdf8;'>⚡ Arşiv İşlemleri</h5>", unsafe_allow_html=True)
+                    with st.container():
+                        arsiv_secenekler = [f"{r['Tarih']} | {r['Varlık Kodu']} - {r['Alan Kişi/Kurum']}" for _, r in df_arsiv_gorsel.iterrows()]
+                        secilen_arsiv = st.selectbox("İşlem Yapılacak Kayıt", ["— Seçiniz —"] + arsiv_secenekler)
+                        if secilen_arsiv != "— Seçiniz —":
+                            s_tarih = secilen_arsiv.split("|")[0].strip()
+                            s_vkod = secilen_arsiv.split("|")[1].split(" - ")[0].strip()
+                            s_kayit = c.execute("SELECT Satis_Fiyati, Alan_Kisi, Aciklama FROM varlik_satislari WHERE Tarih=? AND Varlik_Kodu=?", (s_tarih, s_vkod)).fetchone()
+                            
+                            with st.expander("📝 Satışı Güncelle", expanded=False):
+                                yeni_satis_fiyati = st.number_input("Yeni Satış Fiyatı (TL)", value=float(s_kayit[0]))
+                                yeni_alan = st.text_input("Yeni Alan Kişi/Kurum", value=s_kayit[1])
+                                yeni_aciklama = st.text_input("Yeni Açıklama", value=s_kayit[2])
+                                if st.button("💾 Satışı Güncelle", use_container_width=True):
+                                    c.execute("UPDATE varlik_satislari SET Satis_Fiyati=?, Alan_Kisi=?, Aciklama=? WHERE Tarih=? AND Varlik_Kodu=?", (yeni_satis_fiyati, yeni_alan, yeni_aciklama, s_tarih, s_vkod))
+                                    conn.commit(); st.rerun()
+                                    
+                            with st.expander("↩️ Satışı İptal Et (Geri Al)", expanded=False):
+                                st.warning("Bu işlem satışı arşivden siler ve varlığı tekrar envantere (Aktif olarak) ekler.")
+                                if st.button("Satışı İptal Et", type="primary", use_container_width=True):
+                                    c.execute("DELETE FROM varlik_satislari WHERE Tarih=? AND Varlik_Kodu=?", (s_tarih, s_vkod))
+                                    c.execute("UPDATE stok SET Durum='Aktif', Guncelleme_Tarihi=? WHERE Urun_Kodu=?", (datetime.now().strftime('%Y-%m-%d %H:%M'), s_vkod))
+                                    conn.commit(); st.success("Satış iptal edildi, varlık stoka döndü!"); st.rerun()
+
+
     elif sayfa == "📦 Stok Yönetimi":
         banner_olustur("📦", "Depo ve Stok Yönetimi", "Kritik envanteri takip edin, aktif/pasif ürünleri belirleyin ve akıllı tedarik siparişleri oluşturun.")
         # 💎 GÖRSEL YAMA: Stok Modülü Yükleme/İndirme Butonları 💎
@@ -2392,91 +3245,300 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             [data-testid="stFileUploaderDropzone"]:hover { border-color: #8B5CF6 !important; background-color: rgba(30, 41, 59, 0.8) !important; }
 </style>
         """, unsafe_allow_html=True)
-        t1, t2, t3, t4, t5 = st.tabs(["➕ Manuel Giriş / Çıkış", "📊 Mevcut Envanter (Aktif/Pasif)", "📥 Excel/CSV Yükle", "🤖 Akıllı Tedarik & AI", "💿 CAM Envanteri (Blok & Frez)"])
+        t1, t2, t3, t4 = st.tabs(["➕ Yeni Ürün Ekle", "📊 Mevcut Envanter (Aktif/Pasif)", "📥 Excel/CSV Yükle", "🤖 Akıllı Tedarik & AI"])
         with t1:
-            is_yeni = st.checkbox("Sisteme Yepyeni Bir Ürün Tanımla")
-            st.markdown("---")
-            if not is_yeni:
-                c1, c2 = st.columns(2)
-                k_sec = c1.selectbox("Kategori Filtresi", STOK_KATEGORILER, key="manual_stok_kat")
-                u_list = c.execute("SELECT Urun_Kodu, Urun_Adi, Mevcut_Miktar, Birim, Renk FROM stok WHERE Kategori=?", (k_sec,)).fetchall()
-                if u_list:
-                    u_dict = {f"{u[0]} | {u[1]}{f' (Renk: {u[4]})' if u[4] and u[4] != '-' else ''} (Mevcut: {u[2]:.0f} {u[3]})": u[0] for u in u_list}
-                    s_u = c2.selectbox("İşlem Yapılacak Ürün", list(u_dict.keys()), key="manual_stok_urun")
-                    
-                    with st.form("manuel_stok_guncelleme_formu"):
-                        girilen_renk = st.text_input("Renk Belirtin (Örn: A1, A2 - Yeni bir renk varyantı eklemek için buraya yazın)", value="-")
+            st.markdown("### Sisteme Ürün Tanımla / Güncelle")
+            
+            # DB Migration for Blok rename
+            try:
+                c.execute("UPDATE stok SET Kategori='Blok' WHERE Kategori='Zirkonyum Blok'")
+                conn.commit()
+            except: pass
+            
+            kat = st.selectbox("Kategori Seçimi", STOK_KATEGORILER)
+            
+            try:
+                df_kat = pd.read_sql("SELECT * FROM stok WHERE Kategori=?", conn, params=(kat,))
+            except Exception:
+                df_kat = pd.DataFrame()
+                
+            secenekler = ["-- Yeni Ürün Ekle --"]
+            if not df_kat.empty:
+                for k in df_kat['Urun_Kodu'].unique():
+                    u_adi = df_kat[df_kat['Urun_Kodu'] == k].iloc[0].get('Urun_Adi', '')
+                    s = f"{k} | {u_adi}" if u_adi else str(k)
+                    if s not in secenekler: secenekler.append(s)
                         
-                        col_y, col_m = st.columns(2)
-                        i_yon = col_y.radio("Yön", ["➕ Ekle (Giriş)", "➖ Düş (Çıkış)"], horizontal=True)
-                        m_mik = col_m.number_input("Miktar", min_value=1.0, value=1.0, key="manual_stok_mik")
-                        
-                        guncelle_btn = st.form_submit_button("Stoğu Güncelle")
-
-                    if guncelle_btn:
-                        sec_kod_guncelle = s_u.split("|")[0].strip()
-                        
-                        hedef_kod = sec_kod_guncelle
-                        if girilen_renk.strip() != "" and girilen_renk.strip() != "-":
-                            hedef_kod = f"{sec_kod_guncelle}-{girilen_renk.strip().upper()}"
-                            
-                        mevcut_urun = c.execute("SELECT Mevcut_Miktar, Urun_Adi, Kategori, Birim, Kritik_Sinir, Satis_Fiyati, Durum FROM stok WHERE Urun_Kodu=?", (hedef_kod,)).fetchone()
-                        
-                        try:
-                            if not mevcut_urun:
-                                if "➖" in i_yon:
-                                    st.error(f"'{girilen_renk}' renginde stok kaydı bulunmuyor, çıkış yapılamaz!")
-                                else:
-                                    base_urun = c.execute("SELECT Urun_Adi, Kategori, Birim, Kritik_Sinir, Satis_Fiyati, Durum FROM stok WHERE Urun_Kodu=?", (sec_kod_guncelle,)).fetchone()
-                                    if not base_urun:
-                                        st.error("Ana ürün bulunamadı!")
-                                    else:
-                                        c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum, Renk, Guncelleme_Tarihi) VALUES (?,?,?,?,?,?,?,?,?,?)", 
-                                                  (hedef_kod, base_urun[0], base_urun[1], m_mik, base_urun[2], base_urun[3], base_urun[4], base_urun[5], girilen_renk.strip().upper(), datetime.now().strftime('%Y-%m-%d %H:%M')))
-                                        conn.commit()
-                                        st.success(f"Başarılı! Yeni Varyant Eklendi: {hedef_kod}")
-                            else:
-                                mevcut = mevcut_urun[0]
-                                if "➖" in i_yon:
-                                    if mevcut < m_mik: st.error("Stok Yetersiz!")
-                                    else: 
-                                        c.execute("UPDATE stok SET Mevcut_Miktar=?, Guncelleme_Tarihi=? WHERE Urun_Kodu=?", (mevcut - m_mik, datetime.now().strftime('%Y-%m-%d %H:%M'), hedef_kod))
-                                        conn.commit()
-                                        st.success(f"Düşüldü! Kalan: {mevcut - m_mik}")
-                                else: 
-                                    c.execute("UPDATE stok SET Mevcut_Miktar=?, Guncelleme_Tarihi=? WHERE Urun_Kodu=?", (mevcut + m_mik, datetime.now().strftime('%Y-%m-%d %H:%M'), hedef_kod))
-                                    conn.commit()
-                                    st.success(f"Eklendi! Yeni Miktar: {mevcut + m_mik}")
-                        except Exception as e:
-                            st.error(f"Veritabanı Hatası: {str(e)}")
-                            
-                        # Sayfayı yenileme butonu
-                        if st.button("Sayfayı Yenile ve Sonucu Gör"):
-                            st.rerun()
+            sec_kod_display = st.selectbox("İşlem Yapılacak Ürün Seçin", secenekler)
+            
+            if sec_kod_display == "-- Yeni Ürün Ekle --":
+                sec_kod = sec_kod_display
             else:
-                with st.form("yeni_stok_formu"):
-                    c1, c2, c3 = st.columns(3)
-                    kod = c1.text_input("Yeni Ürün Kodu")
-                    ad = c2.text_input("Yeni Ürün Adı")
-                    renk = c3.text_input("Renk (Opsiyonel)", value="-")
+                sec_kod = sec_kod_display.split(" | ")[0].strip()
+                
+            sec_renk = "-"  # Renk ayrımı ürün kataloğu/formu düzeyinde kalktı
+                
+            # Default values for new form
+            d_kod = ""
+            d_ad = ""
+            d_toz_boyutu = ""
+            d_alasim = "Nikelsiz"
+            d_malzeme = ""
+            d_kalinlik = ""
+            d_fiyat = 0.0
+            d_para_birimi = "TL"
+            d_birim = "Adet"
+            d_sinir = 5.0
+            d_marka = "-"
+            mevcut_mik = 0.0
+            
+            if sec_kod_display != "-- Yeni Ürün Ekle --":
+                satir = df_kat[(df_kat['Urun_Kodu'] == sec_kod)].iloc[0]
+                d_kod = satir['Urun_Kodu']
+                
+                ham_ad = str(satir['Urun_Adi'])
+                if kat == "Metal Tozu":
+                    if "Boyut:" in ham_ad:
+                        try: d_toz_boyutu = ham_ad.split("Boyut:")[1].split("-")[0].replace(")", "").strip()
+                        except: pass
+                    if "Nikelli" in ham_ad: d_alasim = "Nikelli"
+                    if "Nikelsiz" in ham_ad: d_alasim = "Nikelsiz"
+                    d_ad = ham_ad.split("(")[0].strip()
+                else:
+                    d_ad = ham_ad
                     
-                    kat = c1.selectbox("Kategori", STOK_KATEGORILER)
-                    durum = c2.selectbox("Ürün Durumu", ["Aktif (Alarm Verir)", "Pasif (Alarm Vermez)"])
-                    fiy = c3.number_input("Satış Fiyatı (TL)", value=0.0)
+                d_malzeme = satir.get('Malzeme', '')
+                if str(d_malzeme) == "nan": d_malzeme = ""
+                
+                d_kalinlik = satir.get('Kalinlik', '')
+                if str(d_kalinlik) == "nan": d_kalinlik = ""
                     
-                    mik = c1.number_input("Miktar", value=1.0)
-                    bir = c2.selectbox("Birim", ["Adet", "Gram", "Litre", "Kutu"])
-                    sinir = c3.number_input("Kritik Sınır", value=5.0)
+                d_fiyat = float(satir.get('Satis_Fiyati', 0.0))
+                d_para_birimi = satir.get('Para_Birimi', 'TL')
+                if not d_para_birimi or str(d_para_birimi) == "nan": d_para_birimi = "TL"
+                
+                d_birim = satir.get('Birim', 'Adet')
+                d_sinir = float(satir.get('Kritik_Sinir', 5.0))
+                d_marka = satir.get('Marka', '-')
+                if not d_marka or str(d_marka) == "nan": d_marka = "-"
+                
+                mevcut_mik = float(df_kat[df_kat['Urun_Kodu'] == sec_kod]['Mevcut_Miktar'].sum())
+            
+            with st.form("yeni_stok_formu"):
+                c1, c2, c3 = st.columns(3)
+                
+                kod = c1.text_input("Ürün Kodu", value=d_kod, key=f"kod_{sec_kod_display}")
+                ad = c2.text_input("Ürün Adı", value=d_ad, key=f"ad_{sec_kod_display}")
+                
+                toz_boyutu = ""
+                alasim = "Nikelsiz"
+                malzeme = ""
+                kalinlik = ""
+                
+                if kat == "Blok":
+                    malzeme = c3.text_input("Malzeme", value=d_malzeme, key=f"malz_{sec_kod_display}")
+                    kalinlik = c1.text_input("Kalınlık (mm)", value=d_kalinlik, key=f"kal_{sec_kod_display}")
+                    fiy = c2.number_input("Alış Fiyatı", value=d_fiyat, key=f"fiy_{sec_kod_display}")
+                    para_birimi = c3.selectbox("Para Birimi", ["TL", "Euro"], index=0 if d_para_birimi=="TL" else 1, key=f"pb_{sec_kod_display}")
+                    bir = c1.selectbox("Miktar Birimi", ["Adet", "Gram", "Litre", "Kutu"], index=["Adet", "Gram", "Litre", "Kutu"].index(d_birim) if d_birim in ["Adet", "Gram", "Litre", "Kutu"] else 0, key=f"bir_{sec_kod_display}")
+                    sinir = c2.number_input("Kritik Sınır", value=d_sinir, key=f"sinir_{sec_kod_display}")
+                    marka = c3.text_input("Marka", value=d_marka, key=f"marka_{sec_kod_display}")
+                elif kat == "Metal Tozu":
+                    toz_boyutu = c3.text_input("Toz Boyutu (Örn: 10µm)", value=d_toz_boyutu, key=f"toz_{sec_kod_display}")
+                    alasim = c1.selectbox("Alaşım Türü", ["Nikelli", "Nikelsiz"], index=0 if d_alasim=="Nikelli" else 1, key=f"alasim_{sec_kod_display}")
+                    fiy = c2.number_input("Alış Fiyatı", value=d_fiyat, key=f"fiy_{sec_kod_display}")
+                    para_birimi = c3.selectbox("Para Birimi", ["TL", "Euro"], index=0 if d_para_birimi=="TL" else 1, key=f"pb_{sec_kod_display}")
+                    bir = c1.selectbox("Miktar Birimi", ["Adet", "Gram", "Litre", "Kutu"], index=["Adet", "Gram", "Litre", "Kutu"].index(d_birim) if d_birim in ["Adet", "Gram", "Litre", "Kutu"] else 0, key=f"bir_{sec_kod_display}")
+                    sinir = c2.number_input("Kritik Sınır", value=d_sinir, key=f"sinir_{sec_kod_display}")
+                    marka = c3.text_input("Marka", value=d_marka, key=f"marka_{sec_kod_display}")
+                elif kat == "Frez":
+                    marka = c3.text_input("Marka", value=d_marka, key=f"marka_{sec_kod_display}")
+                    malzeme = c1.text_input("Tipi", value=d_malzeme, key=f"tipi_{sec_kod_display}")
+                    fiy = c2.number_input("Alış Fiyatı", value=d_fiyat, key=f"fiy_{sec_kod_display}")
+                    para_birimi = c3.selectbox("Para Birimi", ["TL", "Euro"], index=0 if d_para_birimi=="TL" else 1, key=f"pb_{sec_kod_display}")
+                    bir = c1.selectbox("Miktar Birimi", ["Adet", "Gram", "Litre", "Kutu"], index=["Adet", "Gram", "Litre", "Kutu"].index(d_birim) if d_birim in ["Adet", "Gram", "Litre", "Kutu"] else 0, key=f"bir_{sec_kod_display}")
+                    sinir = c2.number_input("Kritik Sınır", value=d_sinir, key=f"sinir_{sec_kod_display}")
+                else:
+                    fiy = c3.number_input("Alış Fiyatı", value=d_fiyat, key=f"fiy_{sec_kod_display}")
+                    para_birimi = c1.selectbox("Para Birimi", ["TL", "Euro"], index=0 if d_para_birimi=="TL" else 1, key=f"pb_{sec_kod_display}")
+                    bir = c2.selectbox("Miktar Birimi", ["Adet", "Gram", "Litre", "Kutu"], index=["Adet", "Gram", "Litre", "Kutu"].index(d_birim) if d_birim in ["Adet", "Gram", "Litre", "Kutu"] else 0, key=f"bir_{sec_kod_display}")
+                    sinir = c3.number_input("Kritik Sınır", value=d_sinir, key=f"sinir_{sec_kod_display}")
+                    marka = c1.text_input("Marka", value=d_marka, key=f"marka_{sec_kod_display}")
+
+                st.markdown("---")
+                
+                if sec_kod_display == "-- Yeni Ürün Ekle --":
+                    if st.form_submit_button("💾 Yeni Ürün Tanımla (Stoğu '0' olarak ekler)", type="primary") and kod and ad:
+                        son_ad = ad
+                        if kat == "Metal Tozu":
+                            ekler = []
+                            if toz_boyutu.strip(): ekler.append(f"Boyut: {toz_boyutu.strip()}")
+                            if alasim: ekler.append(alasim)
+                            if ekler: son_ad = f"{ad} ({' - '.join(ekler)})"
+                        
+                        # ⚠️ AYNI KODLU ÜRÜN ZATEN VARSA UYAR
+                        kod_zaten_var = c.execute(
+                            "SELECT COUNT(*) FROM stok WHERE Urun_Kodu=? AND Kategori=?", (kod, kat)
+                        ).fetchone()[0]
+                        
+                        if kod_zaten_var > 0:
+                            st.warning(f"⚠️ **'{kod}'** kodu bu kategoride zaten kayıtlı! Güncelleme yapmak için yukarıdaki listeden bu ürünü seçin.")
+                        else:
+                            for col_query in [
+                                "ALTER TABLE stok ADD COLUMN Para_Birimi TEXT DEFAULT 'TL'",
+                                "ALTER TABLE stok ADD COLUMN Malzeme TEXT DEFAULT '-'",
+                                "ALTER TABLE stok ADD COLUMN Kalinlik TEXT DEFAULT '-'"
+                            ]:
+                                try:
+                                    c.execute(col_query)
+                                    conn.commit()
+                                except:
+                                    try: conn.rollback()
+                                    except: pass
+                                
+                            try:
+                                c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum, Renk, Guncelleme_Tarihi, Marka, Para_Birimi, Malzeme, Kalinlik) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
+                                          (kod, son_ad, kat, 0.0, bir, sinir, fiy, "Aktif", "-", datetime.now().strftime('%Y-%m-%d %H:%M'), marka, para_birimi, malzeme if malzeme else "-", kalinlik if kalinlik else "-"))
+                                conn.commit(); st.success("Yeni ürün tanımlandı! Artık 'Stok Ekle' ile miktar ve renk ekleyebilirsiniz."); st.rerun()
+                            except Exception as e:
+                                try:
+                                    conn.rollback()
+                                    c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum, Renk, Guncelleme_Tarihi, Marka) VALUES (?,?,?,?,?,?,?,?,?,?,?)", 
+                                              (kod, son_ad, kat, 0.0, bir, sinir, fiy, "Aktif", "-", datetime.now().strftime('%Y-%m-%d %H:%M'), marka))
+                                    conn.commit(); st.success("Eklendi (Eski veritabanı şeması kullanıldı)!"); st.rerun()
+                                except Exception as e2: st.error(f"Hata: {e2}")
+                else:
+                    onay_sil = False
+                    if mevcut_mik > 0:
+                        st.info(f"**Güncel Stok (Tüm Renkler Toplamı):** {mevcut_mik:g} {d_birim}")
+                        onay_sil = st.checkbox("⚠️ Bu ürün stokta mevcut. Silmeye devam ederseniz stoktan da kalıcı olarak kaldırılacaktır. Onaylıyorum.")
+                        
+                    cg, cs = st.columns(2)
+                    btn_guncelle = cg.form_submit_button("🔄 Güncelle", type="primary")
+                    btn_sil = cs.form_submit_button("🗑️ Sil")
                     
-                    if st.form_submit_button("Kaydet") and kod and ad:
-                        d_str = "Aktif" if "Aktif" in durum else "Pasif"
-                        hedef_kod = kod
-                        if renk.strip() != "" and renk.strip() != "-":
-                            hedef_kod = f"{kod}-{renk.strip().upper()}"
+                    if btn_guncelle and kod and ad:
+                        son_ad = ad
+                        if kat == "Metal Tozu":
+                            ekler = []
+                            if toz_boyutu.strip(): ekler.append(f"Boyut: {toz_boyutu.strip()}")
+                            if alasim: ekler.append(alasim)
+                            if ekler: son_ad = f"{ad} ({' - '.join(ekler)})"
                             
-                        c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum, Renk, Guncelleme_Tarihi) VALUES (?,?,?,?,?,?,?,?,?,?)", 
-                                  (hedef_kod, ad, kat, mik, bir, sinir, fiy, d_str, renk.strip().upper() if renk.strip() != "-" else "-", datetime.now().strftime('%Y-%m-%d %H:%M')))
-                        conn.commit(); st.success("Eklendi!"); st.rerun()
+                        for col_query in [
+                            "ALTER TABLE stok ADD COLUMN Para_Birimi TEXT DEFAULT 'TL'",
+                            "ALTER TABLE stok ADD COLUMN Malzeme TEXT DEFAULT '-'",
+                            "ALTER TABLE stok ADD COLUMN Kalinlik TEXT DEFAULT '-'"
+                        ]:
+                            try:
+                                c.execute(col_query)
+                                conn.commit()
+                            except:
+                                try: conn.rollback()
+                                except: pass
+                            
+                        try:
+                            c.execute("UPDATE stok SET Urun_Kodu=?, Urun_Adi=?, Birim=?, Kritik_Sinir=?, Satis_Fiyati=?, Marka=?, Para_Birimi=?, Malzeme=?, Kalinlik=?, Guncelleme_Tarihi=? WHERE Urun_Kodu=?",
+                                      (kod, son_ad, bir, sinir, fiy, marka, para_birimi, malzeme if malzeme else "-", kalinlik if kalinlik else "-", datetime.now().strftime('%Y-%m-%d %H:%M'), sec_kod))
+                            conn.commit(); st.success("Başarıyla Güncellendi!"); st.rerun()
+                        except Exception as e:
+                            try:
+                                conn.rollback()
+                                c.execute("UPDATE stok SET Urun_Kodu=?, Urun_Adi=?, Birim=?, Kritik_Sinir=?, Satis_Fiyati=?, Marka=?, Guncelleme_Tarihi=? WHERE Urun_Kodu=?",
+                                          (kod, son_ad, bir, sinir, fiy, marka, datetime.now().strftime('%Y-%m-%d %H:%M'), sec_kod))
+                                conn.commit(); st.success("Güncellendi (Eski Şema)!"); st.rerun()
+                            except Exception as e2: st.error(f"Hata: {e2}")
+                            
+                    if btn_sil:
+                        if mevcut_mik > 0 and not onay_sil:
+                            st.error("Ürünü silmek için lütfen yukarıdaki stok uyarı kutusunu işaretleyin.")
+                        else:
+                            c.execute("DELETE FROM stok WHERE Urun_Kodu=?", (sec_kod,))
+                            conn.commit(); st.success("Tüm renk varyasyonlarıyla birlikte sistemden silindi!"); st.rerun()
+
+            # --- Stok Ekle Bölümü ---
+            if sec_kod_display != "-- Yeni Ürün Ekle --":
+                st.markdown("#### 📦 Stoğa Ekle (Renk ve Miktar)")
+                with st.form("stok_ekle_formu"):
+                    se_c1, se_c2, se_c3 = st.columns(3)
+                    ekle_adet = se_c1.number_input("Adet / Miktar", min_value=1.0, value=1.0, step=1.0)
+                    ekle_renk = se_c2.text_input("Renk", value="-", help="Örn: A1, A2. Rengi yoksa '-' bırakın")
+                    btn_stok_ekle = se_c3.form_submit_button("➕ Stok Ekle", type="primary", use_container_width=True)
+                    
+                    if btn_stok_ekle:
+                        renk_temiz = ekle_renk.strip().upper() if ekle_renk.strip() != "" else "-"
+                        
+                        # Bu kod ve renk ile eşleşen var mı?
+                        c.execute("SELECT Mevcut_Miktar FROM stok WHERE Urun_Kodu=? AND Renk=?", (sec_kod, renk_temiz))
+                        sonuc = c.fetchone()
+                        
+                        if sonuc:
+                            # Aynı renk zaten var, miktarını arttır.
+                            yeni_miktar = float(sonuc[0]) + ekle_adet
+                            c.execute("UPDATE stok SET Mevcut_Miktar=? WHERE Urun_Kodu=? AND Renk=?", (yeni_miktar, sec_kod, renk_temiz))
+                        else:
+                            # Yoksa yeni bir satır oluştur (diğer bilgiler aynı)
+                            for col_query in [
+                                "ALTER TABLE stok ADD COLUMN Para_Birimi TEXT DEFAULT 'TL'",
+                                "ALTER TABLE stok ADD COLUMN Malzeme TEXT DEFAULT '-'",
+                                "ALTER TABLE stok ADD COLUMN Kalinlik TEXT DEFAULT '-'"
+                            ]:
+                                try:
+                                    c.execute(col_query)
+                                    conn.commit()
+                                except:
+                                    try: conn.rollback()
+                                    except: pass
+                                
+                            try:
+                                c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum, Renk, Guncelleme_Tarihi, Marka, Para_Birimi, Malzeme, Kalinlik) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                                          (sec_kod, d_ad, kat, ekle_adet, d_birim, d_sinir, d_fiyat, "Aktif", renk_temiz, datetime.now().strftime('%Y-%m-%d %H:%M'), d_marka, d_para_birimi, d_malzeme if d_malzeme else "-", d_kalinlik if d_kalinlik else "-"))
+                            except:
+                                try: conn.rollback()
+                                except: pass
+                                c.execute("INSERT INTO stok (Urun_Kodu, Urun_Adi, Kategori, Mevcut_Miktar, Birim, Kritik_Sinir, Satis_Fiyati, Durum, Renk, Guncelleme_Tarihi, Marka) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                                          (sec_kod, d_ad, kat, ekle_adet, d_birim, d_sinir, d_fiyat, "Aktif", renk_temiz, datetime.now().strftime('%Y-%m-%d %H:%M'), d_marka))
+                        conn.commit()
+                        st.success(f"{ekle_adet} {d_birim} '{sec_kod}' (Renk: {renk_temiz}) stoğa başarıyla eklendi!")
+                        st.rerun()
+                        
+            st.markdown("---")
+            st.markdown(f"#### 📋 {kat} Kategorisindeki Tanımlı Ürünler")
+            try:
+                if not df_kat.empty:
+                    df_goster = df_kat.copy()
+                    if 'Para_Birimi' not in df_goster.columns: df_goster['Para_Birimi'] = 'TL'
+                    if 'Malzeme' not in df_goster.columns: df_goster['Malzeme'] = '-'
+                    if 'Kalinlik' not in df_goster.columns: df_goster['Kalinlik'] = '-'
+                    
+                    # 🔑 AYNI ÜRÜN KODUNA SAHİP SATIRLARI BİRLEŞTİR (renk farklı olsa da tek satır)
+                    df_goster = df_goster.sort_values('Urun_Kodu')
+                    df_goster = df_goster.drop_duplicates(subset=['Urun_Kodu'], keep='first').reset_index(drop=True)
+                    
+                    df_goster['Alış Fiyatı ve Birimi'] = df_goster['Satis_Fiyati'].astype(str) + " " + df_goster['Para_Birimi']
+                    
+                    if kat == "Blok":
+                        mevcut_kolonlar = ['Urun_Kodu', 'Urun_Adi', 'Malzeme', 'Kalinlik', 'Kritik_Sinir', 'Marka', 'Alış Fiyatı ve Birimi']
+                    elif kat == "Frez":
+                        mevcut_kolonlar = ['Urun_Kodu', 'Urun_Adi', 'Malzeme', 'Marka', 'Birim', 'Kritik_Sinir', 'Alış Fiyatı ve Birimi']
+                    else:
+                        mevcut_kolonlar = ['Urun_Kodu', 'Urun_Adi', 'Marka', 'Birim', 'Kritik_Sinir', 'Alış Fiyatı ve Birimi']
+                        
+                    final_cols = [k for k in mevcut_kolonlar if k in df_goster.columns]
+                    df_goster = df_goster[final_cols]
+                    
+                    isim_map = {
+                        'Urun_Kodu': 'Ürün Kodu', 'Urun_Adi': 'Ürün Adı', 'Marka': 'Marka', 
+                        'Birim': 'Miktar Birimi', 'Kritik_Sinir': 'Kritik Sınır', 
+                        'Malzeme': 'Tipi' if kat == "Frez" else 'Malzeme', 'Kalinlik': 'Kalınlık'
+                    }
+                    df_goster.rename(columns=isim_map, inplace=True)
+                    
+                    st.dataframe(df_goster, hide_index=True, use_container_width=True)
+                else:
+                    st.info("Bu kategoride henüz tanımlı ürün bulunmuyor.")
+            except Exception as e:
+                st.error(f"Liste yüklenemedi: {e}")
         with t2:
             df_stok = pd.read_sql("SELECT * FROM stok ORDER BY Urun_Kodu ASC", conn)
 
@@ -2491,11 +3553,28 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             
             st.markdown("<br>", unsafe_allow_html=True)
 
-            df_stok.columns = ["id", "Ürün Kodu", "Ürün Adı", "Kategori", "Mevcut Miktar", "Birim", "Kritik Sınır", "Satış Fiyatı (TL)", "Durum", "Renk", "Güncelleme Tarihi"]
-            df_stok_gorsel = df_stok.drop(columns=["id", "Satış Fiyatı (TL)", "Durum"])
+            # Dinamik Kolon Yeniden Adlandırma (Eski / Yeni sistem uyumu için)
+            isim_haritasi = {
+                "id": "id", "Urun_Kodu": "Ürün Kodu", "Urun_Adi": "Ürün Adı", 
+                "Kategori": "Kategori", "Mevcut_Miktar": "Mevcut Miktar", "Birim": "Birim", 
+                "Kritik_Sinir": "Kritik Sınır", "Satis_Fiyati": "Satış Fiyatı", "Durum": "Durum", 
+                "Renk": "Renk", "Guncelleme_Tarihi": "Güncelleme Tarihi", "Marka": "Marka", "Para_Birimi": "Para Birimi",
+                "Malzeme": "Malzeme", "Kalinlik": "Kalınlık"
+            }
+            df_stok.rename(columns=isim_haritasi, inplace=True)
+            
+            silinecek_kolonlar = [k for k in ["id", "Satış Fiyatı", "Durum"] if k in df_stok.columns]
+            df_stok_gorsel = df_stok.drop(columns=silinecek_kolonlar)
             
             # SADECE STOKTA VAR OLANLARI GÖSTER (Mevcut Miktar > 0)
             df_stok_gorsel = df_stok_gorsel[df_stok_gorsel['Mevcut Miktar'] > 0]
+            
+            # HER RENGİ AYRI SATIRDA GÖSTER - Ürün Kodu + Renk'e göre sırala
+            if not df_stok_gorsel.empty:
+                sort_cols = ['Ürün Kodu']
+                if 'Renk' in df_stok_gorsel.columns:
+                    sort_cols.append('Renk')
+                df_stok_gorsel = df_stok_gorsel.sort_values(by=sort_cols).reset_index(drop=True)
             
             # ARAMA FİLTRESİNİ UYGULA
             if stok_arama_terimi:
@@ -2513,21 +3592,49 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         # 💎 AKILLI SIRALAMA (ÜRÜN ADI -> ÜRÜN KODU) 💎
                         df_filtre = df_filtre.sort_values(by=['Ürün Adı', 'Ürün Kodu'], ascending=[True, True])
                         
+                        df_goster = df_filtre.copy()
+                        
+                        if kat_adi == "Blok":
+                            df_goster["Adet"] = df_goster["Mevcut Miktar"].astype(float).astype(int).astype(str)
+                            istenen_sira = ["Ürün Kodu", "Ürün Adı", "Malzeme", "Marka", "Kalınlık", "Renk", "Adet", "Güncelleme Tarihi"]
+                            mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
+                            df_goster = df_goster[mevcut_kolonlar]
+                        elif kat_adi == "Frez":
+                            df_goster["Adet"] = df_goster["Mevcut Miktar"].astype(float).astype(int).astype(str)
+                            df_goster = df_goster.rename(columns={"Malzeme": "Tip"})
+                            istenen_sira = ["Ürün Kodu", "Ürün Adı", "Marka", "Tip", "Adet"]
+                            mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
+                            df_goster = df_goster[mevcut_kolonlar]
+                        
                         # 🚨 ZARİF MAT GÜMÜŞ ZIRH 🚨
                         def satir_renk(row):
-                            if row['Mevcut Miktar'] <= row['Kritik Sınır']: return ['background-color: rgba(248, 113, 113, 0.2)'] * len(row) 
+                            idx = row.name
+                            mevcut = df_filtre.at[idx, 'Mevcut Miktar']
+                            sinir = df_filtre.at[idx, 'Kritik Sınır']
+                            if mevcut <= sinir: return ['background-color: rgba(248, 113, 113, 0.2)'] * len(row) 
                             else: return [''] * len(row)
                             
                         col_tablo, col_islemler = st.columns([3.5, 1.5])
                         
                         with col_tablo:
-                            st.dataframe(df_filtre.style.format({"Mevcut Miktar": "{:.0f}", "Kritik Sınır": "{:.0f}"}).apply(satir_renk, axis=1), hide_index=True, use_container_width=True)
+                            format_dict = {}
+                            if "Mevcut Miktar" in df_goster.columns: format_dict["Mevcut Miktar"] = "{:.0f}"
+                            if "Kritik Sınır" in df_goster.columns: format_dict["Kritik Sınır"] = "{:.0f}"
+                            
+                            st.dataframe(df_goster.style.format(format_dict).apply(satir_renk, axis=1), hide_index=True, use_container_width=True)
 
                         with col_islemler:
                             # ✏️ İŞLEMLER PANELİ (Güncelle / Sil)
                             st.markdown("<h5 style='color:#38bdf8;margin-bottom:8px;'>⚡ İşlemler</h5>", unsafe_allow_html=True)
                             
-                            islem_urun_secenekleri = [f"{r['Ürün Kodu']} | {r['Ürün Adı']}{f' (Renk: {r[chr(82)+chr(101)+chr(110)+chr(107)]}' if r.get('Renk') and r['Renk'] not in ['-',''] else ''}{')' if r.get('Renk') and r['Renk'] not in ['-',''] else ''} — Mevcut: {int(r['Mevcut Miktar'])}" for _, r in df_filtre.iterrows()]
+                            islem_urun_secenekleri = []
+                            islem_renk_map = {}
+                            for _, r in df_filtre.iterrows():
+                                r_renk = r['Renk'] if pd.notna(r.get('Renk')) and str(r.get('Renk')).strip() not in ['-', ''] else "-"
+                                renk_str = f" (Renk: {r_renk})" if r_renk != "-" else ""
+                                opt = f"{r['Ürün Kodu']} | {r['Ürün Adı']}{renk_str} — Mevcut: {int(r['Mevcut Miktar'])}"
+                                islem_urun_secenekleri.append(opt)
+                                islem_renk_map[opt] = r_renk
                             
                             secilen_islem_urun = st.selectbox(
                                 "İşlem Yapılacak Ürünü Seçin", 
@@ -2537,11 +3644,13 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             
                             if secilen_islem_urun != "— Seçiniz —":
                                 secilen_kod = secilen_islem_urun.split("|")[0].strip()
-                                mevcut_kayit = c.execute("SELECT Urun_Adi, Mevcut_Miktar, Renk FROM stok WHERE Urun_Kodu=?", (secilen_kod,)).fetchone()
+                                secilen_renk = islem_renk_map.get(secilen_islem_urun, "-")
+                                
+                                mevcut_kayit = c.execute("SELECT Urun_Adi, Mevcut_Miktar, Renk FROM stok WHERE Urun_Kodu=? AND Renk=?", (secilen_kod, secilen_renk)).fetchone()
                                 
                                 if mevcut_kayit:
-                                    with st.form(f"guncelle_form_{kat_adi}_{secilen_kod}"):
-                                        st.markdown(f"**✏️ Güncelle:** `{secilen_kod}`")
+                                    with st.form(f"guncelle_form_{kat_adi}_{secilen_kod}_{secilen_renk}"):
+                                        st.markdown(f"**✏️ Güncelle:** `{secilen_kod}`" + (f" (Renk: {secilen_renk})" if secilen_renk != "-" else ""))
                                         
                                         g_col1, g_col2 = st.columns([2, 1.5])
                                         yeni_miktar = g_col1.number_input(
@@ -2549,7 +3658,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                             min_value=0.0, 
                                             value=float(mevcut_kayit[1]) if mevcut_kayit[1] else 0.0,
                                             step=1.0,
-                                            key=f"yeni_mik_{kat_adi}_{secilen_kod}",
+                                            key=f"yeni_mik_{kat_adi}_{secilen_kod}_{secilen_renk}",
                                             label_visibility="collapsed"
                                         )
                                         
@@ -2557,8 +3666,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                         
                                         if submit_btn:
                                             try:
-                                                c.execute("UPDATE stok SET Mevcut_Miktar=?, Guncelleme_Tarihi=? WHERE Urun_Kodu=?",
-                                                         (yeni_miktar, datetime.now().strftime('%Y-%m-%d %H:%M'), secilen_kod))
+                                                c.execute("UPDATE stok SET Mevcut_Miktar=?, Guncelleme_Tarihi=? WHERE Urun_Kodu=? AND Renk=?",
+                                                         (yeni_miktar, datetime.now().strftime('%Y-%m-%d %H:%M'), secilen_kod, secilen_renk))
                                                 conn.commit()
                                                 st.success(f"✅ Güncellendi!")
                                                 st.rerun()
@@ -2566,11 +3675,11 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                                 st.error(f"Hata: {e}")
                                                 
                                     st.markdown("**📉 Stoktan Düş (Sarfiyat / Fire)**")
-                                    with st.form(f"stok_dus_form_{kat_adi}_{secilen_kod}"):
-                                        islem_turu = st.radio("İşlem Türü", ["Sarfiyat (Kullanım)", "Fire (Zayi)"], horizontal=True, key=f"islem_{secilen_kod}")
+                                    with st.form(f"stok_dus_form_{kat_adi}_{secilen_kod}_{secilen_renk}"):
+                                        islem_turu = st.radio("İşlem Türü", ["Sarfiyat (Kullanım)", "Fire (Zayi)"], horizontal=True, key=f"islem_{secilen_kod}_{secilen_renk}")
                                         d_col1, d_col2 = st.columns([1, 2])
-                                        dusulecek_miktar = d_col1.number_input("Düşülecek Miktar", min_value=1.0, max_value=float(mevcut_kayit[1]) if mevcut_kayit[1] > 0 else 1.0, step=1.0, key=f"dus_mik_{secilen_kod}")
-                                        dusme_nedeni = d_col2.text_input("Açıklama", key=f"dus_neden_{secilen_kod}")
+                                        dusulecek_miktar = d_col1.number_input("Düşülecek Miktar", min_value=1.0, max_value=float(mevcut_kayit[1]) if mevcut_kayit[1] > 0 else 1.0, step=1.0, key=f"dus_mik_{secilen_kod}_{secilen_renk}")
+                                        dusme_nedeni = d_col2.text_input("Açıklama", key=f"dus_neden_{secilen_kod}_{secilen_renk}")
                                         dus_btn = st.form_submit_button("📉 Stoktan Düş", use_container_width=True)
 
                                         if dus_btn:
@@ -2581,8 +3690,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                             else:
                                                 try:
                                                     yeni_mevcut = mevcut_kayit[1] - dusulecek_miktar
-                                                    c.execute("UPDATE stok SET Mevcut_Miktar=?, Guncelleme_Tarihi=? WHERE Urun_Kodu=?",
-                                                             (yeni_mevcut, datetime.now().strftime('%Y-%m-%d %H:%M'), secilen_kod))
+                                                    c.execute("UPDATE stok SET Mevcut_Miktar=?, Guncelleme_Tarihi=? WHERE Urun_Kodu=? AND Renk=?",
+                                                             (yeni_mevcut, datetime.now().strftime('%Y-%m-%d %H:%M'), secilen_kod, secilen_renk))
                                                     
                                                     log_mesaji = f"[{secilen_kod}] stoktan düşüldü ({islem_turu}). Miktar: {dusulecek_miktar}. Açıklama: {dusme_nedeni}"
                                                     c.execute("INSERT INTO sistem_loglari (Tarih_Saat, Kullanici, Aksiyon, Goruldu) VALUES (?,?,?,0)", 
@@ -2600,15 +3709,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                                 except Exception as e:
                                                     st.error(f"Hata: {e}")
                                                     
-                                    st.markdown("**🗑️ Sil**")
-                                    if st.button("🗑️ Sil", key=f"sil_btn_{kat_adi}_{secilen_kod}", type="primary", use_container_width=True):
-                                        try:
-                                            c.execute("DELETE FROM stok WHERE Urun_Kodu=?", (secilen_kod,))
-                                            conn.commit()
-                                            st.success(f"✅ {secilen_kod} silindi!")
-                                            st.rerun()
-                                        except Exception as e:
-                                            st.error(f"Hata: {e}")
+
                     else:
                         if stok_arama_terimi:
                             st.info(f"Arama sonucunda '{kat_adi}' kategorisinde '{stok_arama_terimi}' ile eşleşen bir ürün bulunamadı.")
@@ -2657,43 +3758,160 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.error(f"Tablo yüklenirken hata oluştu: {e}")
             
             with alt_sekmeler[-1]:
-                st.markdown("<h4 style='color: #a78bfa;'>📦 Malzeme Arşivi</h4>", unsafe_allow_html=True)
+                st.markdown("<h4 style='color: #a78bfa;'>📦 Malzeme Arşivi & Performans Dashboard</h4>", unsafe_allow_html=True)
                 try:
-                    df_arsiv = pd.read_sql('SELECT id, Tarih, Urun_Kodu as "Stok Kodu", Urun_Adi as "Ürün Adı", Miktar, Islem_Turu as "İşlem Türü", Aciklama as "Açıklama", Kullanici as "Kullanıcı" FROM malzeme_arsivi ORDER BY id DESC', conn)
+                    df_arsiv = pd.read_sql('''
+                        SELECT 
+                            Urun_Kodu, 
+                            Urun_Adi, 
+                            CAST(Miktar AS TEXT),
+                            Islem_Turu, 
+                            Aciklama, 
+                            Tarih,
+                            0,
+                            Kullanici,
+                            CASE 
+                                WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = m.Urun_Kodu AND c.Durum = 'Yarım') THEN 'Aktif'
+                                WHEN EXISTS (SELECT 1 FROM aktif_frezler f WHERE f.frez_kod = m.Urun_Kodu AND f.durum = 'Aktif') THEN 'Aktif'
+                                ELSE 'Pasif'
+                            END
+                        FROM malzeme_arsivi m
+
+                        UNION ALL
+
+                        SELECT 
+                            malzeme_kodu,
+                            malzeme_adi,
+                            CAST(uye_sayisi AS TEXT),
+                            'Üretim (' || malzeme_turu || ')',
+                            is_adi,
+                            tarih,
+                            COALESCE(dakika, 0),
+                            'Sistem (Üretim Logu)',
+                            CASE 
+                                WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = u.malzeme_kodu AND c.Durum = 'Yarım') THEN 'Aktif'
+                                WHEN EXISTS (SELECT 1 FROM aktif_frezler f WHERE f.frez_kod = u.malzeme_kodu AND f.durum = 'Aktif') THEN 'Aktif'
+                                ELSE 'Pasif'
+                            END
+                        FROM uretim_loglari u
+                        
+                        ORDER BY 6 DESC
+                    ''', conn)
+
                     if df_arsiv.empty:
-                        st.info("Arşivlenmiş malzeme bulunmamaktadır.")
+                        st.info("Arşivlenmiş malzeme veya üretim logu bulunmamaktadır.")
                     else:
-                        a_col1, a_col2 = st.columns([3.5, 1.5])
-                        with a_col1:
-                            st.dataframe(df_arsiv.drop(columns=["id"]), hide_index=True, use_container_width=True)
-                        with a_col2:
-                            st.markdown("<h5 style='color:#a78bfa;'>⚡ İşlemler</h5>", unsafe_allow_html=True)
-                            a_secenekler = [f"{r['id']} | {r['Stok Kodu']} - {r['Ürün Adı']}" for _, r in df_arsiv.iterrows()]
-                            secilen_arsiv = st.selectbox("Geri Yüklenecek Kaydı Seçin", ["— Seçiniz —"] + a_secenekler, key="arsiv_secim")
+                        # SQLite / PostgreSQL Alias farklarını yok etmek için kolonları Pandas seviyesinde zorla:
+                        df_arsiv.columns = ["stok_kodu", "urun_adi", "miktar_veya_uye", "islem_turu", "aciklama", "tarih", "harcanan_dk", "sistem_kullanici", "durum"]
+                        
+                        # Toplam Metrikleri Hesapla
+                        df_blok_uretim = df_arsiv[df_arsiv['islem_turu'] == 'Üretim (Blok)']
+                        toplam_blok_uye = pd.to_numeric(df_blok_uretim['miktar_veya_uye'], errors='coerce').sum()
+                        toplam_essiz_blok = df_blok_uretim['stok_kodu'].nunique()
+                        ort_blok_verimi = round(toplam_blok_uye / toplam_essiz_blok, 1) if toplam_essiz_blok > 0 else 0
+
+                        df_frez_uretim = df_arsiv[df_arsiv['islem_turu'] == 'Üretim (Frez)']
+                        toplam_essiz_frez = df_frez_uretim['stok_kodu'].nunique()
+                        
+                        # Dashboard Gösterimi
+                        st.markdown("##### 📊 Genel Performans Özeti")
+                        m1, m2, m3, m4 = st.columns(4)
+                        m1.metric("Toplam Üretilen Üye (Blok)", f"{int(toplam_blok_uye)}")
+                        m2.metric("Blok Başı Ortalama Verim", f"{ort_blok_verimi} Üye")
+                        m3.metric("Kullanılan Toplam Frez", f"{toplam_essiz_frez} Adet")
+                        
+                        st.markdown("##### ⏱️ Frez Çeşitlerine Göre Performans")
+                        if not df_frez_uretim.empty:
+                            df_frez_grup = df_frez_uretim.groupby('urun_adi').agg(
+                                Toplam_Dk=('harcanan_dk', 'sum'),
+                                Frez_Sayisi=('stok_kodu', 'nunique')
+                            ).reset_index()
+                            df_frez_grup['Ortalama_Dk'] = (df_frez_grup['Toplam_Dk'] / df_frez_grup['Frez_Sayisi']).round(1)
                             
-                            if secilen_arsiv != "— Seçiniz —":
-                                a_id = secilen_arsiv.split("|")[0].strip()
-                                mevcut_a = c.execute("SELECT Miktar, Urun_Kodu, Islem_Turu FROM malzeme_arsivi WHERE id=?", (a_id,)).fetchone()
-                                if mevcut_a:
-                                    st.markdown("**🔄 Geri Yükle**")
-                                    if st.button("🔄 Önceki Adıma Geri Yükle", key="arsiv_geri_yukle_btn", type="primary", use_container_width=True):
-                                        i_turu = mevcut_a[2]
-                                        u_kod = mevcut_a[1]
-                                        mik = mevcut_a[0]
-                                        
-                                        if "Sarfiyat" in i_turu:
-                                            c.execute("UPDATE stok SET Mevcut_Miktar = Mevcut_Miktar + ? WHERE Urun_Kodu=?", (mik, u_kod))
-                                            st.success("Malzeme başarıyla stoğa iade edildi!")
-                                        elif "Ömrü Doldu" in i_turu:
-                                            c.execute("UPDATE aktif_frezler SET durum='Aktif' WHERE id IN (SELECT id FROM aktif_frezler WHERE frez_kod=? AND durum='Ömrü Doldu' ORDER BY id DESC LIMIT 1)", (u_kod,))
-                                            st.success("Frez başarıyla aktif hale getirildi!")
-                                        elif "Blok" in i_turu:
-                                            c.execute("UPDATE cam_bloklar SET Durum='Yarım', Kalan_Uye = CASE WHEN Kalan_Uye <= 0 THEN 1 ELSE Kalan_Uye END WHERE Blok_Kodu=?", (u_kod,))
-                                            st.success("Blok başarıyla yarım blok listesine geri yüklendi!")
-                                            
-                                        c.execute("DELETE FROM malzeme_arsivi WHERE id=?", (a_id,))
+                            f_cols = st.columns(max(1, len(df_frez_grup)))
+                            for idx, r in df_frez_grup.iterrows():
+                                f_cols[idx % len(f_cols)].metric(r['urun_adi'], f"{r['Ortalama_Dk']} Dk/Frez", f"Toplam: {r['Frez_Sayisi']} Adet")
+                        else:
+                            st.caption("Henüz frez üretim verisi yok.")
+
+                        st.markdown("---")
+                        st.markdown("##### 🗂️ Tüm Malzemeler (Özet Liste)")
+                        
+                        liste_verileri = []
+                        essiz_kodlar = df_arsiv['stok_kodu'].unique()
+                        for kod in essiz_kodlar:
+                            df_urun = df_arsiv[df_arsiv['stok_kodu'] == kod]
+                            ilk_kayit = df_urun.iloc[-1] 
+                            son_kayit = df_urun.iloc[0]
+                            
+                            urun_adi = son_kayit['urun_adi']
+                            durum = son_kayit['durum']
+                            durum_metin = "Aktif" if durum == 'Aktif' else "Pasif"
+                            
+                            toplam_uye = pd.to_numeric(df_urun[df_urun['islem_turu'].str.contains('Üretim')]['miktar_veya_uye'], errors='coerce').sum()
+                            toplam_dk = df_urun['harcanan_dk'].sum()
+                            
+                            pasif_nedeni = "-"
+                            arsiv_kayitlari = df_urun[~df_urun['islem_turu'].str.contains('Üretim')]
+                            if not arsiv_kayitlari.empty:
+                                pasif_nedeni = f"{arsiv_kayitlari.iloc[0]['islem_turu']} - {arsiv_kayitlari.iloc[0]['aciklama']}"
+                                
+                            liste_verileri.append({
+                                "Stok Kodu": kod,
+                                "Ürün Adı": urun_adi,
+                                "Toplam Üretilen": int(toplam_uye),
+                                "Çalışma (Dk)": int(toplam_dk) if 'Frez' in urun_adi or toplam_dk > 0 else "-",
+                                "Durum": durum_metin,
+                                "Pasif Nedeni": pasif_nedeni,
+                                "İlk İşlem": ilk_kayit['tarih'][:10]
+                            })
+
+                        df_liste = pd.DataFrame(liste_verileri)
+                        
+                        def color_durum_liste(val):
+                            if val == "Aktif": return 'color: #34d399; font-weight:bold;'
+                            elif val == "Pasif": return 'color: #f87171; font-weight:bold;'
+                            return ''
+                            
+                        st.dataframe(df_liste.style.map(color_durum_liste, subset=["Durum"]), hide_index=True, use_container_width=True)
+                        
+                        st.markdown("---")
+                        st.markdown("<h5 style='color:#38bdf8;margin-bottom:8px;'>⚡ Arşiv İşlemleri</h5>", unsafe_allow_html=True)
+                        
+                        islem_secenekleri = [f"{r['Stok Kodu']} | {r['Ürün Adı']} - {r['Durum']}" for _, r in df_liste.iterrows()]
+                        secilen_arsiv_urun = st.selectbox(
+                            "İşlem Yapılacak Ürünü Seçin", 
+                            ["— Seçiniz —"] + islem_secenekleri,
+                            key="arsiv_islem_urun"
+                        )
+                        
+                        if secilen_arsiv_urun != "— Seçiniz —":
+                            secilen_kod = secilen_arsiv_urun.split("|")[0].strip()
+                            secilen_durum = secilen_arsiv_urun.split("-")[-1].strip()
+                            
+                            c1, c2 = st.columns(2)
+                            with c1:
+                                if secilen_durum == "Pasif":
+                                    if st.button("⏪ Arşivden Çıkar (Aktife Al)", use_container_width=True):
+                                        c.execute("DELETE FROM malzeme_arsivi WHERE Urun_Kodu=?", (secilen_kod,))
+                                        c.execute("UPDATE cam_bloklar SET Durum='Yarım' WHERE Blok_Kodu=?", (secilen_kod,))
+                                        c.execute("UPDATE aktif_frezler SET durum='Aktif' WHERE frez_kod=?", (secilen_kod,))
                                         conn.commit()
+                                        st.success(f"{secilen_kod} başarıyla aktif hale getirildi.")
                                         st.rerun()
+                                else:
+                                    st.info("Bu malzeme zaten 'Aktif' durumda. Arşive kaldırılmamış.")
+                                    
+                            with c2:
+                                if st.button("🗑️ Kalıcı Olarak Sil", type="primary", use_container_width=True):
+                                    c.execute("DELETE FROM malzeme_arsivi WHERE Urun_Kodu=?", (secilen_kod,))
+                                    c.execute("DELETE FROM uretim_loglari WHERE malzeme_kodu=?", (secilen_kod,))
+                                    c.execute("DELETE FROM cam_bloklar WHERE Blok_Kodu=?", (secilen_kod,))
+                                    c.execute("DELETE FROM aktif_frezler WHERE frez_kod=?", (secilen_kod,))
+                                    conn.commit()
+                                    st.success(f"{secilen_kod} ve tüm geçmişi sistemden tamamen silindi.")
+                                    st.rerun()
+
                 except Exception as e:
                     st.error(f"Tablo yüklenirken hata oluştu: {e}")
         with t3:
@@ -2763,299 +3981,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     wp_url_siparis = f"https://wa.me/?text={urllib.parse.quote(siparis_metni)}"
                     st.markdown(f"""<a href="{wp_url_siparis}" target="_blank" class="wp-btn">🟢 AI Tarafından Oluşturulan Sipariş Listesini Tedarikçiye WhatsApp'tan Gönder</a>""", unsafe_allow_html=True)
 
-        with t5:
-            # 🚨 SİGORTA VE YENİ SÜTUN (İSİM) EKLENTİSİ 🚨
-            c.execute('''CREATE TABLE IF NOT EXISTS aktif_frezler (
-                id SERIAL PRIMARY KEY, makine_adi TEXT, yuva_no TEXT,
-                frez_kod TEXT, toplam_omur_dk INTEGER, kullanilan_dk INTEGER,
-                birim_fiyat_euro REAL, durum TEXT
-            )''')
-            # Eski kayıtlarda isim sütunu yoksa hata vermeden ekler
-            try: c.execute("ALTER TABLE aktif_frezler ADD COLUMN frez_adi TEXT")
-            except: pass
-            conn.commit()
-
-            st.markdown("### 💿 CAM İstasyonu Envanteri")
-
-            # 💎 İŞTE YENİ CSS ZIRHINI TAM BURAYA, SEKMENİN BAŞINA KOYUYORUZ 💎
-            st.markdown("""
-<style>
-                /* Klasör kapalıyken üzerine gelince (Hover) yazıyı mavi parlat */
-                [data-testid="stExpander"] details summary:hover {
-                    color: #38bdf8 !important;
-                }
-                /* Klasör açıldığında başlığın arka planını Koyu Lacivert ve yazıyı Mavi yap */
-                [data-testid="stExpander"] details[open] summary {
-                    background-color: #0f172a !important; 
-                    color: #38bdf8 !important; 
-                    border-radius: 8px !important;
-                    font-weight: 800 !important;
-                }
-                /* 🚨 KLASÖRÜN (EXPANDER) AÇILAN İÇERİĞİNİ AÇIK MAVİ YAP 🚨 */
-                [data-testid="stExpander"] details[open] > div[role="region"] {
-                    background-color: #e0f2fe !important; /* Tatlı Açık Mavi (Sky 100) */
-                    border-radius: 0 0 8px 8px !important;
-                    padding: 15px !important;
-                }
-                /* İçerideki yazıların okunması için renklerini Koyu Lacivert yap */
-                [data-testid="stExpander"] details[open] > div[role="region"] p,
-                [data-testid="stExpander"] details[open] > div[role="region"] span {
-                    color: #0f172a !important;
-                }
-</style>
-            """, unsafe_allow_html=True)
-            
-            # --- CSS BİTTİ, NORMAL SEKMELERİMİZ BAŞLIYOR ---
-            tab_frez, tab_blok = st.tabs(["⚙️ Frez (Takım) Kokpiti", "🧱 Zirkon Blok Takibi"])
-            
-            # ==========================================
-            # 1. YENİ SİSTEM: DİNAMİK MAGAZİN KOKPİTİ
-            # (Buradan aşağısı sende zaten var, oraya dokunmuyoruz)
-            # ==========================================
-            with tab_frez:
-                st.info("Makinelerinizin magazinlerindeki aktif takımları buradan yönetin. Çıkardığınız frezler aşağıdaki 'Yedek İstasyonu'nda bekler.")
-                # SESSİZ GÜNCELLEME: Senin eski taktığın T1, T2 kayıtlarını otomatik M1, M2 yapar
-                c.execute("UPDATE aktif_frezler SET yuva_no = REPLACE(yuva_no, 'T', 'M') WHERE yuva_no LIKE 'T%'")
-                conn.commit()
-
-                # --- SIFIR FREZ TAKMA BÖLÜMÜ ---
-                with st.expander("➕ Ana Stoktan SIFIR Frez Tak", expanded=False):
-                    frez_stok = c.execute("SELECT Urun_Kodu, Urun_Adi, Satis_Fiyati FROM stok WHERE Kategori='Frez' AND Mevcut_Miktar > 0 AND Durum='Aktif'").fetchall()
-                    
-                    if frez_stok:
-                        c1, c2, c3 = st.columns(3)
-                        f_sec = c1.selectbox("Ana Stoktan Frez Seç", [f"{f[0]} | {f[1]} | {f[2]} TL" for f in frez_stok])
-                        
-                        makine = c2.selectbox("Makine Seç", ["Redon GTR", "Redon Hybrid", "Roland DWX", "Diğer"])
-                        
-                        # AKILLI MAGAZİN FİLTRESİ
-                        dolu_yuvalar = c.execute("SELECT yuva_no FROM aktif_frezler WHERE makine_adi=? AND durum='Aktif'", (makine,)).fetchall()
-                        dolu_yuvalar_listesi = [y[0] for y in dolu_yuvalar]
-                        tum_yuvalar = [f"M{i}" for i in range(1, 16)]
-                        bos_yuvalar = [y for y in tum_yuvalar if y not in dolu_yuvalar_listesi] 
-                        
-                        if bos_yuvalar:
-                            yuva = c3.selectbox("Boş Magazinler", bos_yuvalar)
-                            
-                            # 🚨 BARKOD SİSTEMİ DİNAMİKLEŞTİ (FRZ-T1-0634) 🚨
-                            # Seçilen "M1" magazin numarasını alıp barkodda "T1" olarak gösteriyoruz.
-                            # Zaman damgasını da (Örn: 0634) sonuna ekliyoruz.
-                            oto_barkod = f"FRZ-{yuva.replace('M', 'T')}-{datetime.now().strftime('%M%S')}"
-                            
-                            c4, c5, c_bos = st.columns([1, 1, 1])
-                            frez_kod = c4.text_input("Frez Takip Kodu", value=oto_barkod)
-                            omur = c5.number_input("Beklenen Toplam Ömür (Dakika)", min_value=1, value=1500, step=100)
-                            
-                            st.markdown("---")
-                            if st.button("🚀 SIFIR Frezi Tak ve Stoğu Düş", type="primary", use_container_width=True):
-                                f_kod_stok = f_sec.split("|")[0].strip()
-                                f_ad_stok = f_sec.split("|")[1].strip() 
-                                f_fiyat_tl = float(f_sec.split("|")[2].replace("TL", "").strip())
-                                f_fiyat_euro = f_fiyat_tl / 35.0 
-                                
-                                c.execute("INSERT INTO aktif_frezler (makine_adi, yuva_no, frez_kod, toplam_omur_dk, kullanilan_dk, birim_fiyat_euro, durum, frez_adi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-                                          (makine, yuva, frez_kod, omur, 0, f_fiyat_euro, "Aktif", f_ad_stok))
-                                c.execute("UPDATE stok SET Mevcut_Miktar = Mevcut_Miktar - 1, Guncelleme_Tarihi=? WHERE Urun_Kodu=?", (datetime.now().strftime('%Y-%m-%d %H:%M'), f_kod_stok))
-                                conn.commit()
-                                st.success(f"✅ {f_ad_stok} frezi {makine} makinesinin {yuva} magazinine {frez_kod} koduyla takıldı.")
-                                st.rerun()
-                        else:
-                            st.warning(f"⚠️ {makine} makinesinde boş magazin kalmadı!")
-                    else:
-                        st.error("⚠️ Ana stokta kullanıma hazır Frez bulunmuyor.")
-
-                # --- AKTİF TAKIMLAR BÖLÜMÜ (MAKİNE BAZLI GRUPLANDIRILDI) ---
-                st.markdown("#### 🟢 Magazinlerdeki Aktif Takımlar")
-                
-                try: 
-                    df_aktif = pd.read_sql("SELECT * FROM aktif_frezler WHERE durum='Aktif'", conn)
-                except: 
-                    df_aktif = pd.DataFrame()
-
-                if not df_aktif.empty:
-                    # 🚨 SİHİR BURADA: Önce makineleri (GTR, Hybrid vb.) benzersiz olarak çekiyoruz 🚨
-                    makineler = df_aktif['makine_adi'].unique()
-                    
-                    for makine_adi in makineler:
-                        # Her makine için şık bir açılır menü (Expander) oluşturuyoruz
-                        with st.expander(f"🖥️ {makine_adi} MAGAZİNİ", expanded=True):
-                            # Sadece bu makineye ait olan frezleri filtrele
-                            makine_frezleri = df_aktif[df_aktif['makine_adi'] == makine_adi]
-                            
-                            for _, r in makine_frezleri.iterrows():
-                                kalan_dk = r['toplam_omur_dk'] - r['kullanilan_dk']
-                                yuzde = int((r['kullanilan_dk'] / r['toplam_omur_dk']) * 100) if r['toplam_omur_dk'] > 0 else 0
-                                if yuzde > 100: yuzde = 100
-                                
-                                f_adi_goster = r['frez_adi'] if pd.notna(r.get('frez_adi')) and r.get('frez_adi') else "Bilinmeyen Frez"
-                                
-                                with st.container(border=True):
-                                    col_f1, col_f2, col_f3 = st.columns([2.5, 2.5, 1])
-                                    
-                                    # Magazin (M1, M2...) bilgisini ve frez ismini öne çıkarıyoruz
-                                    col_f1.markdown(f"⚙️ **{r['yuva_no']}** | 🏷️ :green[{f_adi_goster}]")
-                                    col_f1.caption(f"Barkod: `{r['frez_kod']}`")
-                                    
-                                    if yuzde < 80: 
-                                        col_f2.progress(yuzde / 100.0, text=f"Kullanım: %{yuzde} ({r['kullanilan_dk']} / {r['toplam_omur_dk']} dk)")
-                                    else: 
-                                        col_f2.progress(yuzde / 100.0, text=f"⚠️ Ömür Bitiyor! Kalan: {kalan_dk} dk")
-                                    
-                                    with col_f3:
-                                        if st.button("⏸️ Yedeğe Al", use_container_width=True, key=f"btn_park_{r['id']}"):
-                                            c.execute("UPDATE aktif_frezler SET durum='Yedekte', yuva_no='-' WHERE id=?", (r['id'],))
-                                            conn.commit(); st.rerun()
-                                            
-                                        with st.expander("⚙️ İşlemler", expanded=False):
-                                            yeni_dk = st.number_input("Dk Ekle", min_value=1, step=15, value=15, key=f"dk_{r['id']}")
-                                            if st.button("⏱️ İşle", key=f"btn_dk_{r['id']}"):
-                                                c.execute("UPDATE aktif_frezler SET kullanilan_dk = kullanilan_dk + ? WHERE id=?", (yeni_dk, r['id']))
-                                                conn.commit(); st.rerun()
-                                            st.markdown("---")
-                                            if st.button("💥 Kırıldı", type="primary", use_container_width=True, key=f"btn_kirildi_{r['id']}"):
-                                                c.execute("UPDATE aktif_frezler SET durum='Kırıldı' WHERE id=?", (r['id'],))
-                                                k_omur = str(r['toplam_omur_dk'] - r['kullanilan_dk']) + ' dk'
-                                                c.execute("INSERT INTO fire_kayitlari (Tarih, Urun_Kodu, Urun_Adi, Miktar, Neden, Kullanici, Kalan_Omur) VALUES (?,?,?,?,?,?,?)",
-                                                         (datetime.now().strftime("%Y-%m-%d %H:%M"), r['frez_kod'], r['frez_adi'], 1.0, f"CAM makinesinde ({r['makine_adi']}) kırıldı", st.session_state.get('kullanici_adi', 'Bilinmeyen'), k_omur))
-                                                conn.commit(); st.rerun()
-                                            if st.button("✅ Arşive Kaldır", use_container_width=True, key=f"btn_doldu_{r['id']}"):
-                                                c.execute("UPDATE aktif_frezler SET durum='Ömrü Doldu' WHERE id=?", (r['id'],))
-                                                c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
-                                                          (datetime.now().strftime("%Y-%m-%d %H:%M"), r['frez_kod'], r['frez_adi'], 1.0, "Ömrü Doldu", f"{r['makine_adi']} {r['yuva_no']} yuvasından arşive alındı.", st.session_state.get('kullanici_adi', 'Bilinmeyen')))
-                                                conn.commit(); st.rerun()
-                else:
-                    st.info("Magazinlerde tanımlı aktif frez yok.")
-
-                st.markdown("---")
-                
-                # --- 🚨 YEDEKTE BEKLEYEN (KULLANILMIŞ) FREZLER İSTASYONU 🚨 ---
-                st.markdown("---")
-                st.markdown("#### ⏸️ Yedekte Bekleyen (Kullanılmış) Frezler")
-                st.caption("Daha önce magazinden çıkardığınız yarı-ömürlü frezler burada bekler. Bunları tekrar herhangi bir makineye atayabilirsiniz.")
-                
-                try: 
-                    df_yedek = pd.read_sql("SELECT * FROM aktif_frezler WHERE durum='Yedekte'", conn)
-                except: 
-                    df_yedek = pd.DataFrame()
-                
-                if not df_yedek.empty:
-                    for _, r in df_yedek.iterrows():
-                        k_dk = r['toplam_omur_dk'] - r['kullanilan_dk']
-                        f_adi_yedek = r['frez_adi'] if pd.notna(r.get('frez_adi')) and r.get('frez_adi') else "Bilinmeyen Frez"
-                        
-                        with st.container(border=True):
-                            col_y1, col_y2, col_y3 = st.columns([2.5, 2.5, 2])
-                            
-                            col_y1.markdown(f"🏷️ **{f_adi_yedek}**")
-                            col_y1.caption(f"Barkod: `{r['frez_kod']}` | Son Makinesi: {r['makine_adi']}")
-                            
-                            # Kalan ömre göre durum bilgisi
-                            col_y2.warning(f"⏳ **Kalan:** {k_dk} Dk (Kullanım: %{int((r['kullanilan_dk']/r['toplam_omur_dk'])*100)})")
-                            
-                            with col_y3:
-                                # 🚨 MAGAZİNE GERİ TAKMA SİSTEMİ 🚨
-                                with st.expander("🔄 Magazine Geri Tak", expanded=False):
-                                    makine_geri = st.selectbox("Hedef Makine", ["Redon GTR", "Redon Hybrid", "Roland DWX", "Diğer"], key=f"mak_geri_{r['id']}")
-                                    
-                                    # SEÇİLEN MAKİNEDEKİ BOŞ MAGAZİNLERİ BUL
-                                    d_yuv = c.execute("SELECT yuva_no FROM aktif_frezler WHERE makine_adi=? AND durum='Aktif'", (makine_geri,)).fetchall()
-                                    d_list = [y[0] for y in d_yuv]
-                                    b_yuv = [f"M{i}" for i in range(1, 16) if f"M{i}" not in d_list]
-                                    
-                                    if b_yuv:
-                                        yuva_geri = st.selectbox("Boş Magazin Seç", b_yuv, key=f"yuv_geri_{r['id']}")
-                                        if st.button("🚀 Magazine Yerleştir", key=f"btn_akt_{r['id']}", type="primary", use_container_width=True):
-                                            c.execute("UPDATE aktif_frezler SET durum='Aktif', makine_adi=?, yuva_no=? WHERE id=?", (makine_geri, yuva_geri, r['id']))
-                                            conn.commit()
-                                            st.success(f"✅ {r['frez_kod']} başarıyla {makine_geri} - {yuva_geri} magazinine takıldı!")
-                                            st.rerun()
-                                    else:
-                                        st.error("Bu makinede boş magazin yok!")
-                                    
-                                    st.markdown("---")
-                                    # Eğer yedekteki frez artık işe yaramayacaksa çöpe atma seçeneği
-                                    if st.button("🗑️ Arşive Kaldır (Kullanma)", key=f"btn_arsiv_{r['id']}", use_container_width=True):
-                                        c.execute("UPDATE aktif_frezler SET durum='Ömrü Doldu' WHERE id=?", (r['id'],))
-                                        c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
-                                                  (datetime.now().strftime("%Y-%m-%d %H:%M"), r['frez_kod'], r['frez_adi'], 1.0, "Ömrü Doldu (Yedekten)", "Yedek deposundan arşive atıldı.", st.session_state.get('kullanici_adi', 'Bilinmeyen')))
-                                        conn.commit(); st.rerun()
-                else:
-                    st.info("Şu an yedekte bekleyen yarı-ömürlü freziniz bulunmamaktadır.")
-            # ==========================================
-            # 2. ESKİ SİSTEM: ZİRKON BLOK TAKİBİ
-            # ==========================================
-            with tab_blok:
-                st.info("Açılan Zirkonyum blokların üye takiplerini buradan yapabilirsiniz.")
-                
-                # 🚨 YENİ BLOK AÇMA FORMU DARALTILDI VE YAN YANA ALINDI 🚨
-                with st.container(border=True):
-                    c_blok1, c_blok2, c_blok3 = st.columns([2.5, 1.5, 1.5])
-                    
-                    zirkon_stok = c.execute("SELECT Urun_Kodu, Urun_Adi FROM stok WHERE Kategori='Zirkonyum Blok' AND Mevcut_Miktar > 0 AND Durum='Aktif'").fetchall()
-                    if zirkon_stok:
-                        z_sec = c_blok1.selectbox("Açılacak Blok (Stoktan Düşer)", [f"{z[0]} | {z[1]}" for z in zirkon_stok])
-                        b_renk = c_blok2.text_input("Renk ve Boyut")
-                        
-                        c_blok3.markdown("<br>", unsafe_allow_html=True) # Butonu hizalamak için boşluk
-                        if c_blok3.button("🚀 Aç ve CAM'e Ekle", type="primary", use_container_width=True):
-                            z_kod = z_sec.split("|")[0].strip()
-                            z_ad = z_sec.split("|")[1].strip()
-                            yeni_b_kod = f"BLK-{datetime.now().strftime('%M%S')}"
-                            c.execute("INSERT INTO cam_bloklar (Blok_Kodu, Urun_Adi, Boyut_Renk, Kapasite_Uye, Kalan_Uye, Durum) VALUES (?,?,?,?,?,?)", (yeni_b_kod, z_ad, b_renk, 22, 22, "Yarım"))
-                            c.execute("UPDATE stok SET Mevcut_Miktar = Mevcut_Miktar - 1, Guncelleme_Tarihi=? WHERE Urun_Kodu=?", (datetime.now().strftime('%Y-%m-%d %H:%M'), z_kod))
-                            conn.commit(); st.success(f"Blok Açıldı: {yeni_b_kod}"); st.rerun()
-                    else: 
-                        st.warning("Ana stokta kullanıma hazır Aktif Zirkonyum Blok kalmamış.")
-
-                st.markdown("---")
-                
-                # 🚨 FİLTRE DARALTILDI 🚨
-                col_filtre, col_fbos = st.columns([1.5, 4])
-                min_uye_filtre = col_filtre.number_input("🔍 Min Kalan Üye Filtresi:", min_value=1, max_value=22, value=1)
-                
-                # 🚨 TABLO YERİNE DİNAMİK YÖNETİM KARTLARI (İLAVE/ÇÖPE AT) 🚨
-                df_bloklar = pd.read_sql("SELECT Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye, Durum FROM cam_bloklar WHERE Durum='Yarım'", conn)
-                
-                if not df_bloklar.empty: 
-                    gosterilecekler = df_bloklar[df_bloklar['Kalan_Uye'] >= min_uye_filtre]
-                    for _, r in gosterilecekler.iterrows():
-                        with st.container(border=True):
-                            cb1, cb2, cb3 = st.columns([2, 1.5, 2])
-                            cb1.markdown(f"🧱 **{r['Blok_Kodu']}** | 🏷️ {r['Boyut_Renk']}")
-                            cb1.caption(f"Ürün: {r['Urun_Adi']}")
-                            
-                            yuzde = int((r['Kalan_Uye'] / 22.0) * 100) if r['Kalan_Uye'] <= 22 else 100
-                            cb2.progress(yuzde / 100.0, text=f"Kalan: {r['Kalan_Uye']} Üye")
-                            
-                            with cb3:
-                                with st.expander("⚙️ Blok Yönetimi"):
-                                    st.caption("Tahmininizden fazla/az üye sığdıysa buradan düzeltebilirsiniz.")
-                                    
-                                    # Üye ekleme / çıkarma (Mesela +2 yazıp güncelleyebilirsin)
-                                    col_y1, col_y2 = st.columns([1.5, 1.5])
-                                    ekle_cikar = col_y1.number_input("Miktar Ekle/Çıkar", value=0, step=1, key=f"uye_ayar_{r['Blok_Kodu']}")
-                                    
-                                    if col_y2.button("💾 Kalanı Güncelle", key=f"btn_uye_{r['Blok_Kodu']}"):
-                                        yeni_uye = r['Kalan_Uye'] + ekle_cikar
-                                        if yeni_uye <= 0:
-                                            # Eğer eksiye düşer veya sıfırlanırsa direkt çöpe atar
-                                            c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Durum='Bitti' WHERE Blok_Kodu=?", (r['Blok_Kodu'],))
-                                            c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
-                                                      (datetime.now().strftime("%Y-%m-%d %H:%M"), r['Blok_Kodu'], r['Urun_Adi'], 1.0, "Tükendi (Blok)", "Blok üyesi sıfırlandığı için otomatik arşive alındı.", st.session_state.get('kullanici_adi', 'Bilinmeyen')))
-                                        else:
-                                            c.execute("UPDATE cam_bloklar SET Kalan_Uye=? WHERE Blok_Kodu=?", (yeni_uye, r['Blok_Kodu']))
-                                        conn.commit(); st.rerun()
-                                    
-                                    st.markdown("---")
-                                    # Direkt çöpe atma butonu
-                                    cop_neden = st.text_input("Çöpe Atma Nedeni (Açıklama):", key=f"cop_neden_{r['Blok_Kodu']}")
-                                    if st.button("🗑️ Çöpe At (Arşive Kaldır)", type="primary", use_container_width=True, key=f"btn_cop_{r['Blok_Kodu']}"):
-                                        c.execute("UPDATE cam_bloklar SET Durum='Bitti', Kalan_Uye=0 WHERE Blok_Kodu=?", (r['Blok_Kodu'],))
-                                        c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
-                                                  (datetime.now().strftime("%Y-%m-%d %H:%M"), r['Blok_Kodu'], r['Urun_Adi'], 1.0, "Çöpe Atıldı (Blok)", cop_neden if cop_neden.strip() else "Manuel çöpe atıldı.", st.session_state.get('kullanici_adi', 'Bilinmeyen')))
-                                        conn.commit(); st.success("Blok çöpe atıldı/arşive kaldırıldı!"); st.rerun()
-                else:
-                    st.info("Kriterlere uygun aktif yarım blok bulunmuyor.")
 
     elif sayfa == "🏭 Tedarikçi Yönetimi":
         banner_olustur("🏭", "Tedarikçi ve Satın Alma Yönetimi", "Laboratuvarınızın malzeme tedarikçilerini yönetin ve satın alma geçmişini takip edin.")
@@ -3159,7 +4084,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             st.info("Satın Alma Geçmişi modülü yapım aşamasındadır. Burada ilerleyen güncellemelerde oluşturulan satın alma siparişleri ve faturaları listelenecektir.")
 
     elif sayfa == "💰 Finans & Analitik":
-        banner_olustur("💰", "Finans ve Analitik Merkezi", "Tahsilatları girin, cari ekstreleri çıkarın ve laboratuvarınızın kârlılığını analiz edin.")
+        banner_olustur("💰", "Finans ve Analitik Merkezi v3", "Tahsilatları girin, cari ekstreleri çıkarın ve laboratuvarınızın kârlılığını analiz edin.")
+        
+        euro_kuru_anlik = guncel_euro_kuru_getir()
+        st.info(f"💶 **Sistemdeki Güncel Euro Kuru:** {euro_kuru_anlik:,.2f} TL (TCMB Canlı Kur)")
         
         try:
             klinik_liste = c.execute("SELECT Klinik_Unvani FROM cariler WHERE Durum='Aktif'").fetchall()
@@ -3167,8 +4095,152 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         except:
             klinikler = []
 
-        tab_tahsilat, tab_ekstre, tab_gider, tab_analitik, tab_nakit = st.tabs(["💵 Tahsilat Gir", "🧾 Cari Ekstre", "💸 Giderler", "📈 Gerçek Kârlılık (CFO)", "🌊 Nakit Radarı & FP&A Tahminleme"])
+        tab_tahsilat, tab_ekstre, tab_gider, tab_analitik, tab_nakit, tab_fiyat = st.tabs(["💵 Tahsilat Gir", "🧾 Cari Ekstre", "💸 Giderler", "📈 Gerçek Kârlılık (CFO)", "🌊 Nakit Radarı & FP&A Tahminleme", "🏷️ İş Fiyatlandırma"])
         
+        with tab_fiyat:
+            st.markdown("#### 🏷️ İş Fiyatlandırma")
+            st.caption("İş Akışı'nda oluşturulan ve henüz fiyatlandırılmamış (Tutarı 0 olan) veya fiyatı güncellenmek istenen reçetelerin fiyatlarını bu tablodan belirleyebilirsiniz. Belirlenen tutarlar otomatik olarak kliniğin borç bakiyesine yansıtılır.")
+            
+            if klinikler:
+                f_klinik = st.selectbox("Filtrelenecek Klinik", ["Tümü"] + klinikler, key="fiyat_klinik_secim")
+                
+                query_fiyat = "SELECT id, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Adet, Tutar_TL, Fatura_Tarihi, Iskonto FROM isler"
+                if f_klinik != "Tümü":
+                    df_fiyat = pd.read_sql(f"{query_fiyat} WHERE Klinik_Unvani='{f_klinik}' ORDER BY id DESC LIMIT 200", conn)
+                else:
+                    df_fiyat = pd.read_sql(f"{query_fiyat} ORDER BY id DESC LIMIT 300", conn)
+                    
+                if not df_fiyat.empty:
+                    if 'adet' in df_fiyat.columns:
+                        df_fiyat = df_fiyat.rename(columns={"adet": "Adet"})
+                    if 'teslim_tarihi' in df_fiyat.columns:
+                        df_fiyat = df_fiyat.rename(columns={"teslim_tarihi": "Teslim_Tarihi"})
+                    if 'fatura_tarihi' in df_fiyat.columns:
+                        df_fiyat = df_fiyat.rename(columns={"fatura_tarihi": "Fatura_Tarihi"})
+                    if 'iskonto' in df_fiyat.columns:
+                        df_fiyat = df_fiyat.rename(columns={"iskonto": "Iskonto"})
+                        
+                    df_fiyat = df_fiyat.rename(columns={
+                        "Teslim_Tarihi": "TESLİM TARİHİ",
+                        "Klinik_Unvani": "KLİNİK", 
+                        "Hasta_Adi": "HASTA ADI", 
+                        "Hasta_Kodu": "HASTA KODU",
+                        "hasta_kodu": "HASTA KODU",
+                        "Is_Turu": "İŞLEM TÜRÜ", 
+                        "Adet": "ADET",
+                        "Fatura_Tarihi": "FATURA TARİHİ",
+                        "Iskonto": "İSKONTO"
+                    })
+                    
+                    df_fiyat["FATURA TARİHİ"] = df_fiyat["FATURA TARİHİ"].fillna("-")
+                    df_fiyat["İSKONTO"] = pd.to_numeric(df_fiyat["İSKONTO"], errors='coerce').fillna(0.0)
+
+                    if 'ADET' in df_fiyat.columns:
+                        df_fiyat["ADET"] = pd.to_numeric(df_fiyat["ADET"], errors='coerce').fillna(1).astype(int)
+                    else:
+                        df_fiyat["ADET"] = 1
+                    
+                    df_fiyat["SIRA NO"] = range(1, len(df_fiyat) + 1)
+                    df_fiyat["Tutar_TL"] = pd.to_numeric(df_fiyat["Tutar_TL"], errors='coerce').fillna(0.0)
+                    df_fiyat["ESKİ_TUTAR_TL"] = df_fiyat["Tutar_TL"]
+                    
+                    # Hizmet Fiyat Listesini Çek (Para birimi dahil)
+                    fiyatlar_raw = c.execute("SELECT Hizmet_Adi, Fiyat, Para_Birimi FROM fiyat_listesi").fetchall()
+                    # Sözlük yapısı: {'Zirkonyum': {'fiyat': 1500, 'birim': 'Euro'}}
+                    fiyat_dict = {f[0]: {'fiyat': float(f[1] if f[1] is not None else 0.0), 'birim': str(f[2] if f[2] is not None else 'TL')} for f in fiyatlar_raw}
+                    euro_kuru = guncel_euro_kuru_getir()
+                    
+                    def get_birim_fiyat(row):
+                        if row["Tutar_TL"] > 0:
+                            iskonto_orani = float(row.get("İSKONTO", 0.0))
+                            carpan = 1 - (iskonto_orani / 100.0)
+                            if carpan <= 0: carpan = 1.0
+                            gercek_toplam_tutar = row["Tutar_TL"] / carpan
+                            return round(gercek_toplam_tutar / row["ADET"], 2)
+                        
+                        # Eğer tutar 0 ise fiyat listesinden güncel kurla getir
+                        hizmet = row["İŞLEM TÜRÜ"]
+                        if hizmet in fiyat_dict:
+                            h_fiyat = fiyat_dict[hizmet]['fiyat']
+                            h_birim = fiyat_dict[hizmet]['birim']
+                            if h_birim == "Euro":
+                                return round(h_fiyat * euro_kuru, 2)
+                            else:
+                                return round(h_fiyat, 2)
+                        return 0.0
+                        
+                    df_fiyat["B.FİYAT"] = df_fiyat.apply(get_birim_fiyat, axis=1)
+                    df_fiyat["T.FİYAT"] = (df_fiyat["B.FİYAT"] * df_fiyat["ADET"]) * (1 - (df_fiyat["İSKONTO"] / 100.0))
+                    df_fiyat.loc[df_fiyat["T.FİYAT"] < 0, "T.FİYAT"] = 0
+                    
+                    df_fiyat = df_fiyat.set_index("id")
+                    
+                    # İstenen sıra: SIRA NO - TARİH - KLİNİK - HASTA ADI - İŞLEM TÜRÜ - ADET - B.FİYAT - T.FİYAT
+                    df_fiyat = df_fiyat[["SIRA NO", "TESLİM TARİHİ", "KLİNİK", "HASTA ADI", "HASTA KODU", "İŞLEM TÜRÜ", "ADET", "FATURA TARİHİ", "İSKONTO", "B.FİYAT", "T.FİYAT", "ESKİ_TUTAR_TL"]]
+                    
+                    st.caption("💡 İpucu: İşlemler (fatura tarihi, fiyat, iskonto) alanını açmak için tablodan bir satır seçiniz.")
+                    
+                    event_fiyat = st.dataframe(
+                        df_fiyat.drop(columns=["ESKİ_TUTAR_TL"]), # Gizlemek için
+                        use_container_width=True,
+                        hide_index=True,
+                        on_select="rerun",
+                        selection_mode="single-row",
+                        key="fiyat_tablo"
+                    )
+                    
+                    if event_fiyat and len(event_fiyat.selection.rows) > 0:
+                        secili_idx = event_fiyat.selection.rows[0]
+                        secili_kayit = df_fiyat.iloc[secili_idx]
+                        
+                        st.markdown(f"### ⚙️ İşlem Güncelle ({secili_kayit['HASTA ADI']} - {secili_kayit['İŞLEM TÜRÜ']})")
+                        
+                        col1, col2, col3, col4 = st.columns(4)
+                        yeni_fatura = col1.text_input("Fatura Tarihi", value=secili_kayit["FATURA TARİHİ"], key="y_fat")
+                        yeni_fiyat = col2.number_input("B.Fiyat (TL)", value=float(secili_kayit["B.FİYAT"]), min_value=0.0, step=10.0, key="y_fiy")
+                        yeni_iskonto = col3.number_input("İskonto (%)", value=float(secili_kayit["İSKONTO"]), min_value=0.0, max_value=100.0, step=1.0, key="y_isk")
+                        
+                        yeni_t_fiyat = (yeni_fiyat * secili_kayit["ADET"]) * (1 - (yeni_iskonto / 100.0))
+                        if yeni_t_fiyat < 0: yeni_t_fiyat = 0
+                        col4.metric("Yeni Toplam Tutar", f"{yeni_t_fiyat:,.2f} TL")
+                        
+                        col_btn1, col_btn2 = st.columns(2)
+                        btn_guncelle = col_btn1.button("💾 Güncelle", use_container_width=True)
+                        btn_yansit = col_btn2.button("📊 Cari Ekstreye Yansıt", type="primary", use_container_width=True)
+                        
+                        if btn_guncelle or btn_yansit:
+                            eski_veritabani_tutar = secili_kayit["ESKİ_TUTAR_TL"]
+                            eski_adet = secili_kayit["ADET"]
+                            eski_fatura = str(secili_kayit["FATURA TARİHİ"])
+                            eski_iskonto = float(secili_kayit["İSKONTO"])
+                            idx_db = secili_kayit.name  # Since index is "id"
+                            
+                            fatura_str = str(yeni_fatura)
+                            isk_float = float(yeni_iskonto)
+                            
+                            if (eski_veritabani_tutar != yeni_t_fiyat) or (eski_fatura != fatura_str) or (eski_iskonto != isk_float) or (float(secili_kayit["B.FİYAT"]) != yeni_fiyat):
+                                f_klinik_adi = secili_kayit["KLİNİK"]
+                                fark_toplam = float(yeni_t_fiyat - eski_veritabani_tutar)
+                                
+                                c.execute("UPDATE isler SET Tutar_TL=?, Adet=?, Fatura_Tarihi=?, Iskonto=? WHERE id=?", (float(yeni_t_fiyat), int(eski_adet), fatura_str, float(isk_float), int(idx_db)))
+                                
+                                if btn_yansit and fark_toplam != 0:
+                                    try: c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani=?", (fark_toplam, f_klinik_adi))
+                                    except: pass
+                                
+                                conn.commit()
+                                if btn_yansit:
+                                    st.success("✅ Fiyatlar güncellendi ve cari bakiyeye yansıtıldı!")
+                                else:
+                                    st.success("✅ Fiyatlar güncellendi (Bakiye değiştirilmedi).")
+                                st.rerun()
+                            else:
+                                st.warning("Herhangi bir değişiklik yapmadınız.")
+                else:
+                    st.info("Kayıtlı iş bulunamadı.")
+            else:
+                st.warning("Sistemde kayıtlı klinik bulunmuyor.")
+
         with tab_tahsilat:
             if klinikler:
                 with st.form("tahsilat_form"):
@@ -3190,6 +4262,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     anlik_bakiye = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (secilen_klinik_ekstre,)).fetchone()[0]
                     df_borc = pd.read_sql(f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak FROM isler WHERE Klinik_Unvani='{secilen_klinik_ekstre}' AND Tutar_TL > 0", conn)
                     df_alacak = pd.read_sql(f"SELECT Tarih, Odeme_Turu || ' Ödemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak FROM tahsilatlar WHERE Klinik_Unvani='{secilen_klinik_ekstre}'", conn)
+                    df_borc = df_borc.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
+                    df_alacak = df_alacak.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
                     
                     df_ekstre = pd.concat([df_borc, df_alacak]).sort_values(by="Tarih").reset_index(drop=True)
                     toplam_yazilan_borc = df_ekstre['Borc'].sum() if not df_ekstre.empty else 0
@@ -3238,10 +4312,13 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         with tab_analitik:
             st.markdown("""<style>.cfo-card { background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; padding: 25px 15px; text-align: center; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px); transition: transform 0.3s ease, border-color 0.3s ease; margin-bottom: 20px; } .cfo-card:hover { transform: translateY(-5px); border-color: rgba(56, 189, 248, 0.8); } .cfo-title { color: #94a3b8; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; } .cfo-val-blue { color: #38bdf8; font-size: 38px; font-weight: 900; text-shadow: 0 0 15px rgba(56,189,248,0.4); } .cfo-val-red { color: #f87171; font-size: 38px; font-weight: 900; text-shadow: 0 0 15px rgba(248,113,113,0.4); } .cfo-val-green { color: #34d399; font-size: 38px; font-weight: 900; text-shadow: 0 0 15px rgba(52,211,153,0.4); } .cfo-val-gray { color: #cbd5e1; font-size: 38px; font-weight: 900; } .cfo-sub { color: #64748b; font-size: 14px; font-weight: 600; margin-top: 8px; } .cfo-sub-down { color: #f87171; font-weight: bold; } .cfo-sub-up { color: #34d399; font-weight: bold; }</style>""", unsafe_allow_html=True)
             
-            euro_kuru = 53.0
+            euro_kuru = guncel_euro_kuru_getir()
             try:
                 df_is_f = pd.read_sql("SELECT Klinik_Unvani, Is_Turu, Tutar_TL FROM isler", conn)
-                toplam_gelir = df_is_f['Tutar_TL'].sum() if not df_is_f.empty else 0
+                if not df_is_f.empty:
+                    df_is_f['Tutar_TL'] = pd.to_numeric(df_is_f['Tutar_TL'], errors='coerce')
+                    toplam_gelir = df_is_f['Tutar_TL'].sum()
+                else: toplam_gelir = 0
             except: df_is_f = pd.DataFrame(); toplam_gelir = 0
             
             try:
@@ -3249,6 +4326,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 if not df_tum_giderler.empty:
                     gider_tur_kolonu = df_tum_giderler.columns[1] 
                     gider_tutar_kolonu = df_tum_giderler.columns[3]
+                    df_tum_giderler[gider_tutar_kolonu] = pd.to_numeric(df_tum_giderler[gider_tutar_kolonu], errors='coerce')
                     toplam_sabit_gider = df_tum_giderler[gider_tutar_kolonu].sum()
                 else: toplam_sabit_gider = 0
             except: df_tum_giderler = pd.DataFrame(); toplam_sabit_gider = 0
@@ -3306,7 +4384,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             st.markdown("### 🌊 CFO Radarı: Nakit Akışı ve Gelecek Tahminleme (FP&A)")
             st.info("2. Madde (Bütçe Tahminleme) ve 3. Madde (Likidite/Tahsilat Yönetimi) prensiplerine göre çalışır.")
             
-            euro_kuru = 53.0
+            euro_kuru = guncel_euro_kuru_getir()
             mevcut_ay = datetime.now().strftime("%Y-%m")
             bugun_gun = datetime.now().day
             
@@ -3421,11 +4499,11 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         conn.commit(); st.success(f"✅ Rota kapatıldı! {toplam_maliyet} TL Giderlere eklendi."); st.rerun()
             else: st.success("🎉 Harika! Bekleyen hiçbir rota yok.")
 
-    elif sayfa == "📋 Fiyat Listesi":
-            banner_olustur("📋", "Fiyat Listesi & Döküman Merkezi", "Hizmet bedellerini yönetin ve kurumsal dökümanları (Katalog, Fatura vb.) yükleyin.")
+    elif sayfa == "📉 Maliyet Yönetimi":
+            banner_olustur("📉", "Maliyet Yönetimi & Fiyat Listesi", "Birim maliyet analizi, hedef fiyat belirleme, hizmet bedellerini yönetme ve kurumsal döküman işlemleri.")
             
-            # 🚨 5 ANA SEKME BURADA BAŞLIYOR 🚨
-            tab1, tab2, tab3, tab4, tab5 = st.tabs(["➕ Yeni Hizmet Ekle", "📊 Hizmet Listesi", "💎 BGS Blok Fiyatları", "📁 Dökümanlar & Katalog", "💰 Hizmet Maliyet Tablosu"])
+            # 🚨 ANA SEKMELER BURADA BAŞLIYOR 🚨
+            tab_m2, tab1, tab2, tab3, tab4 = st.tabs(["⚙️ Değişken Ayarları", "➕ Yeni Hizmet Ekle", "📊 Hizmet Listesi", "📁 Dökümanlar & Katalog", "💰 Hizmet Maliyet Tablosu"])
             
             # 🚨 TABLO İÇERİKLERİNİ ORTALAMAK İÇİN GENEL CSS ZIRHI 🚨
             st.markdown("""
@@ -3528,48 +4606,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 else:
                     st.info("Sistemde henüz kayıtlı hizmet fiyatı bulunamadı.")
 
+
+
             # ==========================================
-            # TAB 3: BGS BLOK FİYATLARI (EURO)
+            # TAB 3: DÖKÜMANLAR & KATALOG
             # ==========================================
             with tab3:
-                st.markdown("### 💎 BGS Blok Satış Fiyatları (Euro)")
-                
-                st.markdown("#### ✏️ Fiyat Güncelleme")
-                col_b1, col_b2, col_b_bos = st.columns([2, 1.2, 2.5])
-                
-                df_bgs_mevcut = pd.read_sql("SELECT Urun_Adi, Satis_Fiyati, Birim FROM stok WHERE Kategori LIKE '%Blok%'", conn)
-                
-                with st.form("bgs_fiyat_form"):
-                    blok_listesi = df_bgs_mevcut["Urun_Adi"].tolist() if not df_bgs_mevcut.empty else []
-                    secilen_bgs = col_b1.selectbox("Blok Seçin", ["-- Seçiniz --"] + blok_listesi)
-                    
-                    yeni_bgs_fiyat = col_b2.number_input("Yeni Birim Fiyat (Euro)", min_value=0.0, step=5.0)
-                    
-                    if st.form_submit_button("💾 Fiyatı Güncelle", type="primary"):
-                        if secilen_bgs != "-- Seçiniz --":
-                            c.execute("UPDATE stok SET Satis_Fiyati=?, Guncelleme_Tarihi=? WHERE Urun_Adi=?", (yeni_bgs_fiyat, datetime.now().strftime('%Y-%m-%d %H:%M'), secilen_bgs))
-                            conn.commit(); st.success(f"✅ {secilen_bgs} fiyatı {yeni_bgs_fiyat} € olarak güncellendi."); st.rerun()
-
-                st.markdown("---")
-                st.markdown("#### 📊 Güncel Blok Fiyat Listesi")
-                
-                # Tablo sola yaslandı ve daraltıldı
-                col_t_ana, col_t_bos = st.columns([2, 4])
-                
-                with col_t_ana:
-                    if not df_bgs_mevcut.empty:
-                        st.dataframe(
-                            df_bgs_mevcut.style.format({"Satis_Fiyati": "{:,.2f} €"}).set_properties(**{'text-align': 'center'}),
-                            hide_index=True,
-                            use_container_width=True
-                        )
-                    else:
-                        st.info("Sistemde henüz kayıtlı blok fiyatı bulunamadı.")
-
-            # ==========================================
-            # TAB 4: DÖKÜMANLAR & KATALOG
-            # ==========================================
-            with tab4:
                 # CSS YAMASI: İndirme, Yükleme Butonları ve Sürükle-Bırak Alanı
                 st.markdown("""
 <style>
@@ -3642,9 +4684,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.info("Sisteme henüz hiç kurumsal döküman veya katalog yüklenmemiş.")
 
             # ==========================================
-            # TAB 5: HİZMET MALİYET TABLOSU
+            # TAB 4: HİZMET MALİYET TABLOSU
             # ==========================================
-            with tab5:
+            with tab4:
                 st.markdown("### 💰 Hizmet Maliyetleri ve Kâr Marjı Analizi")
                 st.info("Buradan her bir hizmet için alt maliyet kalemlerini (ör. Zirkon Blok Payı, İşçilik) girerek hizmet başına net kârınızı hesaplayabilirsiniz.")
                 
@@ -3664,7 +4706,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         
                         with col_m1:
                             st.markdown("#### 🛒 Kayıtlı Maliyet Kalemleri")
-                            maliyetler = pd.read_sql("SELECT id, kalem_adi as 'Kalem Adı', tutar as 'Tutar' FROM hizmet_maliyetleri WHERE hizmet_id=?", conn, params=(s_id,))
+                            maliyetler = pd.read_sql('SELECT id, kalem_adi as "Kalem Adı", tutar as "Tutar" FROM hizmet_maliyetleri WHERE hizmet_id=?', conn, params=(s_id,))
                             
                             if not maliyetler.empty:
                                 # Show dataframe
@@ -3697,6 +4739,71 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                         conn.commit(); st.rerun()
                                     else:
                                         st.error("Lütfen geçerli bir isim ve tutar giriniz.")
+                            
+                            st.markdown("#### 🤖 Otonom Makine Maliyeti")
+                            st.info("Seçilen makinenin saatlik güç tüketimi ve elektrik fiyatına göre maliyet hesaplar.")
+                            
+                            df_makineler = pd.read_sql("SELECT Cihaz_Adi, Guc_kW FROM cihazlar WHERE Durum='Aktif'", conn)
+                            col_cihaz = df_makineler.columns[0] if not df_makineler.empty else 'Cihaz_Adi'
+                            col_guc = df_makineler.columns[1] if not df_makineler.empty and len(df_makineler.columns) > 1 else 'Guc_kW'
+                            
+                            makine_isimleri = df_makineler[col_cihaz].tolist() if not df_makineler.empty else ["Genel Makine"]
+                            
+                            with st.form(key=f"otonom_maliyet_form_{s_id}"):
+                                secili_mak = st.selectbox("Kullanılacak Makine", makine_isimleri)
+                                makine_dk = st.number_input("İşlem ortalama kaç dakika sürüyor? (Dk)", min_value=0, step=1)
+                                if st.form_submit_button("Otonom Hesapla ve Ekle"):
+                                    if makine_dk > 0:
+                                        # Seçili Makinenin kW Gücünü Bul
+                                        if secili_mak != "Genel Makine" and not df_makineler.empty:
+                                            kw_guc = df_makineler[df_makineler[col_cihaz] == secili_mak][col_guc].iloc[0]
+                                        else:
+                                            kw_guc = float(ayar_getir("Makine_Gucu_kW", "2.5"))
+                                            
+                                        # Elektrik Maliyeti (TL)
+                                        kwh_fiyat = float(ayar_getir("Elektrik_kWh_Fiyati", "3.0"))
+                                        elektrik_tl_maliyet = (kw_guc * kwh_fiyat) / 60.0 * makine_dk
+                                        
+                                        euro_kuru = guncel_euro_kuru_getir()
+                                        
+                                        if s_pb in ["EUR", "Euro"]:
+                                            nihai_tutar = float(elektrik_tl_maliyet / euro_kuru if euro_kuru > 0 else 0)
+                                        else: 
+                                            nihai_tutar = float(elektrik_tl_maliyet)
+                                            
+                                        c.execute("INSERT INTO hizmet_maliyetleri (hizmet_id, kalem_adi, tutar) VALUES (?,?,?)", 
+                                                  (s_id, f"Makine Üretimi - {secili_mak} ({makine_dk} Dk)", nihai_tutar))
+                                        conn.commit(); st.rerun()
+                                        
+                            st.markdown("#### 📦 Otonom Malzeme (Stok) Maliyeti")
+                            st.info("Seçilen malzemenin güncel depo fiyatı üzerinden otomatik canlı maliyet hesaplar.")
+                            
+                            df_stok_m = pd.read_sql("SELECT Urun_Adi, Birim FROM stok WHERE Durum='Aktif'", conn)
+                            stok_isimleri = df_stok_m['Urun_Adi'].tolist() if not df_stok_m.empty else ["Genel Malzeme"]
+                            
+                            with st.form(key=f"otonom_stok_form_{s_id}"):
+                                secili_stok = st.selectbox("Kullanılacak Malzeme", stok_isimleri)
+                                
+                                sf_col1, sf_col2 = st.columns([1, 2.5])
+                                stok_adet = sf_col1.number_input("Miktar / Üye", min_value=0.0, step=0.1)
+                                hesap_tipi = sf_col2.radio("Hesaplama Tipi", ["Manuel Miktar (Örn: 2 Adet Zirkon Blok)", "Tarihsel Ortalamaya Göre (Örn: 3 Üyelik İş)"])
+                                
+                                if st.form_submit_button("Stok Maliyeti Ekle"):
+                                    if stok_adet > 0:
+                                        birim_isim = "Adet"
+                                        if secili_stok != "Genel Malzeme" and not df_stok_m.empty:
+                                            b_vals = df_stok_m[df_stok_m['Urun_Adi'] == secili_stok]['Birim'].values
+                                            if len(b_vals) > 0: birim_isim = str(b_vals[0])
+                                            
+                                        if "Ortalama" in hesap_tipi:
+                                            kalem_ismi = f"Stok Tüketimi (Ortalama) - {secili_stok} ({stok_adet} Üye)"
+                                        else:
+                                            kalem_ismi = f"Stok Tüketimi (Miktar) - {secili_stok} ({stok_adet} {birim_isim})"
+                                            
+                                        c.execute("INSERT INTO hizmet_maliyetleri (hizmet_id, kalem_adi, tutar) VALUES (?,?,?)", (s_id, kalem_ismi, 0.0))
+                                        conn.commit()
+                                        otomatik_maliyetleri_guncelle()
+                                        st.rerun()
                         
                         # Kâr Marjı Hesaplama Göstergesi
                         st.markdown("---")
@@ -3716,153 +4823,120 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.warning("Önce 'Yeni Hizmet Ekle' sekmesinden bir fiyat listesi oluşturmanız gerekmektedir.")
 
 
-    elif sayfa == "📉 Maliyet Analizi":
-        banner_olustur("📉", "Birim Maliyet & Kârlılık Analizi", "Aylık bazda üretim maliyetlerinizi hesaplayın ve gerçek kâr marjınızı görün.")
-        
-        # 🚨 ZAMAN MAKİNESİ (AY/YIL FİLTRESİ) OLUŞTURMA 🚨
-        try:
-            # Hem işlerden hem giderlerden "YYYY-MM" (Yıl-Ay) formatında eşsiz tarihleri çekiyoruz
-            aylar_is = pd.read_sql("SELECT DISTINCT substr(Tarih, 1, 7) as Ay FROM isler", conn)['Ay'].dropna().tolist()
-            aylar_gid = pd.read_sql("SELECT DISTINCT substr(Tarih, 1, 7) as Ay FROM giderler", conn)['Ay'].dropna().tolist()
+
+            # 🚨 ZAMAN MAKİNESİ (AY/YIL FİLTRESİ) OLUŞTURMA 🚨
+            try:
+                # Hem işlerden hem giderlerden "YYYY-MM" (Yıl-Ay) formatında eşsiz tarihleri çekiyoruz
+                aylar_is = pd.read_sql("SELECT DISTINCT substr(Tarih, 1, 7) as Ay FROM isler", conn)['Ay'].dropna().tolist()
+                aylar_gid = pd.read_sql("SELECT DISTINCT substr(Tarih, 1, 7) as Ay FROM giderler", conn)['Ay'].dropna().tolist()
             
-            # Tüm ayları birleştirip, tekrarları silip, en yeniden eskiye sıralıyoruz
-            tum_aylar = sorted(list(set(aylar_is + aylar_gid)), reverse=True)
-            secenekler = ["Genel (Tüm Zamanlar)"] + tum_aylar
-        except:
-            secenekler = ["Genel (Tüm Zamanlar)"]
+                # Tüm ayları birleştirip, tekrarları silip, en yeniden eskiye sıralıyoruz
+                tum_aylar = sorted(list(set(aylar_is + aylar_gid)), reverse=True)
+                secenekler = ["Genel (Tüm Zamanlar)"] + tum_aylar
+            except:
+                secenekler = ["Genel (Tüm Zamanlar)"]
 
-        col_filtre1, col_filtre2 = st.columns([1.5, 3])
-        secilen_ay = col_filtre1.selectbox("📅 Analiz Dönemini Seçin", secenekler)
+            col_filtre1, col_filtre2 = st.columns([1.5, 3])
+            secilen_ay = col_filtre1.selectbox("📅 Analiz Dönemini Seçin", secenekler)
         
-        # 🚨 SEÇİLEN AYA GÖRE SQL FİLTRELERİNİ HAZIRLA 🚨
-        if secilen_ay == "Genel (Tüm Zamanlar)":
-            filtre_is = ""
-            filtre_gid = ""
-            col_filtre2.info("Şu an laboratuvarın açılışından bu yana olan TÜM veriler analiz ediliyor.")
-        else:
-            filtre_is = f"WHERE Tarih LIKE '{secilen_ay}%'"
-            filtre_gid = f"WHERE Tarih LIKE '{secilen_ay}%'"
-            col_filtre2.success(f"Şu an sadece **{secilen_ay}** ayının gelir ve giderleri analiz ediliyor.")
-
-        # 1. TEMEL VERİLERİ ÇEK
-        try: toplam_maas = c.execute("SELECT sum(Maas) FROM personeller WHERE Durum='Aktif'").fetchone()[0] or 0
-        except: toplam_maas = 0
-            
-        euro_kuru = 35.0 
-        
-        try: bgs_blok_euro = c.execute("SELECT Satis_Fiyati FROM stok WHERE Kategori LIKE '%Blok%' LIMIT 1").fetchone()[0] or 0
-        except: bgs_blok_euro = 0
-        bgs_blok_tl = bgs_blok_euro * euro_kuru
-
-        # 2. DİNAMİK FREZ DAKİKA MALİYETİ
-        try:
-            df_frez = pd.read_sql("SELECT birim_fiyat_euro, toplam_omur_dk FROM aktif_frezler WHERE durum='Aktif'", conn)
-            if not df_frez.empty and (df_frez['toplam_omur_dk'] > 0).all():
-                df_frez['dk_maliyet_euro'] = df_frez['birim_fiyat_euro'] / df_frez['toplam_omur_dk']
-                ortalama_dk_maliyet_euro = df_frez['dk_maliyet_euro'].mean()
+            # 🚨 SEÇİLEN AYA GÖRE SQL FİLTRELERİNİ HAZIRLA 🚨
+            if secilen_ay == "Genel (Tüm Zamanlar)":
+                filtre_is = ""
+                filtre_gid = ""
+                col_filtre2.info("Şu an laboratuvarın açılışından bu yana olan TÜM veriler analiz ediliyor.")
             else:
-                ortalama_dk_maliyet_euro = 0.02 
-        except:
-            ortalama_dk_maliyet_euro = 0.02
+                filtre_is = f"WHERE Tarih LIKE '{secilen_ay}%'"
+                filtre_gid = f"WHERE Tarih LIKE '{secilen_ay}%'"
+                col_filtre2.success(f"Şu an sadece **{secilen_ay}** ayının gelir ve giderleri analiz ediliyor.")
+
+            # 1. TEMEL VERİLERİ ÇEK
+            try: toplam_maas = c.execute("SELECT sum(Maas) FROM personeller WHERE Durum='Aktif'").fetchone()[0] or 0
+            except: toplam_maas = 0
+            
+            euro_kuru = guncel_euro_kuru_getir()
         
-        ortalama_dk_maliyet_tl = ortalama_dk_maliyet_euro * euro_kuru
+            try: bgs_blok_euro = c.execute("SELECT Satis_Fiyati FROM stok WHERE Kategori LIKE '%Blok%' LIMIT 1").fetchone()[0] or 0
+            except: bgs_blok_euro = 0
+            bgs_blok_tl = bgs_blok_euro * euro_kuru
 
-        # 🚨 3. FİNANS MODÜLÜNDEN "SEÇİLEN AYA AİT" GİDERLERİ ÇEK 🚨
-        try:
-            sorgu_gider = f"SELECT Kategori, SUM(Tutar) as Toplam FROM giderler {filtre_gid} GROUP BY Kategori"
-            df_giderler_ozet = pd.read_sql(sorgu_gider, conn)
-            sabit_isletme_giderleri = df_giderler_ozet[df_giderler_ozet['Kategori'] != 'Hammadde']
-            toplam_finans_gideri = sabit_isletme_giderleri['Toplam'].sum()
-        except:
-            sabit_isletme_giderleri = pd.DataFrame()
-            toplam_finans_gideri = 0
-            
-        # 🚨 4. SEÇİLEN AYDAKİ GERÇEK ÜRETİM (İŞ) ADEDİNİ ÇEK 🚨
-        try:
-            sorgu_is_sayisi = f"SELECT COUNT(*) FROM isler {filtre_is}"
-            gercek_is_adedi = c.execute(sorgu_is_sayisi).fetchone()[0] or 1
-        except:
-            gercek_is_adedi = 1
-
-        # --- MODÜL ARAYÜZÜ ---
-        tab_m1, tab_m2 = st.tabs(["📊 Dönemsel Maliyet Motoru", "⚙️ Değişken Ayarları"])
-
-        with tab_m2:
-            st.markdown(f"### 🏢 Otonom Gider ve Kapasite ({secilen_ay})")
-            st.info("Bu sayfadaki veriler Finans modülünden seçtiğiniz aya göre anlık çekilir.")
-            
-            col_s1, col_s2 = st.columns(2)
-            
-            with col_s1:
-                st.markdown("##### 💸 Seçili Dönem Giderleri")
-                st.text_input("👥 Personel Maaş Yükü", value=f"{toplam_maas:,.2f} TL", disabled=True)
-                
-                if not sabit_isletme_giderleri.empty:
-                    for _, row in sabit_isletme_giderleri.iterrows():
-                        st.text_input(f"📌 {row['Kategori']}", value=f"{row['Toplam']:,.2f} TL", disabled=True)
+            # 2. DİNAMİK FREZ DAKİKA MALİYETİ
+            try:
+                df_frez = pd.read_sql("SELECT birim_fiyat_euro, toplam_omur_dk FROM aktif_frezler WHERE durum='Aktif'", conn)
+                if not df_frez.empty and (df_frez['toplam_omur_dk'] > 0).all():
+                    df_frez['dk_maliyet_euro'] = df_frez['birim_fiyat_euro'] / df_frez['toplam_omur_dk']
+                    ortalama_dk_maliyet_euro = df_frez['dk_maliyet_euro'].mean()
                 else:
-                    st.warning(f"{secilen_ay} dönemi için kayıtlı finans gideri bulunmuyor.")
-                
-                total_sabit_gider = toplam_maas + toplam_finans_gideri
-                st.markdown(f"**Toplam Sabit Yük: :red[{total_sabit_gider:,.2f} TL]**")
-            
-            with col_s2:
-                st.markdown("##### ⚙️ Kapasite ve Verimlilik")
-                # Artık manuel değil, seçilen aydaki gerçek iş sayısını varsayılan getiriyoruz!
-                aylik_is_adedi = st.number_input(f"{secilen_ay} Üretim Hacmi (Üye)", min_value=1, value=gercek_is_adedi, help="Seçilen dönemde yapılan toplam gerçek iş sayınız. Giderler buna bölünür.")
-                blok_verim = st.number_input("1 Bloktan Çıkan Üye", value=22)
-                uye_kazima_dk = st.number_input("1 Üye Ortalama Kazıma (Dakika)", value=15.0, step=1.0)
-                
-                st.markdown("---")
-                st.markdown("#### 🔄 Frez Algoritması")
-                st.text_input("Frez Dakika Maliyeti", value=f"{ortalama_dk_maliyet_tl:,.2f} TL / Dk", disabled=True)
+                    ortalama_dk_maliyet_euro = 0.02 
+            except:
+                ortalama_dk_maliyet_euro = 0.02
+        
+            ortalama_dk_maliyet_tl = ortalama_dk_maliyet_euro * euro_kuru
 
-        with tab_m1:
-            # --- HESAPLAMA MOTORU ---
-            # BUG DÜZELTİLDİ: tab_m2'de tanımlanan değişkenler burada kullanılır;
-            # eğer tab_m2 hiç açılmadıysa varsayılan değerler atanır.
-            if 'total_sabit_gider' not in dir(): total_sabit_gider = toplam_maas + toplam_finans_gideri
-            if 'aylik_is_adedi' not in dir(): aylik_is_adedi = gercek_is_adedi
-            if 'blok_verim' not in dir(): blok_verim = 22
-            if 'uye_kazima_dk' not in dir(): uye_kazima_dk = 15.0
-            birim_sabit_maliyet = total_sabit_gider / aylik_is_adedi if aylik_is_adedi > 0 else 0
-            birim_blok_maliyeti = bgs_blok_tl / blok_verim if blok_verim > 0 else 0
-            birim_frez_maliyeti = uye_kazima_dk * ortalama_dk_maliyet_tl
-            birim_sarf_maliyet = 50.0 
+            # 🚨 3. FİNANS MODÜLÜNDEN "SEÇİLEN AYA AİT" GİDERLERİ ÇEK 🚨
+            try:
+                sorgu_gider = f"SELECT Kategori, SUM(Tutar) as Toplam FROM giderler {filtre_gid} GROUP BY Kategori"
+                df_giderler_ozet = pd.read_sql(sorgu_gider, conn)
+                sabit_isletme_giderleri = df_giderler_ozet[df_giderler_ozet['Kategori'] != 'Hammadde']
+                toplam_finans_gideri = sabit_isletme_giderleri['Toplam'].sum()
+            except:
+                sabit_isletme_giderleri = pd.DataFrame()
+                toplam_finans_gideri = 0
             
-            toplam_birim_maliyet = birim_sabit_maliyet + birim_blok_maliyeti + birim_frez_maliyeti + birim_sarf_maliyet
+            # 🚨 4. SEÇİLEN AYDAKİ GERÇEK ÜRETİM (İŞ) ADEDİNİ ÇEK 🚨
+            try:
+                sorgu_is_sayisi = f"SELECT COUNT(*) FROM isler {filtre_is}"
+                gercek_is_adedi = c.execute(sorgu_is_sayisi).fetchone()[0] or 1
+            except:
+                gercek_is_adedi = 1
+
+            # --- MODÜL ARAYÜZÜ ---
+
+            with tab_m2:
+                st.markdown(f"### 🏢 Otonom Gider ve Kapasite ({secilen_ay})")
+                st.info("Bu sayfadaki veriler Finans modülünden seçtiğiniz aya göre anlık çekilir.")
             
-            st.markdown(f"### 🎯 1 Üye (Diş) Gerçek Maliyet Analizi - Dönem: {secilen_ay}")
+                col_s1, col_s2 = st.columns(2)
             
-            m_col1, m_col2, m_col3 = st.columns(3)
-            m_col1.metric("İşletme Sabit Payı", f"{birim_sabit_maliyet:,.2f} TL")
-            m_col2.metric("Üretim Sarfiyatı", f"{(birim_blok_maliyeti + birim_frez_maliyeti + birim_sarf_maliyet):,.2f} TL")
-            m_col3.metric("BİRİM MALİYET", f"{toplam_birim_maliyet:,.2f} TL", delta_color="inverse")
+                with col_s1:
+                    st.markdown("##### 💸 Seçili Dönem Giderleri")
+                    st.text_input("👥 Personel Maaş Yükü", value=f"{toplam_maas:,.2f} TL", disabled=True)
+                
+                    if not sabit_isletme_giderleri.empty:
+                        for _, row in sabit_isletme_giderleri.iterrows():
+                            st.text_input(f"📌 {row['Kategori']}", value=f"{row['Toplam']:,.2f} TL", disabled=True)
+                    else:
+                        st.warning(f"{secilen_ay} dönemi için kayıtlı finans gideri bulunmuyor.")
+                
+                    total_sabit_gider = toplam_maas + toplam_finans_gideri
+                    st.markdown(f"**Toplam Sabit Yük: :red[{total_sabit_gider:,.2f} TL]**")
             
-            st.markdown("---")
-            
-            # --- KÂRLILIK TESTİ ---
-            st.markdown(f"#### 💰 Satış ve Kâr Simülasyonu ({secilen_ay})")
-            c_test1, c_test2 = st.columns([2, 1])
-            
-            with c_test1:
-                satis_fiyati = st.slider("Hedef Satış Fiyatı (Üye Başı)", min_value=0, max_value=5000, value=1200)
-            
-            net_kar = satis_fiyati - toplam_birim_maliyet
-            kar_orani = (net_kar / satis_fiyati) * 100 if satis_fiyati > 0 else 0
-            
-            with c_test2:
-                if net_kar > 0:
-                    st.success(f"Net Kâr: {net_kar:,.2f} TL\n\nMarj: %{kar_orani:.1f}")
-                else:
-                    st.error(f"Zarar: {net_kar:,.2f} TL")
-            
-            if kar_orani > 0 and kar_orani < 30:
-                st.warning("⚠️ Kâr marjınız kritik seviyede (%30 altı). Giderleri veya üretim süresini gözden geçirin.")
-            elif kar_orani >= 30:
-                st.info("✅ Operasyonel kârlılığınız hedeflenen laboratuvar standartlarındadır.")       
-    elif sayfa == "🔧 Cihaz Bakımı":
-        banner_olustur("🔧", "Cihaz Bakımı ve Makine Parkuru", "Makine ömürlerini uzatın, periyodik bakımları yönetin ve akıllı mühendislik asistanından yararlanın.")
+                with col_s2:
+                    st.markdown("##### ⚙️ Kapasite ve Verimlilik")
+                    aylik_is_adedi = st.number_input(f"{secilen_ay} Üretim Hacmi (Üye)", min_value=1, value=gercek_is_adedi, help="Seçilen dönemde yapılan toplam gerçek iş sayınız. Giderler buna bölünür.")
+                    blok_verim = st.number_input("1 Bloktan Çıkan Üye", value=22)
+                    uye_kazima_dk = st.number_input("1 Üye Ortalama Kazıma (Dakika)", value=15.0, step=1.0)
+                
+                    st.markdown("---")
+                    st.markdown("##### ⚡ Enerji ve Sarf Giderleri")
+                    mevcut_kwh = float(ayar_getir("Elektrik_kWh_Fiyati", "3.0"))
+                    mevcut_guc = float(ayar_getir("Makine_Gucu_kW", "2.5"))
+                
+                    with st.form(key="enerji_ayarlari"):
+                        yeni_kwh = st.number_input("1 kWh Elektrik Fiyatı (TL)", value=mevcut_kwh, step=0.1)
+                        yeni_guc = st.number_input("Makine Saatlik Tüketimi (kW)", value=mevcut_guc, step=0.1)
+                        if st.form_submit_button("Ayarları Kaydet"):
+                            ayar_kaydet("Elektrik_kWh_Fiyati", yeni_kwh)
+                            ayar_kaydet("Makine_Gucu_kW", yeni_guc)
+                            st.success("Maliyet değişkenleri kaydedildi!")
+                            st.rerun()
+
+                    st.markdown("---")
+                    st.markdown("#### 🔄 Frez Algoritması")
+                    st.text_input("Frez Dakika Maliyeti", value=f"{ortalama_dk_maliyet_tl:,.2f} TL / Dk", disabled=True)
+
+
+    elif sayfa == "🔧 Makine Parkuru ve Bakımı":
+        banner_olustur("🔧", "Makine Parkuru ve Bakımı", "Makine ömürlerini uzatın, güç tüketimlerini analiz edin ve periyodik bakımları yönetin.")
         # 💎 GÖRSEL YAMA: Cihaz Modülü Yükleme Butonları 💎
         st.markdown("""
 <style>
@@ -3884,7 +4958,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             else: st.markdown("<div style='text-align:center; padding: 40px; background:#374151; border-radius:10px; color:#9CA3AF;'>📷<br>Görsel Yok</div>", unsafe_allow_html=True)
                         with col_info:
                             st.subheader(f"⚙️ {row['Cihaz_Adi']}")
-                            st.caption(row['Kategori'])
+                            guc = row.get('Guc_kW', 0.0)
+                            st.caption(f"{row['Kategori']} | Güç: {guc} kW/h")
                             yuzde_saat = min(row['Calisma_Saati'] / row['Bakim_Siniri'], 1.0)
                             renk_saat = "#34D399" if yuzde_saat < 0.7 else "#FBBF24" if yuzde_saat < 0.9 else "#F87171"
                             st.markdown(f"**⚙️ Spindle / Çalışma Süresi Doluluk Oranı:** {row['Calisma_Saati']:.0f} / {row['Bakim_Siniri']:.0f} Saat")
@@ -3953,6 +5028,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 c_adi = c1.text_input("Cihaz Adı / Markası")
                 c_kat = c2.selectbox("Kategori", ["Kazıma Makinesi (Milling)", "Fırın (Sinter/Porselen)", "3D Yazıcı", "Tarayıcı (Scanner)", "Yardımcı Ekipman"])
                 c_bakim_siniri = c1.number_input("Spindle/Parça Ömrü (Saat veya Döngü)", min_value=1.0, value=500.0)
+                c_guc = c2.number_input("Saatlik Enerji Tüketimi (kW/h)", min_value=0.0, value=2.5, step=0.1)
                 yuklenen_cihaz_gorsel = st.file_uploader("Makinenin Fotoğrafını Seç", type=["png", "jpg", "jpeg"])
                 if st.form_submit_button("Cihazı Sisteme Ekle") and c_adi:
                     dosya_yolu = "-"
@@ -3960,8 +5036,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         dosya_yolu = os.path.join("uploads", "cihazlar", f"{datetime.now().strftime('%H%M%S')}_{yuklenen_cihaz_gorsel.name}")
                         dosya_yolu = storage_utils.dosya_kaydet(os.path.dirname(dosya_yolu), os.path.basename(dosya_yolu), yuklenen_cihaz_gorsel)
                     bugun_str = datetime.now().strftime('%Y-%m-%d')
-                    c.execute("INSERT INTO cihazlar (Cihaz_Adi, Kategori, Calisma_Saati, Bakim_Siniri, Son_Bakim_Tarihi, Durum, Gorsel_Yolu, Haftalik_Hedef, Aylik_Hedef, Yillik_Hedef) VALUES (?,?,?,?,?,?,?,?,?,?)", 
-                              (c_adi, c_kat, 0.0, c_bakim_siniri, bugun_str, "Aktif", dosya_yolu, (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d'), (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d'), (datetime.now() + timedelta(days=365)).strftime('%Y-%m-%d')))
+                    c.execute("INSERT INTO cihazlar (Cihaz_Adi, Kategori, Calisma_Saati, Bakim_Siniri, Son_Bakim_Tarihi, Durum, Gorsel_Yolu, Haftalik_Hedef, Aylik_Hedef, Yillik_Hedef, Guc_kW) VALUES (?,?,?,?,?,?,?,?,?,?,?)", 
+                              (c_adi, c_kat, 0.0, c_bakim_siniri, bugun_str, "Aktif", dosya_yolu, (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d'), (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d'), (datetime.now() + timedelta(days=365)).strftime('%Y-%m-%d'), c_guc))
                     conn.commit(); st.rerun()
 
         with tab_guncelle:
@@ -3969,7 +5045,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             cihaz_listesi_guncelle = [row[0] for row in c.execute("SELECT Cihaz_Adi FROM cihazlar").fetchall()]
             if cihaz_listesi_guncelle:
                 secilen_guncelle = st.selectbox("Düzenlenecek Cihazı Seçin", cihaz_listesi_guncelle, key="guncelle_secim")
-                g_veri = c.execute("SELECT Cihaz_Adi, Kategori, Bakim_Siniri, Gorsel_Yolu FROM cihazlar WHERE Cihaz_Adi=?", (secilen_guncelle,)).fetchone()
+                try: g_veri = c.execute("SELECT Cihaz_Adi, Kategori, Bakim_Siniri, Gorsel_Yolu, Guc_kW FROM cihazlar WHERE Cihaz_Adi=?", (secilen_guncelle,)).fetchone()
+                except: 
+                    g_veri = c.execute("SELECT Cihaz_Adi, Kategori, Bakim_Siniri, Gorsel_Yolu FROM cihazlar WHERE Cihaz_Adi=?", (secilen_guncelle,)).fetchone()
+                    g_veri = (g_veri[0], g_veri[1], g_veri[2], g_veri[3], 0.0)
                 
                 with st.form("cihaz_guncelle_formu"):
                     c1, c2 = st.columns(2)
@@ -3980,6 +5059,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     yeni_kat = c2.selectbox("Kategori", kategoriler_list, index=idx_kat)
                     
                     yeni_sinir = c1.number_input("Spindle/Parça Ömrü (Saat veya Döngü)", min_value=1.0, value=float(g_veri[2]))
+                    yeni_guc = c2.number_input("Saatlik Enerji Tüketimi (kW/h)", min_value=0.0, value=float(g_veri[4]), step=0.1)
                     yeni_gorsel = st.file_uploader("Yeni Fotoğraf Seç (Sadece değiştirmek istiyorsanız)", type=["png", "jpg", "jpeg"])
                     
                     if st.form_submit_button("💾 Değişiklikleri Kaydet"):
@@ -3988,7 +5068,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             guncel_yol = os.path.join("uploads", "cihazlar", f"{datetime.now().strftime('%H%M%S')}_{yeni_gorsel.name}")
                             guncel_yol = storage_utils.dosya_kaydet(os.path.dirname(guncel_yol), os.path.basename(guncel_yol), yeni_gorsel)
                         
-                        c.execute("UPDATE cihazlar SET Cihaz_Adi=?, Kategori=?, Bakim_Siniri=?, Gorsel_Yolu=? WHERE Cihaz_Adi=?", (yeni_adi, yeni_kat, yeni_sinir, guncel_yol, secilen_guncelle))
+                        c.execute("UPDATE cihazlar SET Cihaz_Adi=?, Kategori=?, Bakim_Siniri=?, Gorsel_Yolu=?, Guc_kW=? WHERE Cihaz_Adi=?", (yeni_adi, yeni_kat, yeni_sinir, guncel_yol, yeni_guc, secilen_guncelle))
                         if yeni_adi != secilen_guncelle: c.execute("UPDATE cihaz_bakim_gecmisi SET Cihaz_Adi=? WHERE Cihaz_Adi=?", (yeni_adi, secilen_guncelle))
                         conn.commit(); st.success("✅ Cihaz bilgileri başarıyla güncellendi!"); st.rerun()
             else: st.info("Sistemde düzenlenecek kayıtlı cihaz bulunmuyor.")
