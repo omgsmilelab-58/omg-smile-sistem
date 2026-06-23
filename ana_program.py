@@ -2157,25 +2157,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             st.success("İş başarıyla silindi!")
                             st.rerun()
                             
-                        st.markdown("---")
-                        mevcut_fiyat = c.execute("SELECT Tutar_TL FROM isler WHERE id=?", (s_rowid,)).fetchone()[0]
-                        if mevcut_fiyat == 0.0:
-                            st.markdown("#### 💰 Faturalandırma")
-                            # 🚨 FATURALANDIRMA BUTONU VE KUTUSU MİNİMUMA İNDİRİLDİ 🚨
-                            c_fat1, c_fat2, c_fat_bos = st.columns([1, 1, 3])
-                            with c_fat1: f_tutar = st.number_input("Tutar (TL)", min_value=0.0, value=0.0, step=100.0)
-                            with c_fat2: 
-                                st.markdown("<br>", unsafe_allow_html=True) # Butonu kutuyla hizalamak için boşluk
-                                if st.button("💳 Bakiye'ye Ekle", type="primary", use_container_width=True):
-                                    if f_tutar > 0:
-                                        c.execute("UPDATE isler SET Tutar_TL=? WHERE id=?", (f_tutar, s_rowid))
-                                        is_klinik = is_verisi[4] 
-                                        try: c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani = ?", (f_tutar, is_klinik))
-                                        except: pass
-                                        conn.commit(); st.success("İşlem faturalandırıldı!"); st.rerun()
-                                    else: st.error("Tutar giriniz.")
-                        else: st.success(f"✅ Bu iş **{mevcut_fiyat:,.2f} TL** olarak faturalandırılmıştır.")
-                        
+
                     with t_bilgi:
                         st.markdown("### ✏️ Reçete Bilgilerini Güncelle")
                         with st.form(key=f"guncelle_form_{s_rowid}"):
