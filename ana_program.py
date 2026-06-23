@@ -4422,9 +4422,18 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     f"FROM tahsilatlar WHERE Klinik_Unvani='{e_klinik}' "
                                     f"AND Tarih >= '{bas_str}' AND Tarih <= '{bit_str}'", conn)
 
+                                # PostgreSQL küçük harf → büyük harf normalize
+                                for df_tmp in [df_prev_borc, df_prev_alacak]:
+                                    df_tmp.columns = [c.capitalize() if c.lower() in ['tarih','islem','borc','alacak'] else c for c in df_tmp.columns]
+                                df_prev_borc  = df_prev_borc.rename(columns={"tarih":"Tarih","islem":"Islem","borc":"Borc","alacak":"Alacak"})
+                                df_prev_alacak = df_prev_alacak.rename(columns={"tarih":"Tarih","islem":"Islem","borc":"Borc","alacak":"Alacak"})
+
                                 df_prev = pd.concat([df_prev_borc, df_prev_alacak]).sort_values(by="Tarih").reset_index(drop=True)
-                                toplam_borc_prev = float(df_prev["Borc"].sum())
-                                toplam_alacak_prev = float(df_prev["Alacak"].sum())
+                                borc_col  = "Borc"  if "Borc"  in df_prev.columns else "borc"
+                                alacak_col = "Alacak" if "Alacak" in df_prev.columns else "alacak"
+                                tarih_col  = "Tarih"  if "Tarih"  in df_prev.columns else "tarih"
+                                toplam_borc_prev   = float(df_prev[borc_col].sum())
+                                toplam_alacak_prev = float(df_prev[alacak_col].sum())
                                 net_bakiye_prev = toplam_borc_prev - toplam_alacak_prev
 
                                 # Özet kartlar
