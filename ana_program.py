@@ -1912,8 +1912,15 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         sec_frezler_m = c_fm.multiselect("Kullanılan Frezler", [f"{f[0]} | {f[2]} - {f[1]} (Kalan: {f[3]-f[4]} Dk)" for f in cam_f_m], key="m_frez")
                         
                         tm1_m, tm2_m, tm_bos_m = st.columns([1.2, 1.2, 4])
-                        baslama_saati_m = tm1_m.time_input("Başlama", value=datetime.strptime("09:00", "%H:%M").time(), key="m_bas")
-                        bitis_saati_m = tm2_m.time_input("Bitiş", value=datetime.strptime("09:45", "%H:%M").time(), key="m_bit")
+                        baslama_saati_str = tm1_m.text_input("Başlama (SS:DD)", value="09:00", key="m_bas")
+                        bitis_saati_str = tm2_m.text_input("Bitiş (SS:DD)", value="09:45", key="m_bit")
+                        try:
+                            baslama_saati_m = datetime.strptime(baslama_saati_str.strip(), "%H:%M").time()
+                            bitis_saati_m = datetime.strptime(bitis_saati_str.strip(), "%H:%M").time()
+                        except:
+                            baslama_saati_m = datetime.strptime("09:00", "%H:%M").time()
+                            bitis_saati_m = datetime.strptime("09:45", "%H:%M").time()
+                            st.error("Lütfen saati SS:DD formatında giriniz (Örn: 14:30)")
                         tm1_m.caption("💡 Klavyeden yazabilirsiniz.")
                         
                         start_dt_m = datetime.combine(datetime.today(), baslama_saati_m); end_dt_m = datetime.combine(datetime.today(), bitis_saati_m)
@@ -2323,8 +2330,15 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             if eski_dk > 0:
                                 bt_time = (datetime.combine(datetime.today(), b_time) + timedelta(minutes=eski_dk)).time()
                                 
-                            baslama_saati = tm1.time_input("Başlama", value=b_time, key="t4_bas")
-                            bitis_saati = tm2.time_input("Bitiş", value=bt_time, key="t4_bit")
+                            baslama_saati_str = tm1.text_input("Başlama (SS:DD)", value=b_time.strftime("%H:%M"), key="t4_bas")
+                            bitis_saati_str = tm2.text_input("Bitiş (SS:DD)", value=bt_time.strftime("%H:%M"), key="t4_bit")
+                            try:
+                                baslama_saati = datetime.strptime(baslama_saati_str.strip(), "%H:%M").time()
+                                bitis_saati = datetime.strptime(bitis_saati_str.strip(), "%H:%M").time()
+                            except:
+                                baslama_saati = b_time
+                                bitis_saati = bt_time
+                                st.error("Lütfen saatleri geçerli SS:DD formatında giriniz (Örn: 14:30)")
                             tm1.caption("💡 Klavyeden yazabilirsiniz.")
                             
                             start_dt = datetime.combine(datetime.today(), baslama_saati); end_dt = datetime.combine(datetime.today(), bitis_saati)
