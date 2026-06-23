@@ -943,7 +943,8 @@ def ekstre_pdf_uret(klinik, df, son_bakiye):
         
     pdf.ln(10); pdf.set_font("Courier", "B", 12); pdf.set_text_color(220, 38, 38) 
     pdf.cell(0, 10, tr(f"GUNCEL KALAN BORC: {son_bakiye:,.2f} {para_birimi}"), ln=True, align="R")
-    return pdf.output(dest='S').encode('latin1')
+    pdf_out = pdf.output(dest='S')
+    return pdf_out.encode('latin1') if hasattr(pdf_out, 'encode') else bytes(pdf_out)
 
 # 💎 AYARLAR (SESSION STATE) 💎
 if "w_ciro" not in st.session_state: st.session_state.update({"w_ciro": True, "w_radar": True, "w_grafikler": True})
