@@ -2702,7 +2702,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     # Üye ekleme / çıkarma (Mesela +2 yazıp güncelleyebilirsin)
                                     col_y1, col_y2 = st.columns([1.5, 1.5])
                                     # Benzersiz key oluşturuyoruz ki aynı blok kodu olsa bile UI karışmasın
-                                    blok_unique_key = f"{r.get('id', idx)}_{r['Blok_Kodu']}"
+                                    blok_unique_key = f"{r.get('id', 'tmp')}_{r['Blok_Kodu']}"
                                     ekle_cikar = col_y1.number_input("Miktar Ekle/Çıkar", value=0, step=1, key=f"uye_ayar_{blok_unique_key}")
                                     
                                     if col_y2.button("💾 Kalanı Güncelle", key=f"btn_uye_{blok_unique_key}"):
