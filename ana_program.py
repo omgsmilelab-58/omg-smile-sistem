@@ -4308,31 +4308,18 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     cb_klinik = st.selectbox("Klinik Seçin", klinikler, key="cb_klinik_sec")
 
                     # Bakiye kartı
+                    # Önce veriyi çekip toplamı buluyoruz
                     try:
-                        cb_bakiye = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (cb_klinik,)).fetchone()[0] or 0.0
-                        para_birimi_cb = ayar_getir("Para_Birimi", "TL")
-                        renk_cb = "#ef4444" if cb_bakiye > 0 else "#22c55e"
-                        st.markdown(f"""
-                        <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid {renk_cb}40;
-                             border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px;'>
-                            <div style='color: #94a3b8; font-size: 14px; margin-bottom: 8px;'>⚡ Güncel Cari Bakiye</div>
-                            <div style='color: {renk_cb}; font-size: 48px; font-weight: 800;'>{cb_bakiye:,.2f} {para_birimi_cb}</div>
-                            <div style='color: #64748b; font-size: 13px; margin-top: 8px;'>{cb_klinik}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    except:
-                        cb_bakiye = 0.0
-
-                    # Fiyat listesinden gelen işler tablosu
-                    st.markdown("---")
-                    st.markdown("##### 📋 Fiyat Listesine İşlenen Hizmetler")
-                    try:
+                        # Tüm işlerin toplamını bulmak için LIMIT'siz ayrı bir sorgu yapalım ki tam bakiye çıksın
+                        toplam_isler = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Tutar_TL > 0", (cb_klinik,)).fetchone()[0] or 0.0
+                        
                         df_isler_cb = pd.read_sql(
                             f"SELECT i.id, i.Tarih, i.Hasta_Adi, i.Is_Turu, i.Adet, i.Tutar_TL, i.Fatura_Tarihi, i.Iskonto "
                             f"FROM isler i WHERE i.Klinik_Unvani='{cb_klinik}' AND i.Tutar_TL > 0 "
-                            f"ORDER BY i.Tarih DESC LIMIT 200", conn)
+                            f"ORDER BY i.Tarih DESC LIMIT 500", conn)
+                        
                         # Kolon adı normalize
-                        df_isler_cb.columns = [c.title() if c.lower() in ['tarih','hasta_adi','is_turu','adet','tutar_tl','fatura_tarihi','iskonto','id'] else c for c in df_isler_cb.columns]
+                        df_isler_cb.columns = [col.title() if col.lower() in ['tarih','hasta_adi','is_turu','adet','tutar_tl','fatura_tarihi','iskonto','id'] else col for col in df_isler_cb.columns]
                         col_map = {"Hasta_Adi":"Hasta Adı","Is_Turu":"İşlem Türü","Tutar_Tl":"Tutar (TL)","Fatura_Tarihi":"Fatura Tarihi","Iskonto":"İskonto (%)"}
                         df_isler_cb = df_isler_cb.rename(columns={k:v for k,v in col_map.items() if k in df_isler_cb.columns})
                         # PG lowercase fix
@@ -4340,16 +4327,31 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             "hasta_adi":"Hasta Adı","is_turu":"İşlem Türü","tutar_tl":"Tutar (TL)",
                             "fatura_tarihi":"Fatura Tarihi","iskonto":"İskonto (%)","tarih":"Tarih","adet":"Adet"
                         })
-
-                        if not df_isler_cb.empty:
-                            tutar_col = "Tutar (TL)" if "Tutar (TL)" in df_isler_cb.columns else "tutar_tl"
-                            toplam_isler = float(df_isler_cb[tutar_col].sum())
-                            st.metric("📊 Toplam Hizmet Tutarı", f"{toplam_isler:,.2f} {para_birimi_cb}")
-                            st.dataframe(df_isler_cb, hide_index=True, use_container_width=True)
-                        else:
-                            st.info("Bu klinik için fiyat listesine işlenmiş hizmet bulunmuyor.")
                     except Exception as e_cb:
-                        st.error(f"Hizmet listesi yüklenemedi: {e_cb}")
+                        st.error(f"Veriler yüklenemedi: {e_cb}")
+                        df_isler_cb = pd.DataFrame()
+                        toplam_isler = 0.0
+
+                    # Bakiye kartı (Listedeki toplamı gösterir)
+                    para_birimi_cb = ayar_getir("Para_Birimi", "TL")
+                    renk_cb = "#ef4444" if toplam_isler > 0 else "#22c55e"
+                    st.markdown(f"""
+                    <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid {renk_cb}40;
+                         border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px;'>
+                        <div style='color: #94a3b8; font-size: 14px; margin-bottom: 8px;'>⚡ Toplam Hizmet Tutarı (Bakiye)</div>
+                        <div style='color: {renk_cb}; font-size: 48px; font-weight: 800;'>{toplam_isler:,.2f} {para_birimi_cb}</div>
+                        <div style='color: #64748b; font-size: 13px; margin-top: 8px;'>{cb_klinik}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # Fiyat listesinden gelen işler tablosu
+                    st.markdown("---")
+                    st.markdown("##### 📋 Fiyat Listesine İşlenen Hizmetler")
+                    
+                    if not df_isler_cb.empty:
+                        st.dataframe(df_isler_cb, hide_index=True, use_container_width=True)
+                    else:
+                        st.info("Bu klinik için fiyat listesine işlenmiş hizmet bulunmuyor.")
 
 
 
