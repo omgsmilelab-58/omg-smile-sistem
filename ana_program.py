@@ -4345,7 +4345,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     Son_Bakiye REAL
                 )""")
                 conn.commit()
-            except:
+            except Exception as e_pg:
                 try:
                     conn.rollback()
                 except: pass
@@ -4360,8 +4360,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         Son_Bakiye REAL
                     )""")
                     conn.commit()
-                except:
-                    pass
+                except Exception as e_sl:
+                    st.error(f"Tablo oluşturulamadı! PG Hatası: {e_pg} | SL Hatası: {e_sl}")
+                    st.stop()
 
             try:
                 df_arsiv = pd.read_sql("SELECT id, Tarih, Klinik_Unvani, Dosya_Adi, Son_Bakiye FROM ekstre_arsiv ORDER BY id DESC", conn)
