@@ -2471,8 +2471,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             # 1. YENİ SİSTEM: DİNAMİK MAGAZİN KOKPİTİ
             # (Buradan aşağısı sende zaten var, oraya dokunmuyoruz)
             # ==========================================
+
             with tab_frez:
-                st.info("Makinelerinizin magazinlerindeki aktif takımları buradan yönetin. Çıkardığınız frezler aşağıdaki 'Yedek İstasyonu'nda bekler.")
                 # SESSİZ GÜNCELLEME: Senin eski taktığın T1, T2 kayıtlarını otomatik M1, M2 yapar
                 c.execute("UPDATE aktif_frezler SET yuva_no = REPLACE(yuva_no, 'T', 'M') WHERE yuva_no LIKE 'T%'")
                 conn.commit()
