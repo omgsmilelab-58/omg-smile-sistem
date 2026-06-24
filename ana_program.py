@@ -3880,8 +3880,11 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         df_filtre = df_filtre.sort_values(by=['Ürün Adı', 'Ürün Kodu'], ascending=[True, True])
                         
                         df_goster = df_filtre.copy()
+                        if 'Malzeme' not in df_goster.columns: df_goster['Malzeme'] = '-'
+                        if 'Kalınlık' not in df_goster.columns: df_goster['Kalınlık'] = '-'
+                        if 'Marka' not in df_goster.columns: df_goster['Marka'] = '-'
                         
-                        if kat_adi == "Blok":
+                        if kat_adi in ["Blok", "Zirkonyum Blok"]:
                             df_goster["Adet"] = df_goster["Mevcut Miktar"].astype(float).astype(int).astype(str)
                             istenen_sira = ["Ürün Kodu", "Ürün Adı", "Malzeme", "Marka", "Kalınlık", "Renk", "Adet", "Güncelleme Tarihi"]
                             mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
