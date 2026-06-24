@@ -2866,7 +2866,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     min_uye_filtre = -9999
 
                 # 🚨 TABLO YERİNE DİNAMİK YÖNETİM KARTLARI (İLAVE/ÇÖPE AT) 🚨
-                df_bloklar = pd.read_sql("SELECT id, Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye, Durum FROM cam_bloklar WHERE Durum IN ('Yarım', 'Aktif') ORDER BY Blok_Kodu ASC", conn)
+                df_bloklar = pd.read_sql("SELECT id, Blok_Kodu, Urun_Adi, Boyut_Renk, Kapasite_Uye, Kalan_Uye, Durum FROM cam_bloklar WHERE Durum IN ('Yarım', 'Aktif') ORDER BY Blok_Kodu ASC", conn)
                 
                 if not df_bloklar.empty: 
                     gosterilecekler = df_bloklar[df_bloklar['Kalan_Uye'] >= min_uye_filtre]
@@ -2876,8 +2876,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             cb1.markdown(f"🧱 **{r['Blok_Kodu']}** | 🏷️ {r['Boyut_Renk']}")
                             cb1.caption(f"Ürün: {r['Urun_Adi']}")
                             
-                            yuzde = max(0, min(100, int((r['Kalan_Uye'] / 22.0) * 100)))
-                            cb2.progress(yuzde / 100.0, text=f"Kalan: {r['Kalan_Uye']} Üye")
+                            kapasite = r.get('Kapasite_Uye', 22)
+                            if pd.isna(kapasite) or kapasite <= 0: kapasite = 22
+                            yuzde = max(0, min(100, int((r['Kalan_Uye'] / float(kapasite)) * 100)))
+                            cb2.progress(yuzde / 100.0, text=f"Kalan: {r['Kalan_Uye']} / {int(kapasite)} Üye")
                             
                             with cb3:
                                 with st.expander("⚙️ Blok Yönetimi"):
