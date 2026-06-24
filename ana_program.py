@@ -673,9 +673,25 @@ ayar_varsayilan_ekle("Manuel_Euro_Kuru", "35.0")
 ayar_varsayilan_ekle("Kur_Guncelleme_Saati", "1970-01-01 00:00")
 
 try:
-    c.execute('''CREATE TABLE IF NOT EXISTS uretim_loglari
+    c.execute("""CREATE TABLE IF NOT EXISTS gorevler (
+        id SERIAL PRIMARY KEY, 
+        olusturan TEXT, 
+        atanan_kullanici TEXT, 
+        gorev_basligi TEXT, 
+        gorev_detayi TEXT, 
+        son_tarih TEXT, 
+        durum TEXT DEFAULT 'Bekliyor', 
+        oncelik TEXT DEFAULT 'Normal',
+        olusturma_tarihi TEXT
+    )""")
+    conn.commit()
+except Exception as e:
+    pass
+
+try:
+    c.execute("""CREATE TABLE IF NOT EXISTS uretim_loglari
                (id SERIAL PRIMARY KEY, is_id INTEGER, is_adi TEXT, malzeme_turu TEXT, 
-                malzeme_kodu TEXT, malzeme_adi TEXT, uye_sayisi INTEGER, tarih TEXT)''')
+                malzeme_kodu TEXT, malzeme_adi TEXT, uye_sayisi INTEGER, tarih TEXT)""")
     conn.commit()
 except:
     pass
