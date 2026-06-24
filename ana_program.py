@@ -648,14 +648,20 @@ def ayar_getir(ayar_adi, varsayilan=""):
     return sorgu[0] if sorgu else varsayilan
 
 def ayar_kaydet(ayar_adi, deger):
-    # Eğer ayar varsa günceller, yoksa ekler
-    c.execute("INSERT OR REPLACE INTO ayarlar (Ayar_Adi, Ayar_Degeri) VALUES (?, ?)", (ayar_adi, str(deger)))
+    # Eğer ayar varsa günceller, yoksa ekler (PostgreSQL ve SQLite Uyumlu)
+    mevcut = c.execute("SELECT COUNT(*) FROM ayarlar WHERE Ayar_Adi=?", (ayar_adi,)).fetchone()
+    if mevcut and mevcut[0] > 0:
+        c.execute("UPDATE ayarlar SET Ayar_Degeri=? WHERE Ayar_Adi=?", (str(deger), ayar_adi))
+    else:
+        c.execute("INSERT INTO ayarlar (Ayar_Adi, Ayar_Degeri) VALUES (?, ?)", (ayar_adi, str(deger)))
     conn.commit()
 
 def ayar_varsayilan_ekle(ayar_adi, deger):
     try:
-        c.execute("INSERT OR IGNORE INTO ayarlar (Ayar_Adi, Ayar_Degeri) VALUES (?, ?)", (ayar_adi, str(deger)))
-        conn.commit()
+        mevcut = c.execute("SELECT COUNT(*) FROM ayarlar WHERE Ayar_Adi=?", (ayar_adi,)).fetchone()
+        if not mevcut or mevcut[0] == 0:
+            c.execute("INSERT INTO ayarlar (Ayar_Adi, Ayar_Degeri) VALUES (?, ?)", (ayar_adi, str(deger)))
+            conn.commit()
     except: pass
 
 if not c.execute("SELECT count(*) FROM ayarlar").fetchone()[0] > 0:
