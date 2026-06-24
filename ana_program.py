@@ -3804,7 +3804,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 
                         df_goster['Alış Fiyatı ve Birimi'] = df_goster['Satis_Fiyati'].astype(str) + " " + df_goster['Para_Birimi']
 
-                        if kat == "Blok":
+                        if kat in ["Blok", "Zirkonyum Blok"]:
                             mevcut_kolonlar = ['Urun_Kodu', 'Urun_Adi', 'Malzeme', 'Kalinlik', 'Kritik_Sinir', 'Marka', 'Alış Fiyatı ve Birimi']
                         elif kat == "Frez":
                             mevcut_kolonlar = ['Urun_Kodu', 'Urun_Adi', 'Malzeme', 'Marka', 'Birim', 'Kritik_Sinir', 'Alış Fiyatı ve Birimi']
