@@ -1724,14 +1724,20 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 with st.expander("Detay Gör"):
                                     st.write(r['gorev_detayi'])
                                 if kullanici_adi == r['atanan_kullanici'] or rol in ["Admin", "Yönetici"]:
-                                    if st.button("✅ Tamamla", key=f"tamamla_{r['id']}", type="primary", use_container_width=True):
-                                        c.execute("UPDATE gorevler SET durum='Tamamlandı' WHERE id=?", (int(r['id']),))
-                                        conn.commit()
-                                        mesaj_metni = f"✅ GÖREV TAMAMLANDI: {r['gorev_basligi']} adlı görevi {kullanici_adi} tamamladı."
-                                        c.execute("INSERT INTO mesajlar (Tarih_Saat, Gonderen, Alici, Mesaj, Okundu) VALUES (?,?,?,?,0)",
-                                                  (datetime.now().strftime("%Y-%m-%d %H:%M"), "Sistem", r['olusturan'], mesaj_metni))
-                                        conn.commit()
-                                        st.rerun()
+                                    cy1, cy2 = st.columns(2)
+                                    with cy1:
+                                        if st.button("⏪ Geri", key=f"geri_{r['id']}", use_container_width=True):
+                                            c.execute("UPDATE gorevler SET durum='Bekliyor' WHERE id=?", (int(r['id']),))
+                                            conn.commit(); st.rerun()
+                                    with cy2:
+                                        if st.button("✅ Bitir", key=f"tamamla_{r['id']}", type="primary", use_container_width=True):
+                                            c.execute("UPDATE gorevler SET durum='Tamamlandı' WHERE id=?", (int(r['id']),))
+                                            conn.commit()
+                                            mesaj_metni = f"✅ GÖREV TAMAMLANDI: {r['gorev_basligi']} adlı görevi {kullanici_adi} tamamladı."
+                                            c.execute("INSERT INTO mesajlar (Tarih_Saat, Gonderen, Alici, Mesaj, Okundu) VALUES (?,?,?,?,0)",
+                                                      (datetime.now().strftime("%Y-%m-%d %H:%M"), "Sistem", r['olusturan'], mesaj_metni))
+                                            conn.commit()
+                                            st.rerun()
 
                     with col_t:
                         st.markdown("<h5 style='text-align: center; color: #34d399;'>✅ Tamamlandı</h5>", unsafe_allow_html=True)
@@ -1741,9 +1747,15 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 st.markdown(f"~~{r['gorev_basligi']}~~")
                                 st.caption(f"👤 {r['atanan_kullanici']}")
                                 if rol in ["Admin", "Yönetici"]:
-                                    if st.button("🗑️ Sil", key=f"sil_{r['id']}", use_container_width=True):
-                                        c.execute("DELETE FROM gorevler WHERE id=?", (int(r['id']),))
-                                        conn.commit(); st.rerun()
+                                    ct1, ct2 = st.columns(2)
+                                    with ct1:
+                                        if st.button("⏪ Geri", key=f"geri_t_{r['id']}", use_container_width=True):
+                                            c.execute("UPDATE gorevler SET durum='Yapılıyor' WHERE id=?", (int(r['id']),))
+                                            conn.commit(); st.rerun()
+                                    with ct2:
+                                        if st.button("🗑️ Sil", key=f"sil_{r['id']}", use_container_width=True):
+                                            c.execute("DELETE FROM gorevler WHERE id=?", (int(r['id']),))
+                                            conn.commit(); st.rerun()
 
             except Exception as e:
                 st.error(f"Tablo yüklenirken hata oluştu: {e}")
