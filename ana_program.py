@@ -2026,7 +2026,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             teslim_tarihi = c4.date_input("Teslim").strftime("%Y-%m-%d")
             
             # 2. SATIR: İşlem Seçimi ve Açıklama (TextArea yerine dar Text Input)
-            c5, c6 = st.columns([2.5, 3.7])
+            c5, c_rpt, c6 = st.columns([2.5, 1.2, 2.5])
             hizmetler_lab = c.execute("SELECT Hizmet_Adi, Fiyat, Para_Birimi FROM fiyat_listesi WHERE Kategori=?", (kat_sec_lab,)).fetchall()
             if hizmetler_lab:
                 h_dict_lab = {f"{h[0]}": h for h in hizmetler_lab}
@@ -2035,6 +2035,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 secilen_lab = "-"
                 c5.warning("⚠️ Fiyat listesi yok.")
             
+            c_rpt.markdown("<br>", unsafe_allow_html=True)
+            is_rpt = c_rpt.checkbox("🔄 RPT", help="Yeniden yapım (Bedelsiz)", value=False)
             aciklama = c6.text_input("Açıklama / Özel İstekler")
             
             # 🚨 MANUEL KAYIT İÇİNE ENTEGRE EDİLMİŞ CAM MODÜLÜ 🚨
@@ -2086,6 +2088,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.error("CAM Üretimi seçildi ancak frez seçilmedi veya süre hatalı (Bitiş saati başlangıçtan sonra olmalı).")
                 else:
                     islem_adi = h_dict_lab[secilen_lab][0] if hizmetler_lab else "-"
+                    if is_rpt:
+                        islem_adi = f"{islem_adi} (RPT)"
                     tarih_saat = datetime.now().strftime("%Y-%m-%d %H:%M")
                     
                     # Eğer CAM seçildiyse sarfiyatları arkadan sessizce düşüyoruz
