@@ -3606,7 +3606,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     malzeme = ""
                     kalinlik = ""
 
-                    if kat == "Blok":
+                    if kat in ["Blok", "Zirkonyum Blok"]:
                         malzeme = c3.text_input("Malzeme", value=d_malzeme, key=f"malz_{sec_kod_display}")
                         kalinlik = c1.text_input("Kalınlık (mm)", value=d_kalinlik, key=f"kal_{sec_kod_display}")
                         fiy = c2.number_input("Alış Fiyatı", value=d_fiyat, key=f"fiy_{sec_kod_display}")
