@@ -3516,11 +3516,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         with t1:
             st.markdown("### Sisteme Ürün Tanımla / Güncelle")
             
-            # DB Migration for Blok rename
-            try:
-                c.execute("UPDATE stok SET Kategori='Blok' WHERE Kategori='Zirkonyum Blok'")
-                conn.commit()
-            except: pass
             
             kat_liste = ["-- Seçiniz --"] + STOK_KATEGORILER
             kat = st.selectbox("Kategori Seçimi", kat_liste)
@@ -3530,6 +3525,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 
                 try:
                     df_kat = pd.read_sql("SELECT * FROM stok WHERE Kategori=?", conn, params=(kat,))
+                    df_kat.rename(columns=db_baglanti.case_map, inplace=True)
                 except Exception:
                     df_kat = pd.DataFrame()
 
@@ -3828,6 +3824,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.error(f"Liste yüklenemedi: {e}")
         with t2:
             df_stok = pd.read_sql("SELECT * FROM stok ORDER BY Urun_Kodu ASC", conn)
+            df_stok.rename(columns=db_baglanti.case_map, inplace=True)
 
             
             # 🚨 AKILLI ARAMA MOTORU DARALTILDI (KOLON ZIRHI) 🚨
