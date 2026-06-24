@@ -3941,8 +3941,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         st.markdown("<h5 style='color:#38bdf8;margin-bottom:8px;'>⚡ Arşiv İşlemleri</h5>", unsafe_allow_html=True)
                         
                         islem_secenekleri = [f"{r['Stok Kodu']} | {r['Ürün Adı']} - {r['Durum']}" for _, r in df_liste.iterrows()]
+
                         secilen_arsiv_urun = st.selectbox(
-                            "İşlem Yapılacak Ürünü Seçin", 
+                            "🔍 Detaylı İncelemek veya İşlem Yapmak İçin Ürün Seçin", 
                             ["— Seçiniz —"] + islem_secenekleri,
                             key="arsiv_islem_urun"
                         )
@@ -3951,6 +3952,35 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             secilen_kod = secilen_arsiv_urun.split("|")[0].strip()
                             secilen_durum = secilen_arsiv_urun.split("-")[-1].strip()
                             
+                            st.markdown(f"#### 🏷️ Malzeme Detay Kartı: {secilen_kod}")
+                            df_urun_detay = df_arsiv[df_arsiv['stok_kodu'] == secilen_kod].copy()
+                            
+                            if not df_urun_detay.empty:
+                                with st.container(border=True):
+                                    mc1, mc2, mc3 = st.columns(3)
+                                    mc1.metric("Stok Kodu", secilen_kod)
+                                    mc2.metric("Ürün Adı", str(df_urun_detay.iloc[0]['urun_adi']))
+                                    mc3.metric("Güncel Durum", secilen_durum)
+                                    
+                                    t1, t2 = st.tabs(["🦷 Hasta / Kullanım Geçmişi", "📦 Stok Hareketleri"])
+                                    
+                                    with t1:
+                                        df_hasta = df_urun_detay[df_urun_detay['islem_turu'].str.contains('Üretim')].copy()
+                                        if not df_hasta.empty:
+                                            df_hasta_show = df_hasta[['tarih', 'aciklama', 'miktar_veya_uye', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'aciklama': 'Hasta / İş Adı', 'miktar_veya_uye': 'Miktar/Dk', 'sistem_kullanici': 'Kullanıcı'})
+                                            st.dataframe(df_hasta_show, hide_index=True, use_container_width=True)
+                                        else:
+                                            st.info("Bu malzeme ile henüz bir üretim kaydı bulunmamaktadır.")
+                                            
+                                    with t2:
+                                        df_stok = df_urun_detay[~df_urun_detay['islem_turu'].str.contains('Üretim')].copy()
+                                        if not df_stok.empty:
+                                            df_stok_show = df_stok[['tarih', 'islem_turu', 'aciklama', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'islem_turu': 'İşlem', 'aciklama': 'Açıklama', 'sistem_kullanici': 'Kullanıcı'})
+                                            st.dataframe(df_stok_show, hide_index=True, use_container_width=True)
+                                        else:
+                                            st.info("Stok hareket kaydı bulunmamaktadır.")
+                                            
+                            st.markdown("##### ⚡ Hızlı İşlemler")
                             c1, c2 = st.columns(2)
                             with c1:
                                 if secilen_durum == "Pasif":
