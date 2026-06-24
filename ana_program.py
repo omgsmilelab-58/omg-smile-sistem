@@ -2449,7 +2449,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 eski_makine = match.group(3).strip()
                                 eski_frezler_str = match.group(4) if match.group(4) else ""
                                 eski_dk = int(match.group(5))
-                                eski_frez_basina = int(match.group(6))
+                                eski_frez_basina = int(match.group(6)) if match.group(6) else 0
                             else:
                                 # Eski formatsız veriyi kurtarmaya çalış
                                 match2 = re.search(r"CAM: (.*?) \((\d+) Üye\), Makine: (.*?), Top\. (\d+) Dk", mevcut_malzeme)
