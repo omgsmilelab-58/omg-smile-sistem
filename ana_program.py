@@ -2372,6 +2372,31 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     
                                     yeni_cam_m = f"CAM: {b_kodu} ({harcanan_uye} Üye), Makine: {secili_makine}, Frezler: {','.join(frez_isimleri)}, Top. {harcanan_dk} Dk (Takım başı {frez_basina_dk} Dk)"
                                     c.execute("UPDATE isler SET Harcanan_Malzeme=? WHERE id=?", (yeni_cam_m, s_rowid))
+                                    
+                                    # 🔒 KRİTİK KABURGA: ESKİ LOG KAYITLARINI SİL, YENİSİNİ YAZ
+                                    # Bu sayede aynı iş için asla çift blok/frez kaydı oluşmaz
+                                    c.execute("DELETE FROM uretim_loglari WHERE is_id=?", (s_rowid,))
+                                    
+                                    is_adi_gunc = f"{secili_is['Klinik_Unvani']} - {secili_is['Hasta_Adi']}" if hasattr(secili_is, '__getitem__') else f"İş #{s_rowid}"
+                                    b_adi_gunc = sec_blok.split("|")[1].split("(")[0].strip() if "|" in sec_blok else b_kodu
+                                    tarih_gunc = datetime.now().strftime("%Y-%m-%d %H:%M")
+                                    try:
+                                        c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih, dakika) VALUES (?,?,?,?,?,?,?,?)",
+                                                  (s_rowid, is_adi_gunc, "Blok", b_kodu, b_adi_gunc, harcanan_uye, tarih_gunc, harcanan_dk))
+                                    except:
+                                        c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih) VALUES (?,?,?,?,?,?,?)",
+                                                  (s_rowid, is_adi_gunc, "Blok", b_kodu, b_adi_gunc, harcanan_uye, tarih_gunc))
+                                    
+                                    for fr_log in sec_frezler:
+                                        f_kodu_log = fr_log.split("|")[0].strip()
+                                        f_adi_log = fr_log.split("|")[1].split("(")[0].strip().replace("-", "").strip() if "|" in fr_log else f_kodu_log
+                                        try:
+                                            c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih, dakika) VALUES (?,?,?,?,?,?,?,?)",
+                                                      (s_rowid, is_adi_gunc, "Frez", f_kodu_log, f_adi_log, harcanan_uye, tarih_gunc, frez_basina_dk))
+                                        except:
+                                            c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih) VALUES (?,?,?,?,?,?,?)",
+                                                      (s_rowid, is_adi_gunc, "Frez", f_kodu_log, f_adi_log, harcanan_uye, tarih_gunc))
+                                    # -----------------------------------------------------------
                                     conn.commit(); st.success("CAM Sarfiyatı Güncellendi!"); st.rerun()
                                 else:
                                     st.error("Lütfen en az bir frez seçin ve bitiş saatinin başlangıçtan sonra olduğundan emin olun.")
@@ -4003,6 +4028,64 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     conn.commit()
                                     st.success(f"{secilen_kod} ve tüm geçmişi sistemden tamamen silindi.")
                                     st.rerun()
+
+
+                        # =========================================================
+                        # B PLANI: MANUEL VERI DUZELTME PANELI
+                        # =========================================================
+                        st.markdown("---")
+                        kullanici_rol = st.session_state.get("kullanici_rol", "")
+                        if kullanici_rol in ["Admin", "Yetkili"]:
+                            with st.expander("B Plani - Manuel Uretim Kaydi Duzeltme", expanded=False):
+                                st.warning("Bu panel yalnizca yetkili kullanicilar icindir. Yanlis silme veya degisiklik geri alinamaz!")
+                                try:
+                                    df_loglar = pd.read_sql('SELECT u.id, u.is_id, u.is_adi, u.malzeme_turu, u.malzeme_kodu, u.malzeme_adi, u.uye_sayisi, u.tarih FROM uretim_loglari u ORDER BY u.tarih DESC LIMIT 100', conn)
+                                    if df_loglar.empty:
+                                        st.info("Duzeltilecek uretim kaydi bulunamadi.")
+                                    else:
+                                        st.markdown("**Son 100 Uretim Kaydi (Malzeme Log lari)**")
+                                        df_loglar_show = df_loglar[["tarih","is_adi","malzeme_turu","malzeme_kodu","malzeme_adi","uye_sayisi"]].rename(columns={
+                                            "tarih":"Tarih","is_adi":"Is/Hasta","malzeme_turu":"Tur",
+                                            "malzeme_kodu":"Malzeme Kodu","malzeme_adi":"Malzeme Adi","uye_sayisi":"Miktar/Uye"
+                                        })
+                                        st.dataframe(df_loglar_show, hide_index=True, use_container_width=True)
+                                        st.markdown("#### Hatali Kaydi Sec ve Duzelt")
+                                        log_secenekleri = [f"ID:{r['id']} | {r['tarih']} | {r['is_adi']} | {r['malzeme_kodu']} ({r['malzeme_turu']}, {r['uye_sayisi']} uye)"
+                                                          for _, r in df_loglar.iterrows()]
+                                        secilen_log_str = st.selectbox("Duzeltilecek Kaydi Secin", ["- Seciniz -"] + log_secenekleri, key="b_plan_log")
+                                        if secilen_log_str != "- Seciniz -":
+                                            log_id = int(secilen_log_str.split("|")[0].replace("ID:","").strip())
+                                            log_row = df_loglar[df_loglar["id"] == log_id].iloc[0]
+                                            st.info(f"Secilen kayit: **{log_row['malzeme_kodu']}** - {log_row['is_adi']} - {log_row['uye_sayisi']} uye - {log_row['tarih']}")
+                                            bc1, bc2 = st.columns(2)
+                                            with bc1:
+                                                if log_row["malzeme_turu"] == "Blok":
+                                                    iade_et = st.checkbox("Bloga uyeleri iade et (Kalan_Uye geri yukle)", value=True, key="b_iade")
+                                                else:
+                                                    iade_et = False
+                                                    st.caption("(Frez kayitlari icin otomatik iade yapilmaz)")
+                                            with bc2:
+                                                onay_metni = st.text_input("Onaylamak icin 'ONAYLA' yazin:", key="b_onay")
+                                            if st.button("Bu Kaydi Sil (Geri Alinamaz)", type="primary", key="b_sil") and onay_metni == "ONAYLA":
+                                                if iade_et and log_row["malzeme_turu"] == "Blok":
+                                                    c.execute("UPDATE cam_bloklar SET Kalan_Uye = Kalan_Uye + ?, Durum='Yarim' WHERE Blok_Kodu=?",
+                                                              (int(log_row["uye_sayisi"]), str(log_row["malzeme_kodu"])))
+                                                c.execute("DELETE FROM uretim_loglari WHERE id=?", (log_id,))
+                                                c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
+                                                          (datetime.now().strftime("%Y-%m-%d %H:%M"),
+                                                           str(log_row["malzeme_kodu"]), str(log_row["malzeme_adi"]),
+                                                           float(log_row["uye_sayisi"]), "Manuel Duzeltme (B Plani)",
+                                                           f"Log ID {log_id} silindi. Is: {log_row['is_adi']}. Yetkili: {st.session_state.get('kullanici_adi','?')}",
+                                                           str(st.session_state.get("kullanici_adi","Sistem"))))
+                                                conn.commit()
+                                                st.success(f"Log kaydi silindi. Blok iade: {'Evet' if iade_et else 'Hayir'}. Audit kaydi dusuldu.")
+                                                st.rerun()
+                                            elif onay_metni and onay_metni != "ONAYLA":
+                                                st.error("Onay metni hatali. Tam olarak 'ONAYLA' yaziniz.")
+                                except Exception as log_e:
+                                    st.error(f"Duzeltme paneli yuklenemedi: {log_e}")
+                        else:
+                            st.caption("Veri duzeltme paneli yalnizca Admin ve Yetkili kullanicilara aciktir.")
 
                 except Exception as e:
                     st.error(f"Tablo yüklenirken hata oluştu: {e}")
