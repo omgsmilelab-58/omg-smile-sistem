@@ -2104,7 +2104,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             mevcut = c.execute("SELECT kullanilan_dk FROM aktif_frezler WHERE frez_kod=?", (f_kodu_m,)).fetchone()
                             c.execute("UPDATE aktif_frezler SET kullanilan_dk=? WHERE frez_kod=?", (mevcut[0] + frez_basina_dk_m, f_kodu_m))
                         
-                        harcanan_m_metni = f"CAM: {b_kodu} ({harcanan_uye_m} Üye), Makine: {secili_makine_m}, Top. {harcanan_dk_m} Dk (Takım başı {frez_basina_dk_m} Dk)"
+                        frezler_str = ", ".join([fr.split("|")[0].strip() for fr in sec_frezler_m])
+                        harcanan_m_metni = f"CAM: {b_kodu} ({harcanan_uye_m} Üye), Makine: {secili_makine_m}, Takımlar: {frezler_str}, Top. {harcanan_dk_m} Dk"
 
                     # Her şeyi ana tabloya kaydet
                     is_adet = harcanan_uye_m if (cam_kullan and harcanan_uye_m > 0) else 1
@@ -2291,7 +2292,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     secilen_index = [f"{r['Barkod']} | {r['Klinik_Unvani']} - {r['Hasta_Adi']} ({r['Is_Turu']})" for _, r in df_isler.iterrows()].index(is_secin)
                     s_rowid = int(df_isler.iloc[secilen_index]["id"])
                     s_barkod = df_isler.iloc[secilen_index]["Barkod"]
-                    is_verisi = c.execute("SELECT Asama, Sorumlu_Personel, Lot_Numarasi, Sertifika_No, Klinik_Unvani, Hasta_Adi, Is_Turu, Tarih, Teslim_Tarihi, Renk, Adet, Tutar_TL, Aciklama FROM isler WHERE id=?",(s_rowid,)).fetchone()
+                    is_verisi = c.execute("SELECT Asama, Sorumlu_Personel, Lot_Numarasi, Sertifika_No, Klinik_Unvani, Hasta_Adi, Is_Turu, Tarih, Teslim_Tarihi, Renk, Adet, Tutar_TL, Aciklama, Harcanan_Malzeme FROM isler WHERE id=?",(s_rowid,)).fetchone()
                     
                     t1, t_bilgi, t2, t3, t4, t5 = st.tabs(["🔄 Aşama Güncelle", "✏️ Bilgileri Güncelle", "📸 Medya & Arşiv", "📜 Garanti", "⚙️ CAM Sarfiyatı", "🔥 Sinter Sarfiyatı"])
                     
@@ -2359,6 +2360,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             y_sertifika = b_k9.text_input("Sertifika No", value=is_verisi[3])
                             
                             y_aciklama = st.text_area("Açıklama", value=is_verisi[12])
+                            y_malzeme = st.text_area("Sarfiyat (Harcanan Malzeme)", value=is_verisi[13], disabled=True)
                             
                             if st.form_submit_button("💾 Bilgileri Kaydet", type="primary", use_container_width=True):
                                 c.execute('''UPDATE isler SET 
