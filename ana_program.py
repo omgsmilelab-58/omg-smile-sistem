@@ -1098,9 +1098,9 @@ rol = st.session_state["kullanici_rolu"]; kullanici_adi = st.session_state['kull
 ana_klinik = st.session_state.get('ana_klinik', '')
 if "aktif_sayfa" not in st.session_state: st.session_state.aktif_sayfa = "🎯 Komuta Merkezi"
 
-if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi"]
-elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik"]
-elif rol == "Teknisyen": menu = ["⚙️ İş Akışı", "📺 Lobi / TV Ekranı", "📱 Teknisyen Terminali", "📦 Stok Yönetimi", "🏭 Tedarikçi Yönetimi", "🔧 Makine Parkuru ve Bakımı"]
+if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi"]
+elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik"]
+elif rol == "Teknisyen": menu = ["⚙️ İş Akışı", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "📱 Teknisyen Terminali", "📦 Stok Yönetimi", "🏭 Tedarikçi Yönetimi", "🔧 Makine Parkuru ve Bakımı"]
 elif rol == "Klinik": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🧾 Detaylı Ekstre"]
 elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)"]
 elif rol == "Kurye": menu = ["🛵 Kurye Mobil Terminali", "📺 Lobi / TV Ekranı"]
@@ -1619,6 +1619,117 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.plotly_chart(fig_line, use_container_width=True)
                 else:
                     st.info("Son 14 güne ait gelir verisi bulunmuyor.")
+
+    elif sayfa == "📅 Görev & Planlama":
+        st.markdown("## 📅 Görev & Planlama")
+        st.markdown("Laboratuvar içi görevleri organize edebilir, personellere iş atayabilir ve takip edebilirsiniz.")
+        
+        tab_yeni, tab_pano = st.tabs(["➕ Yeni Görev Oluştur", "📋 Görev Panosu (Kanban)"])
+        
+        kullanicilar_list = [row[0] for row in c.execute("SELECT Kullanici_Adi FROM kullanicilar WHERE Rol != 'Klinik'").fetchall()]
+        
+        with tab_yeni:
+            if rol in ["Admin", "Yönetici", "Sekreter"]:
+                with st.container(border=True):
+                    st.markdown("#### 🎯 Görev Detayları")
+                    g_baslik = st.text_input("Görev Başlığı")
+                    g_detay = st.text_area("Görev Açıklaması")
+                    
+                    c1, c2, c3 = st.columns(3)
+                    g_atanan = c1.selectbox("Kime Atanacak?", ["-- Seçiniz --"] + kullanicilar_list)
+                    g_tarih = c2.date_input("Son Teslim Tarihi")
+                    g_oncelik = c3.selectbox("Öncelik Derecesi", ["Normal", "Düşük", "Acil"])
+                    
+                    if st.button("🚀 Görevi Ata ve Bildirim Gönder", type="primary", use_container_width=True):
+                        if g_baslik and g_atanan != "-- Seçiniz --":
+                            olusturma_tarihi = datetime.now().strftime("%Y-%m-%d %H:%M")
+                            son_tarih_str = g_tarih.strftime("%Y-%m-%d")
+                            
+                            c.execute("INSERT INTO gorevler (olusturan, atanan_kullanici, gorev_basligi, gorev_detayi, son_tarih, oncelik, olusturma_tarihi) VALUES (?,?,?,?,?,?,?)",
+                                      (kullanici_adi, g_atanan, g_baslik, g_detay, son_tarih_str, g_oncelik, olusturma_tarihi))
+                            conn.commit()
+                            
+                            mesaj_metni = f"📅 YENİ GÖREV: {g_baslik} (Öncelik: {g_oncelik}) - Son Tarih: {son_tarih_str}. Detaylar: {g_detay}"
+                            c.execute("INSERT INTO mesajlar (Tarih_Saat, Gonderen, Alici, Mesaj, Okundu) VALUES (?,?,?,?,0)",
+                                      (olusturma_tarihi, kullanici_adi, g_atanan, mesaj_metni))
+                            conn.commit()
+                            
+                            st.success(f"Görev başarıyla oluşturuldu ve {g_atanan} adlı kullanıcıya bildirim gönderildi!")
+                        else:
+                            st.error("Lütfen görev başlığı ve atanacak kişiyi seçtiğinizden emin olun.")
+            else:
+                st.info("Yeni görev oluşturma yetkiniz bulunmuyor. Görev panosunu kullanarak size atanan işleri takip edebilirsiniz.")
+
+        with tab_pano:
+            st.markdown("#### 📌 Güncel Görevler")
+            f_kullanici = st.selectbox("Gösterilecek Kullanıcı", ["Tümü", "Sadece Bana Atananlar"], index=1)
+            
+            query = "SELECT id, olusturan, atanan_kullanici, gorev_basligi, gorev_detayi, son_tarih, durum, oncelik, olusturma_tarihi FROM gorevler"
+            if f_kullanici == "Sadece Bana Atananlar":
+                query += f" WHERE atanan_kullanici = '{kullanici_adi}'"
+            query += " ORDER BY son_tarih ASC"
+            
+            try:
+                df_gorev = pd.read_sql(query, conn)
+                
+                if df_gorev.empty:
+                    st.info("Şu an bekleyen veya devam eden bir görev bulunmuyor.")
+                else:
+                    col_b, col_y, col_t = st.columns(3)
+                    
+                    with col_b:
+                        st.markdown("<h5 style='text-align: center; color: #facc15;'>⏳ Bekleyenler</h5>", unsafe_allow_html=True)
+                        df_b = df_gorev[df_gorev['durum'] == 'Bekliyor']
+                        for _, r in df_b.iterrows():
+                            with st.container(border=True):
+                                st.markdown(f"**{r['gorev_basligi']}**")
+                                st.caption(f"👤 {r['atanan_kullanici']} | ⏰ {r['son_tarih']}")
+                                if r['oncelik'] == 'Acil': st.markdown("🔴 **Acil**")
+                                elif r['oncelik'] == 'Normal': st.markdown("🔵 **Normal**")
+                                else: st.markdown("⚪ **Düşük**")
+                                
+                                with st.expander("Detay Gör"):
+                                    st.write(r['gorev_detayi'])
+                                    st.caption(f"Oluşturan: {r['olusturan']} ({r['olusturma_tarihi']})")
+                                
+                                if kullanici_adi == r['atanan_kullanici'] or rol in ["Admin", "Yönetici"]:
+                                    if st.button("▶️ Başla", key=f"basla_{r['id']}", use_container_width=True):
+                                        c.execute("UPDATE gorevler SET durum='Yapılıyor' WHERE id=?", (int(r['id']),))
+                                        conn.commit(); st.rerun()
+
+                    with col_y:
+                        st.markdown("<h5 style='text-align: center; color: #38bdf8;'>🔄 Yapılıyor</h5>", unsafe_allow_html=True)
+                        df_y = df_gorev[df_gorev['durum'] == 'Yapılıyor']
+                        for _, r in df_y.iterrows():
+                            with st.container(border=True):
+                                st.markdown(f"**{r['gorev_basligi']}**")
+                                st.caption(f"👤 {r['atanan_kullanici']} | ⏰ {r['son_tarih']}")
+                                with st.expander("Detay Gör"):
+                                    st.write(r['gorev_detayi'])
+                                if kullanici_adi == r['atanan_kullanici'] or rol in ["Admin", "Yönetici"]:
+                                    if st.button("✅ Tamamla", key=f"tamamla_{r['id']}", type="primary", use_container_width=True):
+                                        c.execute("UPDATE gorevler SET durum='Tamamlandı' WHERE id=?", (int(r['id']),))
+                                        conn.commit()
+                                        mesaj_metni = f"✅ GÖREV TAMAMLANDI: {r['gorev_basligi']} adlı görevi {kullanici_adi} tamamladı."
+                                        c.execute("INSERT INTO mesajlar (Tarih_Saat, Gonderen, Alici, Mesaj, Okundu) VALUES (?,?,?,?,0)",
+                                                  (datetime.now().strftime("%Y-%m-%d %H:%M"), "Sistem", r['olusturan'], mesaj_metni))
+                                        conn.commit()
+                                        st.rerun()
+
+                    with col_t:
+                        st.markdown("<h5 style='text-align: center; color: #34d399;'>✅ Tamamlandı</h5>", unsafe_allow_html=True)
+                        df_t = df_gorev[df_gorev['durum'] == 'Tamamlandı'].head(20)
+                        for _, r in df_t.iterrows():
+                            with st.container(border=True):
+                                st.markdown(f"~~{r['gorev_basligi']}~~")
+                                st.caption(f"👤 {r['atanan_kullanici']}")
+                                if rol in ["Admin", "Yönetici"]:
+                                    if st.button("🗑️ Sil", key=f"sil_{r['id']}", use_container_width=True):
+                                        c.execute("DELETE FROM gorevler WHERE id=?", (int(r['id']),))
+                                        conn.commit(); st.rerun()
+
+            except Exception as e:
+                st.error(f"Tablo yüklenirken hata oluştu: {e}")
 
     elif sayfa == "🤝 Hekim ve Cari Kayıt":
         banner_olustur("🤝", "Hekim ve Klinik Kayıt", "Yeni klinik tanımlayın veya mevcut kliniklerin bakiye ve VIP seviyelerini güncelleyin.")
