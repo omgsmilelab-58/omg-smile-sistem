@@ -2442,7 +2442,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         import re
                         if mevcut_malzeme:
                             # Önceki kayıtlı metni ayrıştır
-                            match = re.search(r"CAM: (.*?) \((\d+) Üye\), Makine: (.*?), (?:Frezler: (.*?), )?Top\. (\d+) Dk \(Takım başı (\d+) Dk\)", mevcut_malzeme)
+                            match = re.search(r"CAM:\s*(.*?)\s*\((\d+)\s*Üye\),\s*Makine:\s*(.*?),\s*(?:(?:Takımlar|Frezler):\s*(.*?),\s*)?Top\.\s*(\d+)\s*Dk(?:\s*\(Takım başı (\d+)\s*Dk\))?", mevcut_malzeme)
                             if match:
                                 eski_b_kodu = match.group(1).strip()
                                 eski_uye = int(match.group(2))
@@ -2463,8 +2463,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         def_makine_idx = makineler_list.index(eski_makine) if eski_makine in makineler_list else 0
                         
                         col_mak, col_uye, col_mbos = st.columns([2, 0.8, 3])
-                        secili_makine = col_mak.selectbox("Kazıma Yapılan Makine", makineler_list, index=def_makine_idx, key="t4_mak")
-                        harcanan_uye = col_uye.number_input("Kazınan Üye", min_value=1, value=eski_uye, key="t4_uye")
+                        secili_makine = col_mak.selectbox("Kazıma Yapılan Makine", makineler_list, index=def_makine_idx, key=f"t4_mak_{s_rowid}")
+                        harcanan_uye = col_uye.number_input("Kazınan Üye", min_value=1, value=eski_uye, key=f"t4_uye_{s_rowid}")
                         
                         cam_b = c.execute("SELECT Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye FROM cam_bloklar WHERE Durum='Yarım' OR Blok_Kodu=?", (eski_b_kodu,)).fetchall()
                         cam_f = c.execute("SELECT frez_kod, frez_adi, yuva_no, toplam_omur_dk, kullanilan_dk FROM aktif_frezler WHERE makine_adi=? AND durum='Aktif'", (secili_makine,)).fetchall()
@@ -2487,8 +2487,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         
                         if cam_b and cam_f:
                             c_b, c_f = st.columns(2)
-                            sec_blok = c_b.selectbox("İşlenen Zirkonyum Blok", sec_blok_list, index=def_blok_idx, key="t4_blok")
-                            sec_frezler = c_f.multiselect("Kullanılan Frezler (Çoklu Seçim)", sec_frez_list, default=def_frezler, key="t4_frez")
+                            sec_blok = c_b.selectbox("İşlenen Zirkonyum Blok", sec_blok_list, index=def_blok_idx, key=f"t4_blok_{s_rowid}")
+                            sec_frezler = c_f.multiselect("Kullanılan Frezler (Çoklu Seçim)", sec_frez_list, default=def_frezler, key=f"t4_frez_{s_rowid}")
                             
                             tm1, tm2, tm_bos = st.columns([1.2, 1.2, 4])
                             
@@ -2497,8 +2497,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             if eski_dk > 0:
                                 bt_time = (datetime.combine(datetime.today(), b_time) + timedelta(minutes=eski_dk)).time()
                                 
-                            baslama_saati_str = tm1.text_input("Başlama (SS:DD)", value=b_time.strftime("%H:%M"), key="t4_bas")
-                            bitis_saati_str = tm2.text_input("Bitiş (SS:DD)", value=bt_time.strftime("%H:%M"), key="t4_bit")
+                            baslama_saati_str = tm1.text_input("Başlama (SS:DD)", value=b_time.strftime("%H:%M"), key=f"t4_bas_{s_rowid}")
+                            bitis_saati_str = tm2.text_input("Bitiş (SS:DD)", value=bt_time.strftime("%H:%M"), key=f"t4_bit_{s_rowid}")
                             try:
                                 baslama_saati = datetime.strptime(baslama_saati_str.strip(), "%H:%M").time()
                                 bitis_saati = datetime.strptime(bitis_saati_str.strip(), "%H:%M").time()
