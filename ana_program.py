@@ -2878,8 +2878,24 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             
                             kapasite = r.get('Kapasite_Uye', 22)
                             if pd.isna(kapasite) or kapasite <= 0: kapasite = 22
-                            yuzde = max(0, min(100, int((r['Kalan_Uye'] / float(kapasite)) * 100)))
-                            cb2.progress(yuzde / 100.0, text=f"Kalan: {r['Kalan_Uye']} / {int(kapasite)} Üye")
+                            kalan = int(r['Kalan_Uye'])
+                            kullanilan = int(kapasite) - kalan
+                            if kullanilan < 0: kullanilan = 0
+                            
+                            kullanilan_yuzde = (kullanilan / float(kapasite)) * 100
+                            kalan_yuzde = (kalan / float(kapasite)) * 100
+                            
+                            bar_html = f"""
+                            <div style='display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 4px;'>
+                                <span style='color: #ef4444;'>Kullanılan: {kullanilan}</span>
+                                <span style='color: #10b981;'>Kalan: {kalan} / {int(kapasite)}</span>
+                            </div>
+                            <div style='width: 100%; background-color: #334155; border-radius: 8px; height: 14px; display: flex; overflow: hidden;'>
+                                <div style='width: {kullanilan_yuzde}%; background-color: #ef4444; height: 100%;' title='Kullanılan: {kullanilan}'></div>
+                                <div style='width: {kalan_yuzde}%; background-color: #10b981; height: 100%;' title='Kalan: {kalan}'></div>
+                            </div>
+                            """
+                            cb2.markdown(bar_html, unsafe_allow_html=True)
                             
                             with cb3:
                                 with st.expander("⚙️ Blok Yönetimi"):
