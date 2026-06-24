@@ -2882,19 +2882,19 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             cb1.markdown(f"🧱 **{r['Blok_Kodu']}** | 🏷️ {r['Boyut_Renk']}")
                             cb1.caption(f"Ürün: {r['Urun_Adi']}")
                             
-                            kapasite = r.get('Kapasite_Uye', 22)
-                            if pd.isna(kapasite) or kapasite <= 0: kapasite = 22
+                            gercek_kullanim = c.execute("SELECT SUM(uye_sayisi) FROM uretim_loglari WHERE malzeme_kodu=?", (r['Blok_Kodu'],)).fetchone()[0]
+                            kullanilan = int(gercek_kullanim) if gercek_kullanim else 0
                             kalan = int(r['Kalan_Uye'])
-                            kullanilan = int(kapasite) - kalan
-                            if kullanilan < 0: kullanilan = 0
+                            toplam = kullanilan + kalan
+                            if toplam <= 0: toplam = 22
                             
-                            kullanilan_yuzde = (kullanilan / float(kapasite)) * 100
-                            kalan_yuzde = (kalan / float(kapasite)) * 100
+                            kullanilan_yuzde = (kullanilan / float(toplam)) * 100
+                            kalan_yuzde = (kalan / float(toplam)) * 100
                             
                             bar_html = f"""
                             <div style='display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 4px;'>
                                 <span style='color: #ef4444;'>Kullanılan: {kullanilan}</span>
-                                <span style='color: #10b981;'>Kalan: {kalan} / {int(kapasite)}</span>
+                                <span style='color: #10b981;'>Kalan: {kalan} / {toplam}</span>
                             </div>
                             <div style='width: 100%; background-color: #334155; border-radius: 8px; height: 14px; display: flex; overflow: hidden;'>
                                 <div style='width: {kullanilan_yuzde}%; background-color: #ef4444; height: 100%;' title='Kullanılan: {kullanilan}'></div>
@@ -2919,16 +2919,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                         target_id = r.get('id')
                                         if yeni_uye <= 0:
                                             if target_id is not None:
-                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Kapasite_Uye=COALESCE(Kapasite_Uye,22)+?, Durum='Bitti' WHERE id=?", (int(efektif_fark), int(target_id)))
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Durum='Bitti' WHERE id=?", (int(target_id),))
                                             else:
-                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Kapasite_Uye=COALESCE(Kapasite_Uye,22)+?, Durum='Bitti' WHERE Blok_Kodu=?", (int(efektif_fark), str(r['Blok_Kodu'])))
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Durum='Bitti' WHERE Blok_Kodu=?", (str(r['Blok_Kodu']),))
                                             c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
                                                       (datetime.now().strftime("%Y-%m-%d %H:%M"), str(r['Blok_Kodu']), str(r['Urun_Adi']), 1.0, "Tükendi (Blok)", "Blok üyesi sıfırlandığı için otomatik arşive alındı.", st.session_state.get('kullanici_adi', 'Bilinmeyen')))
                                         else:
                                             if target_id is not None:
-                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Kapasite_Uye=COALESCE(Kapasite_Uye,22)+? WHERE id=?", (int(yeni_uye), int(efektif_fark), int(target_id)))
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=? WHERE id=?", (int(yeni_uye), int(target_id)))
                                             else:
-                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Kapasite_Uye=COALESCE(Kapasite_Uye,22)+? WHERE Blok_Kodu=?", (int(yeni_uye), int(efektif_fark), str(r['Blok_Kodu'])))
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=? WHERE Blok_Kodu=?", (int(yeni_uye), str(r['Blok_Kodu'])))
                                         conn.commit(); st.rerun()
                                     
                                     st.markdown("---")
