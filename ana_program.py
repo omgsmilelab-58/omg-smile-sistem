@@ -2915,19 +2915,20 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     
                                     if col_y2.button("💾 Kalanı Güncelle", key=f"btn_uye_{blok_unique_key}"):
                                         yeni_uye = r['Kalan_Uye'] + ekle_cikar
+                                        efektif_fark = ekle_cikar if yeni_uye > 0 else -r['Kalan_Uye']
                                         target_id = r.get('id')
                                         if yeni_uye <= 0:
                                             if target_id is not None:
-                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Durum='Bitti' WHERE id=?", (int(target_id),))
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Kapasite_Uye=COALESCE(Kapasite_Uye,22)+?, Durum='Bitti' WHERE id=?", (int(efektif_fark), int(target_id)))
                                             else:
-                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Durum='Bitti' WHERE Blok_Kodu=?", (str(r['Blok_Kodu']),))
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=0, Kapasite_Uye=COALESCE(Kapasite_Uye,22)+?, Durum='Bitti' WHERE Blok_Kodu=?", (int(efektif_fark), str(r['Blok_Kodu'])))
                                             c.execute("INSERT INTO malzeme_arsivi (Tarih, Urun_Kodu, Urun_Adi, Miktar, Islem_Turu, Aciklama, Kullanici) VALUES (?,?,?,?,?,?,?)",
                                                       (datetime.now().strftime("%Y-%m-%d %H:%M"), str(r['Blok_Kodu']), str(r['Urun_Adi']), 1.0, "Tükendi (Blok)", "Blok üyesi sıfırlandığı için otomatik arşive alındı.", st.session_state.get('kullanici_adi', 'Bilinmeyen')))
                                         else:
                                             if target_id is not None:
-                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=? WHERE id=?", (int(yeni_uye), int(target_id)))
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Kapasite_Uye=COALESCE(Kapasite_Uye,22)+? WHERE id=?", (int(yeni_uye), int(efektif_fark), int(target_id)))
                                             else:
-                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=? WHERE Blok_Kodu=?", (int(yeni_uye), str(r['Blok_Kodu'])))
+                                                c.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Kapasite_Uye=COALESCE(Kapasite_Uye,22)+? WHERE Blok_Kodu=?", (int(yeni_uye), int(efektif_fark), str(r['Blok_Kodu'])))
                                         conn.commit(); st.rerun()
                                     
                                     st.markdown("---")
