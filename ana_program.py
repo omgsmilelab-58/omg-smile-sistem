@@ -2107,8 +2107,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         harcanan_m_metni = f"CAM: {b_kodu} ({harcanan_uye_m} Üye), Makine: {secili_makine_m}, Top. {harcanan_dk_m} Dk (Takım başı {frez_basina_dk_m} Dk)"
 
                     # Her şeyi ana tabloya kaydet
-                    c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama, Hasta_Kodu) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                              (tarih_saat, k_secim, ha, islem_adi, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", harcanan_m_metni, teslim_tarihi, "-", "-", "-", aciklama if aciklama else "-", h_kodu))
+                    is_adet = harcanan_uye_m if (cam_kullan and harcanan_uye_m > 0) else 1
+                    c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama, Hasta_Kodu, Adet) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                              (tarih_saat, k_secim, ha, islem_adi, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", harcanan_m_metni, teslim_tarihi, "-", "-", "-", aciklama if aciklama else "-", h_kodu, is_adet))
                     yeni_id = c.lastrowid
                     onek = ayar_getir("Barkod_Onek", "OMG")
                     yeni_barkod = f"{onek}-{yeni_id:06d}"
@@ -2304,6 +2305,20 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             conn.commit(); st.rerun()
                             
                         if c_btn2.button("🗑️ İşi Tamamen Sil", type="primary", use_container_width=True, key=f"is_sil_t1_{s_rowid}"):
+                            h_malz = c.execute("SELECT Harcanan_Malzeme FROM isler WHERE id=?", (s_rowid,)).fetchone()
+                            if h_malz and h_malz[0] and "CAM:" in h_malz[0]:
+                                import re
+                                match = re.search(r"CAM:\s*(.*?)\s*\((.*?)\s*Üye\)", h_malz[0])
+                                if match:
+                                    iade_blok = match.group(1).strip()
+                                    try:
+                                        iade_uye = float(match.group(2).strip())
+                                        mevcut_blok = c.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (iade_blok,)).fetchone()
+                                        if mevcut_blok:
+                                            yeni_iade_uye = mevcut_blok[0] + iade_uye
+                                            c.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Durum=? WHERE Blok_Kodu=?", (yeni_iade_uye, 'Yarım', iade_blok))
+                                    except:
+                                        pass
                             c.execute("DELETE FROM is_fotograflari WHERE Is_ID=?", (s_rowid,))
                             c.execute("DELETE FROM is_3d_modelleri WHERE Is_ID=?", (s_rowid,))
                             c.execute("DELETE FROM isler WHERE id=?", (s_rowid,))
