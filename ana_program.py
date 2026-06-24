@@ -1687,6 +1687,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             
             try:
                 df_gorev = pd.read_sql(query, conn)
+            df_gorev.columns = df_gorev.columns.str.lower()
                 
                 if df_gorev.empty:
                     st.info("Şu an bekleyen veya devam eden bir görev bulunmuyor.")
