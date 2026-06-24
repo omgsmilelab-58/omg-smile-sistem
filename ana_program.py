@@ -4040,6 +4040,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 st.warning("Bu panel yalnizca yetkili kullanicilar icindir. Yanlis silme veya degisiklik geri alinamaz!")
                                 try:
                                     df_loglar = pd.read_sql('SELECT u.id, u.is_id, u.is_adi, u.malzeme_turu, u.malzeme_kodu, u.malzeme_adi, u.uye_sayisi, u.tarih FROM uretim_loglari u ORDER BY u.tarih DESC LIMIT 100', conn)
+                                    df_loglar.columns = df_loglar.columns.str.lower()
                                     if df_loglar.empty:
                                         st.info("Duzeltilecek uretim kaydi bulunamadi.")
                                     else:
