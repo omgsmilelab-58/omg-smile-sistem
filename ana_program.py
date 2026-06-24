@@ -2823,14 +2823,33 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     zirkon_stok = c.execute("SELECT Urun_Kodu, Urun_Adi FROM stok WHERE (Kategori='Blok' OR Kategori='Zirkonyum Blok') AND Mevcut_Miktar > 0 AND Durum='Aktif'").fetchall()
                     if zirkon_stok:
                         z_sec = c_blok1.selectbox("Açılacak Blok (Stoktan Düşer)", [f"{z[0]} | {z[1]}" for z in zirkon_stok])
-                        b_renk = c_blok2.text_input("Renk ve Boyut")
+                        
+                        try:
+                            z_kod_sec = z_sec.split("|")[0].strip()
+                            z_bilgi = c.execute("SELECT Renk, Kalinlik FROM stok WHERE Urun_Kodu=?", (z_kod_sec,)).fetchone()
+                            varsayilan_r = ""
+                            if z_bilgi:
+                                r_val, k_val = z_bilgi
+                                r_s = str(r_val) if r_val and r_val not in ['-', 'None'] else ""
+                                k_s = str(k_val) if k_val and k_val not in ['-', 'None'] else ""
+                                if r_s and k_s: varsayilan_r = f"{r_s} - {k_s}mm"
+                                elif r_s: varsayilan_r = r_s
+                                elif k_s: varsayilan_r = f"{k_s}mm"
+                        except:
+                            varsayilan_r = ""
+
+                        b_renk = c_blok2.text_input("Renk ve Boyut", value=varsayilan_r)
                         
                         c_blok3.markdown("<br>", unsafe_allow_html=True) # Butonu hizalamak için boşluk
                         if c_blok3.button("🚀 Aç ve CAM'e Ekle", type="primary", use_container_width=True):
                             z_kod = z_sec.split("|")[0].strip()
                             z_ad = z_sec.split("|")[1].strip()
                             yeni_b_kod = f"BLK-{datetime.now().strftime('%H%M%S')}"
-                            c.execute("INSERT INTO cam_bloklar (Blok_Kodu, Urun_Adi, Boyut_Renk, Kapasite_Uye, Kalan_Uye, Durum) VALUES (?,?,?,?,?,?)", (yeni_b_kod, z_ad, b_renk, 22, 22, "Yarım"))
+                            
+                            try: v_kap = int(float(ayar_getir("Blok_Kapasitesi", "22")))
+                            except: v_kap = 22
+                            
+                            c.execute("INSERT INTO cam_bloklar (Blok_Kodu, Urun_Adi, Boyut_Renk, Kapasite_Uye, Kalan_Uye, Durum) VALUES (?,?,?,?,?,?)", (yeni_b_kod, z_ad, b_renk, v_kap, v_kap, "Yarım"))
                             c.execute("UPDATE stok SET Mevcut_Miktar = Mevcut_Miktar - 1, Guncelleme_Tarihi=? WHERE Urun_Kodu=?", (datetime.now().strftime('%Y-%m-%d %H:%M'), z_kod))
                             conn.commit(); st.success(f"Blok Açıldı: {yeni_b_kod}"); st.rerun()
                     else: 
@@ -3595,7 +3614,23 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.markdown("---")
 
                     if sec_kod_display == "-- Yeni Ürün Ekle --":
-                        if st.form_submit_button("💾 Yeni Ürün Tanımla (Stoğu '0' olarak ekler)", type="primary") and kod and ad:
+                        kayit_btn = False
+                        if kat in ["Blok", "Zirkonyum Blok"]:
+                            c_btn, c_cap = st.columns([1, 1])
+                            with c_btn:
+                                kayit_btn = st.form_submit_button("💾 Yeni Ürün Tanımla (Stoğu '0' olarak ekler)", type="primary")
+                            with c_cap:
+                                cap_kayit = st.form_submit_button("⚙️ Blok Kapasitesini Kaydet")
+                                varsayilan_uye = st.number_input("Tahmini Üye Kapasitesi", min_value=1, value=int(float(ayar_getir("Blok_Kapasitesi", "22"))), key="blok_kap_set")
+                            
+                            if cap_kayit:
+                                ayar_kaydet("Blok_Kapasitesi", str(varsayilan_uye))
+                                st.success("Blok kapasitesi güncellendi!")
+                                st.rerun()
+                        else:
+                            kayit_btn = st.form_submit_button("💾 Yeni Ürün Tanımla (Stoğu '0' olarak ekler)", type="primary")
+                            
+                        if kayit_btn and kod and ad:
                             son_ad = ad
                             if kat == "Metal Tozu":
                                 ekler = []
