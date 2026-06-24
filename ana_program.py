@@ -4034,8 +4034,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         # B PLANI: MANUEL VERI DUZELTME PANELI
                         # =========================================================
                         st.markdown("---")
-                        kullanici_rol = st.session_state.get("kullanici_rol", "")
-                        if kullanici_rol in ["Admin", "Yetkili"]:
+                        kullanici_rol = st.session_state.get("kullanici_rolu", "")
+                        if kullanici_rol in ["Admin", "Yönetici", "Yetkili"]:
                             with st.expander("B Plani - Manuel Uretim Kaydi Duzeltme", expanded=False):
                                 st.warning("Bu panel yalnizca yetkili kullanicilar icindir. Yanlis silme veya degisiklik geri alinamaz!")
                                 try:
