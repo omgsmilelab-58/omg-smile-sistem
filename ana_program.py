@@ -4164,15 +4164,15 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         essiz_kodlar = df_arsiv['stok_kodu'].unique()
                         
                         def kategori_belirle(urun_adi, isler_serisi):
-                            u_adi = str(urun_adi).upper()
-                            isler = isler_serisi.astype(str).str.upper()
-                            if 'FREZ' in u_adi:
+                            u_adi = str(urun_adi).lower()
+                            isler = isler_serisi.astype(str).str.lower()
+                            if 'frez' in u_adi:
                                 return 'FREZ'
-                            if isler.str.contains('ZİRKON').any() or 'ZİRKON' in u_adi or 'ZIRCON' in u_adi:
+                            if isler.str.contains('zirkon|zircon').any() or 'zirkon' in u_adi or 'zircon' in u_adi:
                                 return 'ZİRKONYUM'
-                            if isler.str.contains('PMMA').any() or 'PMMA' in u_adi:
+                            if isler.str.contains('pmma').any() or 'pmma' in u_adi:
                                 return 'PMMA'
-                            if isler.str.contains('TİTAN').any() or 'TITAN' in u_adi:
+                            if isler.str.contains('titan').any() or 'titan' in u_adi:
                                 return 'TİTANYUM'
                             return 'DİĞER'
 
@@ -4199,7 +4199,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 "Stok Kodu": kod,
                                 "Ürün Adı": urun_adi,
                                 "Toplam Üretilen": int(toplam_uye),
-                                "Çalışma (Dk)": int(toplam_dk) if 'Frez' in str(urun_adi) or toplam_dk > 0 else "-",
+                                "Çalışma (Dk)": int(toplam_dk) if 'frez' in str(urun_adi).lower() or toplam_dk > 0 else "-",
                                 "Durum": durum_metin,
                                 "Pasif Nedeni": pasif_nedeni,
                                 "İlk İşlem": ilk_kayit['tarih'][:10],
@@ -4230,21 +4230,20 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 # Dashboard Gösterimi
                                 st.markdown("##### 📊 Kategori Performans Özeti")
                                 
-                                df_blok_uretim = df_arsiv_alt[df_arsiv_alt['islem_turu'] == 'Üretim (Blok)']
-                                toplam_blok_uye = pd.to_numeric(df_blok_uretim['miktar_veya_uye'], errors='coerce').sum()
-                                toplam_essiz_blok = df_blok_uretim['stok_kodu'].nunique()
-                                ort_blok_verimi = round(toplam_blok_uye / toplam_essiz_blok, 1) if toplam_essiz_blok > 0 else 0
+                                if kategori_adi in ["ZİRKONYUM", "PMMA", "TİTANYUM", "DİĞER"]:
+                                    df_blok_uretim = df_arsiv_alt[df_arsiv_alt['islem_turu'] == 'Üretim (Blok)']
+                                    toplam_blok_uye = pd.to_numeric(df_blok_uretim['miktar_veya_uye'], errors='coerce').sum()
+                                    toplam_essiz_blok = df_blok_uretim['stok_kodu'].nunique()
+                                    ort_blok_verimi = round(toplam_blok_uye / toplam_essiz_blok, 1) if toplam_essiz_blok > 0 else 0
+                                    
+                                    m1, m2 = st.columns(2)
+                                    m1.metric("Toplam Üretilen Üye (Blok)", f"{int(toplam_blok_uye)}")
+                                    m2.metric("Blok Başı Ortalama Verim", f"{ort_blok_verimi} Üye")
                                 
-                                df_frez_uretim = df_arsiv_alt[df_arsiv_alt['islem_turu'] == 'Üretim (Frez)']
-                                toplam_essiz_frez = df_frez_uretim['stok_kodu'].nunique()
-
-                                m1, m2, m3, m4 = st.columns(4)
-                                m1.metric("Toplam Üretilen Üye (Blok)", f"{int(toplam_blok_uye)}")
-                                m2.metric("Blok Başı Ortalama Verim", f"{ort_blok_verimi} Üye")
-                                m3.metric("Kullanılan Toplam Frez", f"{toplam_essiz_frez} Adet")
-                                
-                                if kategori_adi == "FREZ":
-                                    st.markdown("##### ⏱️ Frez Çeşitlerine Göre Performans")
+                                elif kategori_adi == "FREZ":
+                                    df_frez_uretim = df_arsiv_alt[df_arsiv_alt['islem_turu'] == 'Üretim (Frez)']
+                                    
+                                    st.markdown("###### ⏱️ Frez Çeşitlerine Göre Performans")
                                     if not df_frez_uretim.empty:
                                         df_frez_grup = df_frez_uretim.groupby('urun_adi').agg(
                                             Toplam_Dk=('harcanan_dk', 'sum'),
