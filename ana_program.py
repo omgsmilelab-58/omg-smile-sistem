@@ -4159,41 +4159,23 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         if df_arsiv.empty:
                             st.warning("Arama kriterinize uygun arşiv kaydı bulunamadı.")
                         
-                        # Toplam Metrikleri Hesapla
-                        df_blok_uretim = df_arsiv[df_arsiv['islem_turu'] == 'Üretim (Blok)']
-                        toplam_blok_uye = pd.to_numeric(df_blok_uretim['miktar_veya_uye'], errors='coerce').sum()
-                        toplam_essiz_blok = df_blok_uretim['stok_kodu'].nunique()
-                        ort_blok_verimi = round(toplam_blok_uye / toplam_essiz_blok, 1) if toplam_essiz_blok > 0 else 0
-
-                        df_frez_uretim = df_arsiv[df_arsiv['islem_turu'] == 'Üretim (Frez)']
-                        toplam_essiz_frez = df_frez_uretim['stok_kodu'].nunique()
-                        
-                        # Dashboard Gösterimi
-                        st.markdown("##### 📊 Genel Performans Özeti")
-                        m1, m2, m3, m4 = st.columns(4)
-                        m1.metric("Toplam Üretilen Üye (Blok)", f"{int(toplam_blok_uye)}")
-                        m2.metric("Blok Başı Ortalama Verim", f"{ort_blok_verimi} Üye")
-                        m3.metric("Kullanılan Toplam Frez", f"{toplam_essiz_frez} Adet")
-                        
-                        st.markdown("##### ⏱️ Frez Çeşitlerine Göre Performans")
-                        if not df_frez_uretim.empty:
-                            df_frez_grup = df_frez_uretim.groupby('urun_adi').agg(
-                                Toplam_Dk=('harcanan_dk', 'sum'),
-                                Frez_Sayisi=('stok_kodu', 'nunique')
-                            ).reset_index()
-                            df_frez_grup['Ortalama_Dk'] = (df_frez_grup['Toplam_Dk'] / df_frez_grup['Frez_Sayisi']).round(1)
-                            
-                            f_cols = st.columns(max(1, len(df_frez_grup)))
-                            for idx, r in df_frez_grup.iterrows():
-                                f_cols[idx % len(f_cols)].metric(r['urun_adi'], f"{r['Ortalama_Dk']} Dk/Frez", f"Toplam: {r['Frez_Sayisi']} Adet")
-                        else:
-                            st.caption("Henüz frez üretim verisi yok.")
-
-                        st.markdown("---")
-                        st.markdown("##### 🗂️ Tüm Malzemeler (Özet Liste)")
-                        
+                        # İlk olarak her bloğun kategorisini belirlemek ve özet listeyi oluşturmak için verileri işleyelim
                         liste_verileri = []
                         essiz_kodlar = df_arsiv['stok_kodu'].unique()
+                        
+                        def kategori_belirle(urun_adi, isler_serisi):
+                            u_adi = str(urun_adi).upper()
+                            isler = isler_serisi.astype(str).str.upper()
+                            if 'FREZ' in u_adi:
+                                return 'FREZ'
+                            if isler.str.contains('ZİRKON').any() or 'ZİRKON' in u_adi or 'ZIRCON' in u_adi:
+                                return 'ZİRKONYUM'
+                            if isler.str.contains('PMMA').any() or 'PMMA' in u_adi:
+                                return 'PMMA'
+                            if isler.str.contains('TİTAN').any() or 'TITAN' in u_adi:
+                                return 'TİTANYUM'
+                            return 'DİĞER'
+
                         for kod in essiz_kodlar:
                             df_urun = df_arsiv[df_arsiv['stok_kodu'] == kod]
                             ilk_kayit = df_urun.iloc[-1] 
@@ -4211,111 +4193,138 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             if not arsiv_kayitlari.empty:
                                 pasif_nedeni = f"{arsiv_kayitlari.iloc[0]['islem_turu']} - {arsiv_kayitlari.iloc[0]['aciklama']}"
                                 
+                            kategori = kategori_belirle(urun_adi, df_urun['yapilan_is'])
+                                
                             liste_verileri.append({
                                 "Stok Kodu": kod,
                                 "Ürün Adı": urun_adi,
                                 "Toplam Üretilen": int(toplam_uye),
-                                "Çalışma (Dk)": int(toplam_dk) if 'Frez' in urun_adi or toplam_dk > 0 else "-",
+                                "Çalışma (Dk)": int(toplam_dk) if 'Frez' in str(urun_adi) or toplam_dk > 0 else "-",
                                 "Durum": durum_metin,
                                 "Pasif Nedeni": pasif_nedeni,
-                                "İlk İşlem": ilk_kayit['tarih'][:10]
+                                "İlk İşlem": ilk_kayit['tarih'][:10],
+                                "Kategori": kategori
                             })
 
-                        df_liste = pd.DataFrame(liste_verileri, columns=["Stok Kodu", "Ürün Adı", "Toplam Üretilen", "Çalışma (Dk)", "Durum", "Pasif Nedeni", "İlk İşlem"])
-                        
+                        df_liste_full = pd.DataFrame(liste_verileri, columns=["Stok Kodu", "Ürün Adı", "Toplam Üretilen", "Çalışma (Dk)", "Durum", "Pasif Nedeni", "İlk İşlem", "Kategori"])
+                        kategori_map = dict(zip(df_liste_full["Stok Kodu"], df_liste_full["Kategori"]))
+                        df_arsiv['Kategori'] = df_arsiv['stok_kodu'].map(kategori_map)
+
                         def color_durum_liste(val):
                             if val == "Aktif": return 'color: #34d399; font-weight:bold;'
                             elif val == "Pasif": return 'color: #f87171; font-weight:bold;'
                             return ''
-                            
-                        tab_zirkon, tab_pmma, tab_titan, tab_frez, tab_diger = st.tabs(["ZİRKONYUM", "PMMA", "TİTANYUM", "FREZ", "DİĞER"])
-                        
-                        def goster_df(df_alt):
-                            if not df_alt.empty:
-                                st.dataframe(df_alt.style.map(color_durum_liste, subset=["Durum"]), hide_index=True, use_container_width=True)
-                            else:
-                                st.info("Bu kategoride malzeme bulunmamaktadır.")
 
-                        if not df_liste.empty:
-                            with tab_zirkon:
-                                goster_df(df_liste[df_liste['Ürün Adı'].str.contains('Zirkon|Zircon', case=False, na=False)])
-                            with tab_pmma:
-                                goster_df(df_liste[df_liste['Ürün Adı'].str.contains('PMMA', case=False, na=False)])
-                            with tab_titan:
-                                goster_df(df_liste[df_liste['Ürün Adı'].str.contains('Titan', case=False, na=False)])
-                            with tab_frez:
-                                goster_df(df_liste[df_liste['Ürün Adı'].str.contains('Frez', case=False, na=False)])
-                            with tab_diger:
-                                mask = ~df_liste['Ürün Adı'].str.contains('Zirkon|Zircon|PMMA|Titan|Frez', case=False, na=False)
-                                goster_df(df_liste[mask])
-                        else:
-                            st.info("Kayıtlı malzeme bulunamadı.")
-                        st.markdown("---")
-                        st.markdown("<h5 style='color:#38bdf8;margin-bottom:8px;'>⚡ Arşiv İşlemleri</h5>", unsafe_allow_html=True)
+                        kategoriler = ["ZİRKONYUM", "PMMA", "TİTANYUM", "FREZ", "DİĞER"]
+                        sekmeler = st.tabs(kategoriler)
                         
-                        islem_secenekleri = [f"{r['Stok Kodu']} | {r['Ürün Adı']} - {r['Durum']}" for _, r in df_liste.iterrows()]
+                        for i, kategori_adi in enumerate(kategoriler):
+                            with sekmeler[i]:
+                                df_arsiv_alt = df_arsiv[df_arsiv['Kategori'] == kategori_adi]
+                                df_liste_alt = df_liste_full[df_liste_full['Kategori'] == kategori_adi].drop(columns=['Kategori'])
+                                
+                                if df_arsiv_alt.empty:
+                                    st.info(f"{kategori_adi} kategorisinde malzeme bulunmamaktadır.")
+                                    continue
+                                
+                                # Dashboard Gösterimi
+                                st.markdown("##### 📊 Kategori Performans Özeti")
+                                
+                                df_blok_uretim = df_arsiv_alt[df_arsiv_alt['islem_turu'] == 'Üretim (Blok)']
+                                toplam_blok_uye = pd.to_numeric(df_blok_uretim['miktar_veya_uye'], errors='coerce').sum()
+                                toplam_essiz_blok = df_blok_uretim['stok_kodu'].nunique()
+                                ort_blok_verimi = round(toplam_blok_uye / toplam_essiz_blok, 1) if toplam_essiz_blok > 0 else 0
+                                
+                                df_frez_uretim = df_arsiv_alt[df_arsiv_alt['islem_turu'] == 'Üretim (Frez)']
+                                toplam_essiz_frez = df_frez_uretim['stok_kodu'].nunique()
 
-                        secilen_arsiv_urun = st.selectbox(
-                            "🔍 Detaylı İncelemek veya İşlem Yapmak İçin Ürün Seçin", 
-                            ["— Seçiniz —"] + islem_secenekleri,
-                            key="arsiv_islem_urun"
-                        )
-                        
-                        if secilen_arsiv_urun != "— Seçiniz —":
-                            secilen_kod = secilen_arsiv_urun.split("|")[0].strip()
-                            secilen_durum = secilen_arsiv_urun.split("-")[-1].strip()
-                            
-                            st.markdown(f"#### 🏷️ Malzeme Detay Kartı: {secilen_kod}")
-                            df_urun_detay = df_arsiv[df_arsiv['stok_kodu'] == secilen_kod].copy()
-                            
-                            if not df_urun_detay.empty:
-                                with st.container(border=True):
-                                    mc1, mc2, mc3 = st.columns(3)
-                                    mc1.metric("Stok Kodu", secilen_kod)
-                                    mc2.metric("Ürün Adı", str(df_urun_detay.iloc[0]['urun_adi']))
-                                    mc3.metric("Güncel Durum", secilen_durum)
-                                    
-                                    t1, t2 = st.tabs(["🦷 Hasta / Kullanım Geçmişi", "📦 Stok Hareketleri"])
-                                    
-                                    with t1:
-                                        df_hasta = df_urun_detay[df_urun_detay['islem_turu'].str.contains('Üretim')].copy()
-                                        if not df_hasta.empty:
-                                            df_hasta_show = df_hasta[['tarih', 'aciklama', 'yapilan_is', 'miktar_veya_uye', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'aciklama': 'Hasta / İş Adı', 'yapilan_is': 'Yapılan İş', 'miktar_veya_uye': 'Miktar/Dk', 'sistem_kullanici': 'Kullanıcı'})
-                                            st.dataframe(df_hasta_show, hide_index=True, use_container_width=True)
-                                        else:
-                                            st.info("Bu malzeme ile henüz bir üretim kaydı bulunmamaktadır.")
-                                            
-                                    with t2:
-                                        df_stok = df_urun_detay[~df_urun_detay['islem_turu'].str.contains('Üretim')].copy()
-                                        if not df_stok.empty:
-                                            df_stok_show = df_stok[['tarih', 'islem_turu', 'aciklama', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'islem_turu': 'İşlem', 'aciklama': 'Açıklama', 'sistem_kullanici': 'Kullanıcı'})
-                                            st.dataframe(df_stok_show, hide_index=True, use_container_width=True)
-                                        else:
-                                            st.info("Stok hareket kaydı bulunmamaktadır.")
-                                            
-                            st.markdown("##### ⚡ Hızlı İşlemler")
-                            c1, c2 = st.columns(2)
-                            with c1:
-                                if secilen_durum == "Pasif":
-                                    if st.button("⏪ Arşivden Çıkar (Aktife Al)", use_container_width=True):
-                                        c.execute("DELETE FROM malzeme_arsivi WHERE Urun_Kodu=?", (secilen_kod,))
-                                        c.execute("UPDATE cam_bloklar SET Durum='Yarım' WHERE Blok_Kodu=?", (secilen_kod,))
-                                        c.execute("UPDATE aktif_frezler SET durum='Aktif' WHERE frez_kod=?", (secilen_kod,))
-                                        conn.commit()
-                                        st.success(f"{secilen_kod} başarıyla aktif hale getirildi.")
-                                        st.rerun()
+                                m1, m2, m3, m4 = st.columns(4)
+                                m1.metric("Toplam Üretilen Üye (Blok)", f"{int(toplam_blok_uye)}")
+                                m2.metric("Blok Başı Ortalama Verim", f"{ort_blok_verimi} Üye")
+                                m3.metric("Kullanılan Toplam Frez", f"{toplam_essiz_frez} Adet")
+                                
+                                if kategori_adi == "FREZ":
+                                    st.markdown("##### ⏱️ Frez Çeşitlerine Göre Performans")
+                                    if not df_frez_uretim.empty:
+                                        df_frez_grup = df_frez_uretim.groupby('urun_adi').agg(
+                                            Toplam_Dk=('harcanan_dk', 'sum'),
+                                            Frez_Sayisi=('stok_kodu', 'nunique')
+                                        ).reset_index()
+                                        df_frez_grup['Ortalama_Dk'] = (df_frez_grup['Toplam_Dk'] / df_frez_grup['Frez_Sayisi']).round(1)
+                                        
+                                        f_cols = st.columns(max(1, len(df_frez_grup)))
+                                        for idx, r in df_frez_grup.iterrows():
+                                            f_cols[idx % len(f_cols)].metric(r['urun_adi'], f"{r['Ortalama_Dk']} Dk/Frez", f"Toplam: {r['Frez_Sayisi']} Adet")
+                                    else:
+                                        st.caption("Henüz frez üretim verisi yok.")
+                                
+                                st.markdown("---")
+                                st.markdown("##### 🗂️ Tüm Malzemeler (Özet Liste)")
+                                if not df_liste_alt.empty:
+                                    st.dataframe(df_liste_alt.style.map(color_durum_liste, subset=["Durum"]), hide_index=True, use_container_width=True)
                                 else:
-                                    st.info("Bu malzeme zaten 'Aktif' durumda. Arşive kaldırılmamış.")
+                                    st.dataframe(df_liste_alt, hide_index=True, use_container_width=True)
                                     
-                            with c2:
-                                if st.button("🗑️ Kalıcı Olarak Sil", type="primary", use_container_width=True):
-                                    c.execute("DELETE FROM malzeme_arsivi WHERE Urun_Kodu=?", (secilen_kod,))
-                                    c.execute("DELETE FROM uretim_loglari WHERE malzeme_kodu=?", (secilen_kod,))
-                                    c.execute("DELETE FROM cam_bloklar WHERE Blok_Kodu=?", (secilen_kod,))
-                                    c.execute("DELETE FROM aktif_frezler WHERE frez_kod=?", (secilen_kod,))
-                                    conn.commit()
-                                    st.success(f"{secilen_kod} ve tüm geçmişi sistemden tamamen silindi.")
-                                    st.rerun()
+                                st.markdown("---")
+                                st.markdown("<h5 style='color:#38bdf8;margin-bottom:8px;'>⚡ Arşiv İşlemleri & Detay Kartı</h5>", unsafe_allow_html=True)
+                                
+                                islem_secenekleri = [f"{r['Stok Kodu']} | {r['Ürün Adı']} - {r['Durum']}" for _, r in df_liste_alt.iterrows()]
+                                secilen_arsiv_urun = st.selectbox(
+                                    "🔍 Detaylı İncelemek veya İşlem Yapmak İçin Ürün Seçin", 
+                                    ["— Seçiniz —"] + islem_secenekleri,
+                                    key=f"arsiv_islem_urun_{kategori_adi}"
+                                )
+                                
+                                if secilen_arsiv_urun != "— Seçiniz —":
+                                    secilen_kod = secilen_arsiv_urun.split("|")[0].strip()
+                                    secilen_durum = secilen_arsiv_urun.split("-")[-1].strip()
+                                    
+                                    st.markdown(f"#### 🏷️ Malzeme Detay Kartı: {secilen_kod}")
+                                    df_urun_detay = df_arsiv_alt[df_arsiv_alt['stok_kodu'] == secilen_kod].copy()
+                                    
+                                    if not df_urun_detay.empty:
+                                        with st.container(border=True):
+                                            mc1, mc2, mc3 = st.columns(3)
+                                            mc1.metric("Stok Kodu", secilen_kod)
+                                            mc2.metric("Ürün Adı", str(df_urun_detay.iloc[0]['urun_adi']))
+                                            mc3.metric("Güncel Durum", secilen_durum)
+                                            
+                                            t1, t2 = st.tabs(["🦷 Hasta / Kullanım Geçmişi", "📦 Stok Hareketleri"])
+                                            
+                                            with t1:
+                                                df_hasta = df_urun_detay[df_urun_detay['islem_turu'].str.contains('Üretim')].copy()
+                                                if not df_hasta.empty:
+                                                    df_hasta_show = df_hasta[['tarih', 'aciklama', 'yapilan_is', 'miktar_veya_uye', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'aciklama': 'Hasta / İş Adı', 'yapilan_is': 'Yapılan İş', 'miktar_veya_uye': 'Miktar/Dk', 'sistem_kullanici': 'Kullanıcı'})
+                                                    st.dataframe(df_hasta_show, hide_index=True, use_container_width=True)
+                                                else:
+                                                    st.info("Bu malzeme ile henüz bir üretim kaydı bulunmamaktadır.")
+                                                    
+                                            with t2:
+                                                df_stok = df_urun_detay[~df_urun_detay['islem_turu'].str.contains('Üretim')].copy()
+                                                if not df_stok.empty:
+                                                    df_stok_show = df_stok[['tarih', 'islem_turu', 'aciklama', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'islem_turu': 'İşlem', 'aciklama': 'Açıklama', 'sistem_kullanici': 'Kullanıcı'})
+                                                    st.dataframe(df_stok_show, hide_index=True, use_container_width=True)
+                                                else:
+                                                    st.info("Stok hareket kaydı bulunmamaktadır.")
+                                                    
+                                    st.markdown("##### ⚡ Hızlı İşlemler")
+                                    c1, c2 = st.columns(2)
+                                    with c1:
+                                        if secilen_durum == "Pasif":
+                                            if st.button("⏪ Arşivden Çıkar (Aktife Al)", use_container_width=True, key=f"btn_aktif_{secilen_kod}"):
+                                                c.execute("DELETE FROM malzeme_arsivi WHERE Urun_Kodu=?", (secilen_kod,))
+                                                c.execute("UPDATE cam_bloklar SET Durum='Yarım' WHERE Blok_Kodu=?", (secilen_kod,))
+                                                c.execute("UPDATE aktif_frezler SET durum='Aktif' WHERE frez_kod=?", (secilen_kod,))
+                                                conn.commit()
+                                                st.success(f"{secilen_kod} başarıyla aktif hale getirildi.")
+                                                st.rerun()
+                                    with c2:
+                                        if st.button("🗑️ Kalıcı Olarak Sil", use_container_width=True, key=f"btn_sil_{secilen_kod}"):
+                                            c.execute("DELETE FROM malzeme_arsivi WHERE Urun_Kodu=?", (secilen_kod,))
+                                            c.execute("DELETE FROM uretim_loglari WHERE malzeme_kodu=?", (secilen_kod,))
+                                            conn.commit()
+                                            st.success(f"{secilen_kod} arşivden ve sistemden tamamen silindi.")
+                                            st.rerun()
 
 
                         # =========================================================
