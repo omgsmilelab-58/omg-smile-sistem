@@ -2026,7 +2026,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             teslim_tarihi = c4.date_input("Teslim").strftime("%Y-%m-%d")
             
             # 2. SATIR: İşlem Seçimi ve Açıklama (TextArea yerine dar Text Input)
-            c5, c_rpt, c6 = st.columns([2.5, 1.2, 2.5])
+            c5, c_adet, c_rpt, c6 = st.columns([2.5, 0.8, 1.2, 2.5])
             hizmetler_lab = c.execute("SELECT Hizmet_Adi, Fiyat, Para_Birimi FROM fiyat_listesi WHERE Kategori=?", (kat_sec_lab,)).fetchall()
             if hizmetler_lab:
                 h_dict_lab = {f"{h[0]}": h for h in hizmetler_lab}
@@ -2035,13 +2035,18 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 secilen_lab = "-"
                 c5.warning("⚠️ Fiyat listesi yok.")
             
+            is_adet_input = c_adet.number_input("Adet", min_value=1, value=1)
             c_rpt.markdown("<br>", unsafe_allow_html=True)
             is_rpt = c_rpt.checkbox("🔄 RPT", help="Yeniden yapım (Bedelsiz)", value=False)
             aciklama = c6.text_input("Açıklama / Özel İstekler")
             
             # 🚨 MANUEL KAYIT İÇİNE ENTEGRE EDİLMİŞ CAM MODÜLÜ 🚨
             st.markdown("#### ⚙️ CAM İstasyonu Üretimi (Opsiyonel)")
-            cam_kullan = st.checkbox("Bu işi şu an makineye gönderiyorum (Blok ve Frez sarfiyatını şimdi düş)", value=False)
+            cam_yok = st.checkbox("🚫 Bu işlemde CAM Sarfiyatı YOKTUR", value=False)
+            if cam_yok:
+                cam_kullan = False
+            else:
+                cam_kullan = st.checkbox("Bu işi şu an makineye gönderiyorum (Blok ve Frez sarfiyatını şimdi düş)", value=False)
             
             b_kodu = None; harcanan_uye_m = 0; secili_makine_m = None; frez_basina_dk_m = 0; sec_frezler_m = []; harcanan_dk_m = 0
             
@@ -2049,7 +2054,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 with st.container(border=True):
                     col_mak_m, col_uye_m, col_mbos_m = st.columns([2, 0.8, 3])
                     secili_makine_m = col_mak_m.selectbox("Kazıma Yapılan Makine", kazima_makinelerini_getir(), key="m_mak")
-                    harcanan_uye_m = col_uye_m.number_input("Kazınan Üye", min_value=1, value=1, key="m_uye")
+                    harcanan_uye_m = col_uye_m.number_input("Kazınan Üye", min_value=1, value=int(is_adet_input), key="m_uye")
                     
                     cam_b_m = c.execute("SELECT Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye FROM cam_bloklar WHERE Durum='Yarım'").fetchall()
                     cam_f_m = c.execute("SELECT frez_kod, frez_adi, yuva_no, toplam_omur_dk, kullanilan_dk FROM aktif_frezler WHERE makine_adi=? AND durum='Aktif'", (secili_makine_m,)).fetchall()
@@ -2108,9 +2113,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         harcanan_m_metni = f"CAM: {b_kodu} ({harcanan_uye_m} Üye), Makine: {secili_makine_m}, Takımlar: {frezler_str}, Top. {harcanan_dk_m} Dk"
 
                     # Her şeyi ana tabloya kaydet
-                    is_adet = harcanan_uye_m if (cam_kullan and harcanan_uye_m > 0) else 1
+                    if cam_yok:
+                        harcanan_m_metni = "CAM YOK"
+                    
+                    is_adet_son = harcanan_uye_m if (cam_kullan and harcanan_uye_m > 0) else int(is_adet_input)
                     c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama, Hasta_Kodu, Adet) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                              (tarih_saat, k_secim, ha, islem_adi, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", harcanan_m_metni, teslim_tarihi, "-", "-", "-", aciklama if aciklama else "-", h_kodu, is_adet))
+                              (tarih_saat, k_secim, ha, islem_adi, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", harcanan_m_metni, teslim_tarihi, "-", "-", "-", aciklama if aciklama else "-", h_kodu, is_adet_son))
                     yeni_id = c.lastrowid
                     onek = ayar_getir("Barkod_Onek", "OMG")
                     yeni_barkod = f"{onek}-{yeni_id:06d}"
@@ -2429,148 +2437,153 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 st.download_button("📄 Dijital Sertifikayı İndir", data=pdf_data, file_name=f"{mevcut_cert}_Sertifika.pdf", mime="application/pdf", use_container_width=True)
 
                     with t4:
-                        # 🚨 NORMAL STOK SİLİNDİ, SADECE HEKİM İŞLERİ İÇİN CAM SARFİYATI BIRAKILDI 🚨
-                        
                         mevcut_malzeme_row = c.execute("SELECT Harcanan_Malzeme FROM isler WHERE id=?", (s_rowid,)).fetchone()
                         mevcut_malzeme = mevcut_malzeme_row[0] if mevcut_malzeme_row and mevcut_malzeme_row[0] != "-" else ""
+
+                        if mevcut_malzeme == "CAM YOK":
+                            st.info("🚫 Bu iş, başlangıçta 'CAM Sarfiyatı YOKTUR' olarak işaretlenmiştir.")
+                            st.warning("Bu alana sonradan sarfiyat eklenemez. Eğer yanlış girildiyse, işi silip tekrar doğru şekilde girmelisiniz.")
+                        else:
+                            # 🚨 NORMAL STOK SİLİNDİ, SADECE HEKİM İŞLERİ İÇİN CAM SARFİYATI BIRAKILDI 🚨
                         
-                        eski_b_kodu = ""
-                        eski_uye = 1
-                        eski_makine = ""
-                        eski_dk = 0
-                        eski_frez_basina = 0
-                        eski_frezler_str = ""
                         
-                        import re
-                        if mevcut_malzeme:
-                            # Önceki kayıtlı metni ayrıştır
-                            match = re.search(r"CAM:\s*(.*?)\s*\((\d+)\s*Üye\),\s*Makine:\s*(.*?),\s*(?:(?:Takımlar|Frezler):\s*(.*?),\s*)?Top\.\s*(\d+)\s*Dk(?:\s*\(Takım başı (\d+)\s*Dk\))?", mevcut_malzeme)
-                            if match:
-                                eski_b_kodu = match.group(1).strip()
-                                eski_uye = int(match.group(2))
-                                eski_makine = match.group(3).strip()
-                                eski_frezler_str = match.group(4) if match.group(4) else ""
-                                eski_dk = int(match.group(5))
-                                eski_frez_basina = int(match.group(6)) if match.group(6) else 0
-                            else:
-                                # Eski formatsız veriyi kurtarmaya çalış
-                                match2 = re.search(r"CAM: (.*?) \((\d+) Üye\), Makine: (.*?), Top\. (\d+) Dk", mevcut_malzeme)
-                                if match2:
-                                    eski_b_kodu = match2.group(1).strip()
-                                    eski_uye = int(match2.group(2))
-                                    eski_makine = match2.group(3).strip()
-                                    eski_dk = int(match2.group(4))
+                            eski_b_kodu = ""
+                            eski_uye = 1
+                            eski_makine = ""
+                            eski_dk = 0
+                            eski_frez_basina = 0
+                            eski_frezler_str = ""
+                        
+                            import re
+                            if mevcut_malzeme:
+                                # Önceki kayıtlı metni ayrıştır
+                                match = re.search(r"CAM:\s*(.*?)\s*\((\d+)\s*Üye\),\s*Makine:\s*(.*?),\s*(?:(?:Takımlar|Frezler):\s*(.*?),\s*)?Top\.\s*(\d+)\s*Dk(?:\s*\(Takım başı (\d+)\s*Dk\))?", mevcut_malzeme)
+                                if match:
+                                    eski_b_kodu = match.group(1).strip()
+                                    eski_uye = int(match.group(2))
+                                    eski_makine = match.group(3).strip()
+                                    eski_frezler_str = match.group(4) if match.group(4) else ""
+                                    eski_dk = int(match.group(5))
+                                    eski_frez_basina = int(match.group(6)) if match.group(6) else 0
+                                else:
+                                    # Eski formatsız veriyi kurtarmaya çalış
+                                    match2 = re.search(r"CAM: (.*?) \((\d+) Üye\), Makine: (.*?), Top\. (\d+) Dk", mevcut_malzeme)
+                                    if match2:
+                                        eski_b_kodu = match2.group(1).strip()
+                                        eski_uye = int(match2.group(2))
+                                        eski_makine = match2.group(3).strip()
+                                        eski_dk = int(match2.group(4))
                                 
-                        makineler_list = kazima_makinelerini_getir()
-                        def_makine_idx = makineler_list.index(eski_makine) if eski_makine in makineler_list else 0
+                            makineler_list = kazima_makinelerini_getir()
+                            def_makine_idx = makineler_list.index(eski_makine) if eski_makine in makineler_list else 0
                         
-                        col_mak, col_uye, col_mbos = st.columns([2, 0.8, 3])
-                        secili_makine = col_mak.selectbox("Kazıma Yapılan Makine", makineler_list, index=def_makine_idx, key=f"t4_mak_{s_rowid}")
-                        harcanan_uye = col_uye.number_input("Kazınan Üye", min_value=1, value=eski_uye, key=f"t4_uye_{s_rowid}")
+                            col_mak, col_uye, col_mbos = st.columns([2, 0.8, 3])
+                            secili_makine = col_mak.selectbox("Kazıma Yapılan Makine", makineler_list, index=def_makine_idx, key=f"t4_mak_{s_rowid}")
+                            harcanan_uye = col_uye.number_input("Kazınan Üye", min_value=1, value=eski_uye, key=f"t4_uye_{s_rowid}")
                         
-                        cam_b = c.execute("SELECT Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye FROM cam_bloklar WHERE Durum='Yarım' OR Blok_Kodu=?", (eski_b_kodu,)).fetchall()
-                        cam_f = c.execute("SELECT frez_kod, frez_adi, yuva_no, toplam_omur_dk, kullanilan_dk FROM aktif_frezler WHERE makine_adi=? AND durum='Aktif'", (secili_makine,)).fetchall()
+                            cam_b = c.execute("SELECT Blok_Kodu, Urun_Adi, Boyut_Renk, Kalan_Uye FROM cam_bloklar WHERE Durum='Yarım' OR Blok_Kodu=?", (eski_b_kodu,)).fetchall()
+                            cam_f = c.execute("SELECT frez_kod, frez_adi, yuva_no, toplam_omur_dk, kullanilan_dk FROM aktif_frezler WHERE makine_adi=? AND durum='Aktif'", (secili_makine,)).fetchall()
                         
-                        def_blok_idx = 0
-                        sec_blok_list = [f"{b[0]} | {b[1]} {b[2]} (Kalan: {b[3]} Üye)" for b in cam_b]
-                        if eski_b_kodu:
-                            for idx, b_str in enumerate(sec_blok_list):
-                                if b_str.startswith(eski_b_kodu):
-                                    def_blok_idx = idx
-                                    break
+                            def_blok_idx = 0
+                            sec_blok_list = [f"{b[0]} | {b[1]} {b[2]} (Kalan: {b[3]} Üye)" for b in cam_b]
+                            if eski_b_kodu:
+                                for idx, b_str in enumerate(sec_blok_list):
+                                    if b_str.startswith(eski_b_kodu):
+                                        def_blok_idx = idx
+                                        break
                                     
-                        sec_frez_list = [f"{f[0]} | {f[2]} - {f[1]} (Kalan: {f[3]-f[4]} Dk)" for f in cam_f]
-                        def_frezler = []
-                        if eski_frezler_str:
-                            eski_frezler = [x.strip() for x in eski_frezler_str.split(",")]
-                            for f_str in sec_frez_list:
-                                if f_str.split("|")[0].strip() in eski_frezler:
-                                    def_frezler.append(f_str)
+                            sec_frez_list = [f"{f[0]} | {f[2]} - {f[1]} (Kalan: {f[3]-f[4]} Dk)" for f in cam_f]
+                            def_frezler = []
+                            if eski_frezler_str:
+                                eski_frezler = [x.strip() for x in eski_frezler_str.split(",")]
+                                for f_str in sec_frez_list:
+                                    if f_str.split("|")[0].strip() in eski_frezler:
+                                        def_frezler.append(f_str)
                         
-                        if cam_b and cam_f:
-                            c_b, c_f = st.columns(2)
-                            sec_blok = c_b.selectbox("İşlenen Zirkonyum Blok", sec_blok_list, index=def_blok_idx, key=f"t4_blok_{s_rowid}")
-                            sec_frezler = c_f.multiselect("Kullanılan Frezler (Çoklu Seçim)", sec_frez_list, default=def_frezler, key=f"t4_frez_{s_rowid}")
+                            if cam_b and cam_f:
+                                c_b, c_f = st.columns(2)
+                                sec_blok = c_b.selectbox("İşlenen Zirkonyum Blok", sec_blok_list, index=def_blok_idx, key=f"t4_blok_{s_rowid}")
+                                sec_frezler = c_f.multiselect("Kullanılan Frezler (Çoklu Seçim)", sec_frez_list, default=def_frezler, key=f"t4_frez_{s_rowid}")
                             
-                            tm1, tm2, tm_bos = st.columns([1.2, 1.2, 4])
+                                tm1, tm2, tm_bos = st.columns([1.2, 1.2, 4])
                             
-                            b_time = datetime.strptime("09:00", "%H:%M").time()
-                            bt_time = datetime.strptime("09:45", "%H:%M").time()
-                            if eski_dk > 0:
-                                bt_time = (datetime.combine(datetime.today(), b_time) + timedelta(minutes=eski_dk)).time()
+                                b_time = datetime.strptime("09:00", "%H:%M").time()
+                                bt_time = datetime.strptime("09:45", "%H:%M").time()
+                                if eski_dk > 0:
+                                    bt_time = (datetime.combine(datetime.today(), b_time) + timedelta(minutes=eski_dk)).time()
                                 
-                            baslama_saati_str = tm1.text_input("Başlama (SS:DD)", value=b_time.strftime("%H:%M"), key=f"t4_bas_{s_rowid}")
-                            bitis_saati_str = tm2.text_input("Bitiş (SS:DD)", value=bt_time.strftime("%H:%M"), key=f"t4_bit_{s_rowid}")
-                            try:
-                                baslama_saati = datetime.strptime(baslama_saati_str.strip(), "%H:%M").time()
-                                bitis_saati = datetime.strptime(bitis_saati_str.strip(), "%H:%M").time()
-                            except:
-                                baslama_saati = b_time
-                                bitis_saati = bt_time
-                                st.error("Lütfen saatleri geçerli SS:DD formatında giriniz (Örn: 14:30)")
-                            tm1.caption("💡 Klavyeden yazabilirsiniz.")
+                                baslama_saati_str = tm1.text_input("Başlama (SS:DD)", value=b_time.strftime("%H:%M"), key=f"t4_bas_{s_rowid}")
+                                bitis_saati_str = tm2.text_input("Bitiş (SS:DD)", value=bt_time.strftime("%H:%M"), key=f"t4_bit_{s_rowid}")
+                                try:
+                                    baslama_saati = datetime.strptime(baslama_saati_str.strip(), "%H:%M").time()
+                                    bitis_saati = datetime.strptime(bitis_saati_str.strip(), "%H:%M").time()
+                                except:
+                                    baslama_saati = b_time
+                                    bitis_saati = bt_time
+                                    st.error("Lütfen saatleri geçerli SS:DD formatında giriniz (Örn: 14:30)")
+                                tm1.caption("💡 Klavyeden yazabilirsiniz.")
                             
-                            start_dt = datetime.combine(datetime.today(), baslama_saati); end_dt = datetime.combine(datetime.today(), bitis_saati)
-                            if end_dt < start_dt: end_dt += timedelta(days=1) 
-                            harcanan_dk = int((end_dt - start_dt).total_seconds() / 60)
-                            frez_sayisi = len(sec_frezler) if len(sec_frezler) > 0 else 1
-                            frez_basina_dk = int(harcanan_dk / frez_sayisi)
+                                start_dt = datetime.combine(datetime.today(), baslama_saati); end_dt = datetime.combine(datetime.today(), bitis_saati)
+                                if end_dt < start_dt: end_dt += timedelta(days=1) 
+                                harcanan_dk = int((end_dt - start_dt).total_seconds() / 60)
+                                frez_sayisi = len(sec_frezler) if len(sec_frezler) > 0 else 1
+                                frez_basina_dk = int(harcanan_dk / frez_sayisi)
                             
-                            btn_text = "⚙️ CAM Sarfiyatını Güncelle" if mevcut_malzeme else "⚙️ CAM Sarfiyatını Kaydet"
+                                btn_text = "⚙️ CAM Sarfiyatını Güncelle" if mevcut_malzeme else "⚙️ CAM Sarfiyatını Kaydet"
                             
-                            if st.button(btn_text, type="primary"):
-                                if sec_frezler and harcanan_dk > 0:
-                                    if mevcut_malzeme and eski_b_kodu:
-                                        c.execute("UPDATE cam_bloklar SET Kalan_Uye = Kalan_Uye + ?, Durum='Yarım' WHERE Blok_Kodu=?", (eski_uye, eski_b_kodu))
-                                        if eski_frezler_str:
-                                            eski_frezler_list = [x.strip() for x in eski_frezler_str.split(",")]
-                                            for f_kod in eski_frezler_list:
-                                                c.execute("UPDATE aktif_frezler SET kullanilan_dk = MAX(0, kullanilan_dk - ?) WHERE frez_kod=?", (eski_frez_basina, f_kod))
+                                if st.button(btn_text, type="primary"):
+                                    if sec_frezler and harcanan_dk > 0:
+                                        if mevcut_malzeme and eski_b_kodu:
+                                            c.execute("UPDATE cam_bloklar SET Kalan_Uye = Kalan_Uye + ?, Durum='Yarım' WHERE Blok_Kodu=?", (eski_uye, eski_b_kodu))
+                                            if eski_frezler_str:
+                                                eski_frezler_list = [x.strip() for x in eski_frezler_str.split(",")]
+                                                for f_kod in eski_frezler_list:
+                                                    c.execute("UPDATE aktif_frezler SET kullanilan_dk = MAX(0, kullanilan_dk - ?) WHERE frez_kod=?", (eski_frez_basina, f_kod))
                                 
-                                    b_kodu = sec_blok.split("|")[0].strip()
-                                    mevcut_uye = c.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (b_kodu,)).fetchone()[0]
-                                    yeni_uye = mevcut_uye - harcanan_uye
-                                    c.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Durum=? WHERE Blok_Kodu=?", (yeni_uye, "Bitti" if yeni_uye <= 0 else "Yarım", b_kodu))
+                                        b_kodu = sec_blok.split("|")[0].strip()
+                                        mevcut_uye = c.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (b_kodu,)).fetchone()[0]
+                                        yeni_uye = mevcut_uye - harcanan_uye
+                                        c.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Durum=? WHERE Blok_Kodu=?", (yeni_uye, "Bitti" if yeni_uye <= 0 else "Yarım", b_kodu))
                                     
-                                    frez_isimleri = []
-                                    for fr in sec_frezler:
-                                        f_kodu = fr.split("|")[0].strip()
-                                        frez_isimleri.append(f_kodu)
-                                        mevcut = c.execute("SELECT toplam_omur_dk, kullanilan_dk FROM aktif_frezler WHERE frez_kod=?", (f_kodu,)).fetchone()
-                                        c.execute("UPDATE aktif_frezler SET kullanilan_dk=? WHERE frez_kod=?", (mevcut[1] + frez_basina_dk, f_kodu))
+                                        frez_isimleri = []
+                                        for fr in sec_frezler:
+                                            f_kodu = fr.split("|")[0].strip()
+                                            frez_isimleri.append(f_kodu)
+                                            mevcut = c.execute("SELECT toplam_omur_dk, kullanilan_dk FROM aktif_frezler WHERE frez_kod=?", (f_kodu,)).fetchone()
+                                            c.execute("UPDATE aktif_frezler SET kullanilan_dk=? WHERE frez_kod=?", (mevcut[1] + frez_basina_dk, f_kodu))
                                     
-                                    yeni_cam_m = f"CAM: {b_kodu} ({harcanan_uye} Üye), Makine: {secili_makine}, Frezler: {','.join(frez_isimleri)}, Top. {harcanan_dk} Dk (Takım başı {frez_basina_dk} Dk)"
-                                    c.execute("UPDATE isler SET Harcanan_Malzeme=? WHERE id=?", (yeni_cam_m, s_rowid))
+                                        yeni_cam_m = f"CAM: {b_kodu} ({harcanan_uye} Üye), Makine: {secili_makine}, Frezler: {','.join(frez_isimleri)}, Top. {harcanan_dk} Dk (Takım başı {frez_basina_dk} Dk)"
+                                        c.execute("UPDATE isler SET Harcanan_Malzeme=? WHERE id=?", (yeni_cam_m, s_rowid))
                                     
-                                    # 🔒 KRİTİK KABURGA: ESKİ LOG KAYITLARINI SİL, YENİSİNİ YAZ
-                                    # Bu sayede aynı iş için asla çift blok/frez kaydı oluşmaz
-                                    c.execute("DELETE FROM uretim_loglari WHERE is_id=?", (s_rowid,))
+                                        # 🔒 KRİTİK KABURGA: ESKİ LOG KAYITLARINI SİL, YENİSİNİ YAZ
+                                        # Bu sayede aynı iş için asla çift blok/frez kaydı oluşmaz
+                                        c.execute("DELETE FROM uretim_loglari WHERE is_id=?", (s_rowid,))
                                     
-                                    is_adi_gunc = f"{secili_is['Klinik_Unvani']} - {secili_is['Hasta_Adi']}" if hasattr(secili_is, '__getitem__') else f"İş #{s_rowid}"
-                                    b_adi_gunc = sec_blok.split("|")[1].split("(")[0].strip() if "|" in sec_blok else b_kodu
-                                    tarih_gunc = datetime.now().strftime("%Y-%m-%d %H:%M")
-                                    try:
-                                        c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih, dakika) VALUES (?,?,?,?,?,?,?,?)",
-                                                  (s_rowid, is_adi_gunc, "Blok", b_kodu, b_adi_gunc, harcanan_uye, tarih_gunc, harcanan_dk))
-                                    except:
-                                        c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih) VALUES (?,?,?,?,?,?,?)",
-                                                  (s_rowid, is_adi_gunc, "Blok", b_kodu, b_adi_gunc, harcanan_uye, tarih_gunc))
-                                    
-                                    for fr_log in sec_frezler:
-                                        f_kodu_log = fr_log.split("|")[0].strip()
-                                        f_adi_log = fr_log.split("|")[1].split("(")[0].strip().replace("-", "").strip() if "|" in fr_log else f_kodu_log
+                                        is_adi_gunc = f"{secili_is['Klinik_Unvani']} - {secili_is['Hasta_Adi']}" if hasattr(secili_is, '__getitem__') else f"İş #{s_rowid}"
+                                        b_adi_gunc = sec_blok.split("|")[1].split("(")[0].strip() if "|" in sec_blok else b_kodu
+                                        tarih_gunc = datetime.now().strftime("%Y-%m-%d %H:%M")
                                         try:
                                             c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih, dakika) VALUES (?,?,?,?,?,?,?,?)",
-                                                      (s_rowid, is_adi_gunc, "Frez", f_kodu_log, f_adi_log, harcanan_uye, tarih_gunc, frez_basina_dk))
+                                                      (s_rowid, is_adi_gunc, "Blok", b_kodu, b_adi_gunc, harcanan_uye, tarih_gunc, harcanan_dk))
                                         except:
                                             c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih) VALUES (?,?,?,?,?,?,?)",
-                                                      (s_rowid, is_adi_gunc, "Frez", f_kodu_log, f_adi_log, harcanan_uye, tarih_gunc))
-                                    # -----------------------------------------------------------
-                                    conn.commit(); st.success("CAM Sarfiyatı Güncellendi!"); st.rerun()
-                                else:
-                                    st.error("Lütfen en az bir frez seçin ve bitiş saatinin başlangıçtan sonra olduğundan emin olun.")
-                        else:
-                            st.warning("Seçilen makinede aktif frez veya sistemde yarım zirkonyum blok bulunamadı.")
+                                                      (s_rowid, is_adi_gunc, "Blok", b_kodu, b_adi_gunc, harcanan_uye, tarih_gunc))
+                                    
+                                        for fr_log in sec_frezler:
+                                            f_kodu_log = fr_log.split("|")[0].strip()
+                                            f_adi_log = fr_log.split("|")[1].split("(")[0].strip().replace("-", "").strip() if "|" in fr_log else f_kodu_log
+                                            try:
+                                                c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih, dakika) VALUES (?,?,?,?,?,?,?,?)",
+                                                          (s_rowid, is_adi_gunc, "Frez", f_kodu_log, f_adi_log, harcanan_uye, tarih_gunc, frez_basina_dk))
+                                            except:
+                                                c.execute("INSERT INTO uretim_loglari (is_id, is_adi, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, tarih) VALUES (?,?,?,?,?,?,?)",
+                                                          (s_rowid, is_adi_gunc, "Frez", f_kodu_log, f_adi_log, harcanan_uye, tarih_gunc))
+                                        # -----------------------------------------------------------
+                                        conn.commit(); st.success("CAM Sarfiyatı Güncellendi!"); st.rerun()
+                                    else:
+                                        st.error("Lütfen en az bir frez seçin ve bitiş saatinin başlangıçtan sonra olduğundan emin olun.")
+                            else:
+                                st.warning("Seçilen makinede aktif frez veya sistemde yarım zirkonyum blok bulunamadı.")
                     with t5:
                         st.markdown("#### 🔥 Sinter Sarfiyatı Kaydı")
                         st.caption("İşin geçtiği sinter fırınlarını ve kalma sürelerini (dakika) seçiniz.")
