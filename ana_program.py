@@ -4144,7 +4144,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         st.info("Arşivlenmiş malzeme veya üretim logu bulunmamaktadır.")
                     else:
                         # SQLite / PostgreSQL Alias farklarını yok etmek için kolonları Pandas seviyesinde zorla:
-                        df_arsiv.columns = ["stok_kodu", "urun_adi", "miktar_veya_uye", "islem_turu", "aciklama", "tarih", "harcanan_dk", "sistem_kullanici", "durum"]
+                        df_arsiv.columns = ["stok_kodu", "urun_adi", "miktar_veya_uye", "islem_turu", "aciklama", "tarih", "harcanan_dk", "sistem_kullanici", "durum", "yapilan_is"]
                         
                         st.markdown("<br>", unsafe_allow_html=True)
                         col_ma, _ = st.columns([2, 4])
@@ -4260,7 +4260,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     with t1:
                                         df_hasta = df_urun_detay[df_urun_detay['islem_turu'].str.contains('Üretim')].copy()
                                         if not df_hasta.empty:
-                                            df_hasta_show = df_hasta[['tarih', 'aciklama', 'miktar_veya_uye', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'aciklama': 'Hasta / İş Adı', 'miktar_veya_uye': 'Miktar/Dk', 'sistem_kullanici': 'Kullanıcı'})
+                                            df_hasta_show = df_hasta[['tarih', 'aciklama', 'yapilan_is', 'miktar_veya_uye', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'aciklama': 'Hasta / İş Adı', 'yapilan_is': 'Yapılan İş', 'miktar_veya_uye': 'Miktar/Dk', 'sistem_kullanici': 'Kullanıcı'})
                                             st.dataframe(df_hasta_show, hide_index=True, use_container_width=True)
                                         else:
                                             st.info("Bu malzeme ile henüz bir üretim kaydı bulunmamaktadır.")
