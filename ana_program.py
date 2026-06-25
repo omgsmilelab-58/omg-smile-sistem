@@ -2306,20 +2306,22 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             conn.commit(); st.rerun()
                             
                         if c_btn2.button("🗑️ İşi Tamamen Sil", type="primary", use_container_width=True, key=f"is_sil_t1_{s_rowid}"):
-                            h_malz = c.execute("SELECT Harcanan_Malzeme FROM isler WHERE id=?", (s_rowid,)).fetchone()
-                            if h_malz and h_malz[0] and "CAM:" in h_malz[0]:
-                                import re
-                                match = re.search(r"CAM:\s*(.*?)\s*\((.*?)\s*Üye\)", h_malz[0])
-                                if match:
-                                    iade_blok = match.group(1).strip()
-                                    try:
-                                        iade_uye = float(match.group(2).strip())
-                                        mevcut_blok = c.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (iade_blok,)).fetchone()
-                                        if mevcut_blok:
-                                            yeni_iade_uye = mevcut_blok[0] + iade_uye
-                                            c.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Durum=? WHERE Blok_Kodu=?", (yeni_iade_uye, 'Yarım', iade_blok))
-                                    except:
-                                        pass
+                            # --- STOK VE FREZ İADE İŞLEMİ (Otomatik) ---
+                            uretimler = c.execute("SELECT malzeme_turu, malzeme_kodu, uye_sayisi, dakika FROM uretim_loglari WHERE is_id=?", (s_rowid,)).fetchall()
+                            for u in uretimler:
+                                m_turu, m_kodu, m_uye, m_dk = u
+                                if m_turu == 'Blok':
+                                    mevcut_blok = c.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (m_kodu,)).fetchone()
+                                    if mevcut_blok:
+                                        yeni_iade_uye = mevcut_blok[0] + m_uye
+                                        c.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Durum='Yarım' WHERE Blok_Kodu=?", (yeni_iade_uye, m_kodu))
+                                elif m_turu == 'Frez':
+                                    mevcut_frez = c.execute("SELECT kullanilan_dk FROM aktif_frezler WHERE frez_kod=? AND durum!='Kırıldı' AND durum!='Ömrü Doldu'", (m_kodu,)).fetchone()
+                                    if mevcut_frez:
+                                        yeni_kullanilan = max(0, mevcut_frez[0] - m_dk)
+                                        c.execute("UPDATE aktif_frezler SET kullanilan_dk=? WHERE frez_kod=? AND durum!='Kırıldı' AND durum!='Ömrü Doldu'", (yeni_kullanilan, m_kodu))
+                            c.execute("DELETE FROM uretim_loglari WHERE is_id=?", (s_rowid,))
+                            # --------------------------------------------
                             c.execute("DELETE FROM is_fotograflari WHERE Is_ID=?", (s_rowid,))
                             c.execute("DELETE FROM is_3d_modelleri WHERE Is_ID=?", (s_rowid,))
                             c.execute("DELETE FROM isler WHERE id=?", (s_rowid,))
@@ -6092,31 +6094,42 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 
                         st.markdown("---")
                         st.markdown("#### 🔄 Hata Düzeltme & İadeler")
-                        st.caption("Eskiden silinmiş işlere ait blok sarfiyatlarını tespit edip stoğa geri yükler.")
-                        if st.button("Silinen İşlerin Bloklarını İade Et", type="primary"):
+                        st.caption("Eskiden silinmiş işlere ait blok ve frez sarfiyatlarını tespit edip stoğa/ömre geri yükler.")
+                        if st.button("Silinen İşlerin Sarfiyatlarını (Blok & Frez) İade Et", type="primary"):
                             try:
                                 import db_baglanti
                                 conn2 = db_baglanti.get_connection()
                                 c2 = conn2.cursor()
-                                c2.execute('''SELECT is_id, is_adi, malzeme_turu, malzeme_kodu, uye_sayisi, tarih 
+                                c2.execute('''SELECT is_id, malzeme_turu, malzeme_kodu, uye_sayisi, dakika 
                                              FROM uretim_loglari 
-                                             WHERE is_id NOT IN (SELECT id FROM isler) AND malzeme_turu = 'Blok' ''')
+                                             WHERE is_id NOT IN (SELECT id FROM isler)''')
                                 orphaned_logs = c2.fetchall()
                                 if not orphaned_logs:
-                                    st.success("İade edilecek askıda kalmış sarfiyat bulunamadı.")
+                                    st.success("İade edilecek askıda kalmış sarfiyat (Blok veya Frez) bulunamadı.")
                                 else:
-                                    iade_sayisi = 0
+                                    blok_iade = 0
+                                    frez_iade = 0
                                     for log in orphaned_logs:
-                                        is_id, is_adi, m_turu, b_kodu, uye_sayisi, tarih = log
-                                        c2.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (b_kodu,))
-                                        mevcut_blok = c2.fetchone()
-                                        if mevcut_blok:
-                                            yeni_kalan = mevcut_blok[0] + uye_sayisi
-                                            c2.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Durum='Yarım' WHERE Blok_Kodu=?", (yeni_kalan, b_kodu))
-                                            c2.execute("DELETE FROM uretim_loglari WHERE is_id=? AND malzeme_turu='Blok'", (is_id,))
-                                            iade_sayisi += 1
+                                        is_id, m_turu, m_kodu, m_uye, m_dk = log
+                                        if m_turu == 'Blok':
+                                            c2.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (m_kodu,))
+                                            mevcut_blok = c2.fetchone()
+                                            if mevcut_blok:
+                                                yeni_kalan = mevcut_blok[0] + m_uye
+                                                c2.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Durum='Yarım' WHERE Blok_Kodu=?", (yeni_kalan, m_kodu))
+                                                blok_iade += 1
+                                        elif m_turu == 'Frez':
+                                            c2.execute("SELECT kullanilan_dk FROM aktif_frezler WHERE frez_kod=? AND durum!='Kırıldı' AND durum!='Ömrü Doldu'", (m_kodu,))
+                                            mevcut_frez = c2.fetchone()
+                                            if mevcut_frez:
+                                                yeni_kullanilan = max(0, mevcut_frez[0] - m_dk)
+                                                c2.execute("UPDATE aktif_frezler SET kullanilan_dk=? WHERE frez_kod=? AND durum!='Kırıldı' AND durum!='Ömrü Doldu'", (yeni_kullanilan, m_kodu))
+                                                frez_iade += 1
+                                        
+                                        # İşlendiğine dair logu sil
+                                        c2.execute("DELETE FROM uretim_loglari WHERE is_id=? AND malzeme_turu=? AND malzeme_kodu=?", (is_id, m_turu, m_kodu))
                                     conn2.commit()
-                                    st.success(f"Başarılı! Toplam {iade_sayisi} adet bloğa ait sarfiyat stoğa geri yüklendi.")
+                                    st.success(f"Başarılı! Toplam {blok_iade} adet blok ve {frez_iade} adet frez sarfiyatı geri yüklendi.")
                             except Exception as e:
                                 st.error(f"Hata: {e}")
                         
