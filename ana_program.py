@@ -2578,7 +2578,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                         if not is_rpt_sarfiyat:
                                             c.execute("DELETE FROM uretim_loglari WHERE is_id=?", (s_rowid,))
                                     
-                                        is_adi_gunc = f"{secili_is['Klinik_Unvani']} - {secili_is['Hasta_Adi']}" if hasattr(secili_is, '__getitem__') else f"İş #{s_rowid}"
+                                        is_adi_gunc = f"{is_verisi[4]} - {is_verisi[5]}"
                                         b_adi_gunc = sec_blok.split("|")[1].split("(")[0].strip() if "|" in sec_blok else b_kodu
                                         tarih_gunc = datetime.now().strftime("%Y-%m-%d %H:%M")
                                         try:
