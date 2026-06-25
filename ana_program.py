@@ -4708,20 +4708,41 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         # Tüm işlerin toplamını bulmak için LIMIT'siz ayrı bir sorgu yapalım ki tam bakiye çıksın
                         toplam_isler = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Tutar_TL > 0", (cb_klinik,)).fetchone()[0] or 0.0
                         
+                        # SIRA NO-HASTA KODU-HASTA ADI-İŞLEM TÜRÜ-ADET-İSKONTO-B. FİYAT-TUTAR(TL)
                         df_isler_cb = pd.read_sql(
-                            f"SELECT i.id, i.Tarih, i.Hasta_Adi, i.Is_Turu, i.Adet, i.Tutar_TL, i.Fatura_Tarihi, i.Iskonto "
+                            f"SELECT i.id, i.Hasta_Kodu, i.Hasta_Adi, i.Is_Turu, i.Adet, i.Iskonto, i.Tutar_TL "
                             f"FROM isler i WHERE i.Klinik_Unvani='{cb_klinik}' AND i.Tutar_TL > 0 "
                             f"ORDER BY i.Tarih DESC LIMIT 500", conn)
                         
-                        # Kolon adı normalize
-                        df_isler_cb.columns = [col.title() if col.lower() in ['tarih','hasta_adi','is_turu','adet','tutar_tl','fatura_tarihi','iskonto','id'] else col for col in df_isler_cb.columns]
-                        col_map = {"Hasta_Adi":"Hasta Adı","Is_Turu":"İşlem Türü","Tutar_Tl":"Tutar (TL)","Fatura_Tarihi":"Fatura Tarihi","Iskonto":"İskonto (%)"}
-                        df_isler_cb = df_isler_cb.rename(columns={k:v for k,v in col_map.items() if k in df_isler_cb.columns})
-                        # PG lowercase fix
-                        df_isler_cb = df_isler_cb.rename(columns={
-                            "hasta_adi":"Hasta Adı","is_turu":"İşlem Türü","tutar_tl":"Tutar (TL)",
-                            "fatura_tarihi":"Fatura Tarihi","iskonto":"İskonto (%)","tarih":"Tarih","adet":"Adet"
-                        })
+                        # Eğer PostgreSQL küçük harfe dönüştürdüyse toparla
+                        df_isler_cb.columns = [c.lower() for c in df_isler_cb.columns]
+                        
+                        if not df_isler_cb.empty:
+                            df_isler_cb["SIRA NO"] = range(1, len(df_isler_cb) + 1)
+                            
+                            df_isler_cb["iskonto"] = pd.to_numeric(df_isler_cb["iskonto"], errors='coerce').fillna(0.0)
+                            df_isler_cb["adet"] = pd.to_numeric(df_isler_cb["adet"], errors='coerce').fillna(1.0)
+                            df_isler_cb["tutar_tl"] = pd.to_numeric(df_isler_cb["tutar_tl"], errors='coerce').fillna(0.0)
+                            
+                            def calc_bfiyat(row):
+                                carpan = 1 - (row["iskonto"] / 100.0)
+                                if carpan <= 0: carpan = 1.0
+                                gercek_toplam = row["tutar_tl"] / carpan
+                                adet = row["adet"] if row["adet"] > 0 else 1.0
+                                return round(gercek_toplam / adet, 2)
+                                
+                            df_isler_cb["B. FİYAT"] = df_isler_cb.apply(calc_bfiyat, axis=1)
+                            
+                            df_isler_cb = df_isler_cb.rename(columns={
+                                "hasta_kodu": "HASTA KODU",
+                                "hasta_adi": "HASTA ADI",
+                                "is_turu": "İŞLEM TÜRÜ",
+                                "adet": "ADET",
+                                "iskonto": "İSKONTO",
+                                "tutar_tl": "TUTAR(TL)"
+                            })
+                            
+                            df_isler_cb = df_isler_cb[["SIRA NO", "HASTA KODU", "HASTA ADI", "İŞLEM TÜRÜ", "ADET", "İSKONTO", "B. FİYAT", "TUTAR(TL)"]]
                     except Exception as e_cb:
                         st.error(f"Veriler yüklenemedi: {e_cb}")
                         df_isler_cb = pd.DataFrame()
