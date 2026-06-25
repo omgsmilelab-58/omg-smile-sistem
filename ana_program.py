@@ -3863,15 +3863,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             df_stok.rename(columns=db_baglanti.case_map, inplace=True)
 
             
-            # 🚨 AKILLI ARAMA MOTORU DARALTILDI (KOLON ZIRHI) 🚨
-            st.markdown("<h4 style='color: #38bdf8; margin-top:-10px;'>🔍 Akıllı Envanter Radarı</h4>", unsafe_allow_html=True)
-            
-            # Ekranı bölüyoruz: Sadece sol köşede ufak bir alan kaplayacak
-            col_ara, col_bosluk = st.columns([1.5, 4])
-            with col_ara:
-                stok_arama_terimi = st.text_input("Arama", label_visibility="collapsed", placeholder="Örn: 5DML, Frez...")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
+
 
             # Dinamik Kolon Yeniden Adlandırma (Eski / Yeni sistem uyumu için)
             isim_haritasi = {
@@ -3896,18 +3888,20 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     sort_cols.append('Renk')
                 df_stok_gorsel = df_stok_gorsel.sort_values(by=sort_cols).reset_index(drop=True)
             
-            # ARAMA FİLTRESİNİ UYGULA
-            if stok_arama_terimi:
-                # Hem ürün kodunda hem de ürün adında küçük/büyük harf duyarsız arama yapar
-                mask = df_stok_gorsel['Ürün Kodu'].str.contains(stok_arama_terimi, case=False, na=False) | \
-                       df_stok_gorsel['Ürün Adı'].str.contains(stok_arama_terimi, case=False, na=False)
-                df_stok_gorsel = df_stok_gorsel[mask]
+
 
             stok_sekmeleri = STOK_KATEGORILER + ["🔥 Fire (Zayi)", "📦 Malzeme Arşivi"]
             alt_sekmeler = st.tabs(stok_sekmeleri)
             for i, kat_adi in enumerate(STOK_KATEGORILER):
                 with alt_sekmeler[i]:
+                    st.markdown(f"<h5 style='color:#38bdf8; margin-top:-10px;'>🔍 {kat_adi} Radarı</h5>", unsafe_allow_html=True)
+                    col_a, _ = st.columns([2, 4])
+                    stok_arama = col_a.text_input("Arama", label_visibility="collapsed", placeholder="Tüm sütunlarda ara...", key=f"ara_stok_{kat_adi}")
+                    
                     df_filtre = df_stok_gorsel[df_stok_gorsel["Kategori"] == kat_adi].copy()
+                    if stok_arama:
+                        mask = df_filtre.astype(str).apply(lambda x: x.str.contains(stok_arama, case=False, na=False)).any(axis=1)
+                        df_filtre = df_filtre[mask]
                     if not df_filtre.empty:
                         # 💎 AKILLI SIRALAMA (ÜRÜN ADI -> ÜRÜN KODU) 💎
                         df_filtre = df_filtre.sort_values(by=['Ürün Adı', 'Ürün Kodu'], ascending=[True, True])
@@ -4046,6 +4040,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     if df_fire.empty:
                         st.info("Kayıtlı fire/zayi işlemi bulunmamaktadır.")
                     else:
+                        col_fa, _ = st.columns([2, 4])
+                        fire_arama = col_fa.text_input("🔍 Fire/Zayi Ara", placeholder="Tüm sütunlarda ara...", key="ara_fire")
+                        if fire_arama:
+                            mask = df_fire.astype(str).apply(lambda x: x.str.contains(fire_arama, case=False, na=False)).any(axis=1)
+                            df_fire = df_fire[mask]
+                        
                         f_col1, f_col2 = st.columns([3.5, 1.5])
                         with f_col1:
                             st.dataframe(df_fire.drop(columns=["id"]), hide_index=True, use_container_width=True)
@@ -4126,6 +4126,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     else:
                         # SQLite / PostgreSQL Alias farklarını yok etmek için kolonları Pandas seviyesinde zorla:
                         df_arsiv.columns = ["stok_kodu", "urun_adi", "miktar_veya_uye", "islem_turu", "aciklama", "tarih", "harcanan_dk", "sistem_kullanici", "durum"]
+                        
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        col_ma, _ = st.columns([2, 4])
+                        arsiv_arama = col_ma.text_input("🔍 Arşivde Ara", placeholder="Tüm sütunlarda ara...", key="ara_arsiv")
+                        if arsiv_arama:
+                            mask = df_arsiv.astype(str).apply(lambda x: x.str.contains(arsiv_arama, case=False, na=False)).any(axis=1)
+                            df_arsiv = df_arsiv[mask]
+                            
+                        if df_arsiv.empty:
+                            st.warning("Arama kriterinize uygun arşiv kaydı bulunamadı.")
                         
                         # Toplam Metrikleri Hesapla
                         df_blok_uretim = df_arsiv[df_arsiv['islem_turu'] == 'Üretim (Blok)']
