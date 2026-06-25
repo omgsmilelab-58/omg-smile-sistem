@@ -2344,6 +2344,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     with t_bilgi:
                         st.markdown("### ✏️ Reçete Bilgilerini Güncelle")
                         with st.form(key=f"guncelle_form_{s_rowid}"):
+                            y_is_rpt = st.checkbox("🔄 Bu işi RPT (Yeniden Yapım - Bedelsiz) olarak işaretle", value="(RPT)" in is_verisi[6])
+                            st.markdown("---")
+                            
                             b_k1, b_k2 = st.columns(2)
                             # Klinik listesi yukarıda 'klinikler' olarak tanımlı
                             secili_k_index = klinikler.index(is_verisi[4]) if is_verisi[4] in klinikler else 0
@@ -2373,9 +2376,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             y_malzeme = st.text_area("Sarfiyat (Harcanan Malzeme)", value=is_verisi[13], disabled=True)
                             
                             if st.form_submit_button("💾 Bilgileri Kaydet", type="primary", use_container_width=True):
-                                c.execute('''UPDATE isler SET 
+                                if y_is_rpt and "(RPT)" not in y_is:
+                                    y_is = f"{y_is} (RPT)"
+                                elif not y_is_rpt and "(RPT)" in y_is:
+                                    y_is = y_is.replace(" (RPT)", "").replace("(RPT)", "").strip()
+                                
+                                tutar_sql = ", Tutar_TL=0.0" if y_is_rpt else ""
+                                
+                                c.execute(f'''UPDATE isler SET 
                                     Klinik_Unvani=?, Hasta_Adi=?, Is_Turu=?, Renk=?, Adet=?, 
-                                    Tarih=?, Teslim_Tarihi=?, Lot_Numarasi=?, Sertifika_No=?, Aciklama=? 
+                                    Tarih=?, Teslim_Tarihi=?, Lot_Numarasi=?, Sertifika_No=?, Aciklama=?{tutar_sql} 
                                     WHERE id=?''', 
                                     (y_klinik, y_hasta, y_is, y_renk, y_adet, y_tarih, y_teslim, y_lot, y_sertifika, y_aciklama, s_rowid))
                                 conn.commit()
