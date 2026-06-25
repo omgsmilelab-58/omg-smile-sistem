@@ -4116,26 +4116,29 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = m.Urun_Kodu AND c.Durum IN ('Yarım', 'Aktif')) THEN 'Aktif'
                                 WHEN EXISTS (SELECT 1 FROM aktif_frezler f WHERE f.frez_kod = m.Urun_Kodu AND f.durum = 'Aktif') THEN 'Aktif'
                                 ELSE 'Pasif'
-                            END
+                            END,
+                            '-' as yapilan_is
                         FROM malzeme_arsivi m
 
                         UNION ALL
 
                         SELECT 
-                            malzeme_kodu,
-                            malzeme_adi,
-                            CAST(uye_sayisi AS TEXT),
-                            'Üretim (' || malzeme_turu || ')',
-                            is_adi,
-                            tarih,
-                            COALESCE(dakika, 0),
+                            u.malzeme_kodu,
+                            u.malzeme_adi,
+                            CAST(u.uye_sayisi AS TEXT),
+                            'Üretim (' || u.malzeme_turu || ')',
+                            u.is_adi,
+                            u.tarih,
+                            COALESCE(u.dakika, 0),
                             'Sistem (Üretim Logu)',
                             CASE 
                                 WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = u.malzeme_kodu AND c.Durum IN ('Yarım', 'Aktif')) THEN 'Aktif'
                                 WHEN EXISTS (SELECT 1 FROM aktif_frezler f WHERE f.frez_kod = u.malzeme_kodu AND f.durum = 'Aktif') THEN 'Aktif'
                                 ELSE 'Pasif'
-                            END
+                            END,
+                            COALESCE(i.Is_Turu, '-') as yapilan_is
                         FROM uretim_loglari u
+                        LEFT JOIN isler i ON u.is_id = i.id
                         
                         ORDER BY 6 DESC
                     ''', conn)
