@@ -4028,8 +4028,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                                     
 
                     else:
-                        if stok_arama_terimi:
-                            st.info(f"Arama sonucunda '{kat_adi}' kategorisinde '{stok_arama_terimi}' ile eşleşen bir ürün bulunamadı.")
+                        if stok_arama:
+                            st.info(f"Arama sonucunda '{kat_adi}' kategorisinde '{stok_arama}' ile eşleşen bir ürün bulunamadı.")
                         else:
                             st.info(f"Bu kategoride henüz kayıtlı ürün bulunmuyor.")
             
