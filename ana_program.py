@@ -4199,14 +4199,17 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 "İlk İşlem": ilk_kayit['tarih'][:10]
                             })
 
-                        df_liste = pd.DataFrame(liste_verileri)
+                        df_liste = pd.DataFrame(liste_verileri, columns=["Stok Kodu", "Ürün Adı", "Toplam Üretilen", "Çalışma (Dk)", "Durum", "Pasif Nedeni", "İlk İşlem"])
                         
                         def color_durum_liste(val):
                             if val == "Aktif": return 'color: #34d399; font-weight:bold;'
                             elif val == "Pasif": return 'color: #f87171; font-weight:bold;'
                             return ''
                             
-                        st.dataframe(df_liste.style.map(color_durum_liste, subset=["Durum"]), hide_index=True, use_container_width=True)
+                        if not df_liste.empty:
+                            st.dataframe(df_liste.style.map(color_durum_liste, subset=["Durum"]), hide_index=True, use_container_width=True)
+                        else:
+                            st.dataframe(df_liste, hide_index=True, use_container_width=True)
                         
                         st.markdown("---")
                         st.markdown("<h5 style='color:#38bdf8;margin-bottom:8px;'>⚡ Arşiv İşlemleri</h5>", unsafe_allow_html=True)
