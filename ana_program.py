@@ -4228,11 +4228,28 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             elif val == "Pasif": return 'color: #f87171; font-weight:bold;'
                             return ''
                             
-                        if not df_liste.empty:
-                            st.dataframe(df_liste.style.map(color_durum_liste, subset=["Durum"]), hide_index=True, use_container_width=True)
-                        else:
-                            st.dataframe(df_liste, hide_index=True, use_container_width=True)
+                        tab_zirkon, tab_pmma, tab_titan, tab_frez, tab_diger = st.tabs(["ZİRKONYUM", "PMMA", "TİTANYUM", "FREZ", "DİĞER"])
                         
+                        def goster_df(df_alt):
+                            if not df_alt.empty:
+                                st.dataframe(df_alt.style.map(color_durum_liste, subset=["Durum"]), hide_index=True, use_container_width=True)
+                            else:
+                                st.info("Bu kategoride malzeme bulunmamaktadır.")
+
+                        if not df_liste.empty:
+                            with tab_zirkon:
+                                goster_df(df_liste[df_liste['Ürün Adı'].str.contains('Zirkon|Zircon', case=False, na=False)])
+                            with tab_pmma:
+                                goster_df(df_liste[df_liste['Ürün Adı'].str.contains('PMMA', case=False, na=False)])
+                            with tab_titan:
+                                goster_df(df_liste[df_liste['Ürün Adı'].str.contains('Titan', case=False, na=False)])
+                            with tab_frez:
+                                goster_df(df_liste[df_liste['Ürün Adı'].str.contains('Frez', case=False, na=False)])
+                            with tab_diger:
+                                mask = ~df_liste['Ürün Adı'].str.contains('Zirkon|Zircon|PMMA|Titan|Frez', case=False, na=False)
+                                goster_df(df_liste[mask])
+                        else:
+                            st.info("Kayıtlı malzeme bulunamadı.")
                         st.markdown("---")
                         st.markdown("<h5 style='color:#38bdf8;margin-bottom:8px;'>⚡ Arşiv İşlemleri</h5>", unsafe_allow_html=True)
                         
