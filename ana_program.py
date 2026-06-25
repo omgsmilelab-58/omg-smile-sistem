@@ -4737,12 +4737,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     # Önce veriyi çekip toplamı buluyoruz
                     try:
                         # Tüm işlerin toplamını bulmak için LIMIT'siz ayrı bir sorgu yapalım ki tam bakiye çıksın
-                        toplam_isler = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Tutar_TL > 0", (cb_klinik,)).fetchone()[0] or 0.0
+                        toplam_isler = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Tutar_TL > 0 AND Bakiye_Durumu='Aktarıldı'", (cb_klinik,)).fetchone()[0] or 0.0
                         
                         # SIRA NO-HASTA KODU-HASTA ADI-İŞLEM TÜRÜ-ADET-İSKONTO-B. FİYAT-TUTAR(TL)
                         df_isler_cb = pd.read_sql(
                             f"SELECT i.id, i.Hasta_Kodu, i.Hasta_Adi, i.Is_Turu, i.Adet, i.Iskonto, i.Tutar_TL "
-                            f"FROM isler i WHERE i.Klinik_Unvani='{cb_klinik}' AND i.Tutar_TL > 0 "
+                            f"FROM isler i WHERE i.Klinik_Unvani='{cb_klinik}' AND i.Tutar_TL > 0 AND i.Bakiye_Durumu='Aktarıldı' "
                             f"ORDER BY i.Tarih DESC LIMIT 500", conn)
                         
                         # Eğer PostgreSQL küçük harfe dönüştürdüyse toparla
