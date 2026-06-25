@@ -6089,6 +6089,36 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         st.selectbox("Silinecek Dosyalar", ["1 Yıldan Eskiler", "2 Yıldan Eskiler", "3 Yıldan Eskiler"])
                         if st.button("Seçilenleri Sil"):
                             st.success("Temizlik işlemi başlatıldı.")
+
+                        st.markdown("---")
+                        st.markdown("#### 🔄 Hata Düzeltme & İadeler")
+                        st.caption("Eskiden silinmiş işlere ait blok sarfiyatlarını tespit edip stoğa geri yükler.")
+                        if st.button("Silinen İşlerin Bloklarını İade Et", type="primary"):
+                            try:
+                                import db_baglanti
+                                conn2 = db_baglanti.get_connection()
+                                c2 = conn2.cursor()
+                                c2.execute('''SELECT is_id, is_adi, malzeme_turu, malzeme_kodu, uye_sayisi, tarih 
+                                             FROM uretim_loglari 
+                                             WHERE is_id NOT IN (SELECT id FROM isler) AND malzeme_turu = 'Blok' ''')
+                                orphaned_logs = c2.fetchall()
+                                if not orphaned_logs:
+                                    st.success("İade edilecek askıda kalmış sarfiyat bulunamadı.")
+                                else:
+                                    iade_sayisi = 0
+                                    for log in orphaned_logs:
+                                        is_id, is_adi, m_turu, b_kodu, uye_sayisi, tarih = log
+                                        c2.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (b_kodu,))
+                                        mevcut_blok = c2.fetchone()
+                                        if mevcut_blok:
+                                            yeni_kalan = mevcut_blok[0] + uye_sayisi
+                                            c2.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Durum='Yarım' WHERE Blok_Kodu=?", (yeni_kalan, b_kodu))
+                                            c2.execute("DELETE FROM uretim_loglari WHERE is_id=? AND malzeme_turu='Blok'", (is_id,))
+                                            iade_sayisi += 1
+                                    conn2.commit()
+                                    st.success(f"Başarılı! Toplam {iade_sayisi} adet bloğa ait sarfiyat stoğa geri yüklendi.")
+                            except Exception as e:
+                                st.error(f"Hata: {e}")
                         
                 elif secilen_ayar == "💰 Finansal Parametreler":
                     st.markdown("### 💰 Finansal Parametreler")
