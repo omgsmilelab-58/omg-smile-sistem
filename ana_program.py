@@ -2542,34 +2542,41 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 frez_basina_dk = int(harcanan_dk / frez_sayisi)
                             
                                 btn_text = "⚙️ CAM Sarfiyatını Güncelle" if mevcut_malzeme else "⚙️ CAM Sarfiyatını Kaydet"
-                            
+                                
+                                is_rpt_sarfiyat = st.checkbox("🔄 Bu üretim bir RPT (Yeniden Yapım) içindir. Önceki sarfiyatı iade etme, yeni sarfiyatı stoktan ilave olarak düş.", value=False) if mevcut_malzeme else False
+
                                 if st.button(btn_text, type="primary"):
                                     if sec_frezler and harcanan_dk > 0:
-                                        if mevcut_malzeme and eski_b_kodu:
+                                        if mevcut_malzeme and eski_b_kodu and not is_rpt_sarfiyat:
                                             c.execute("UPDATE cam_bloklar SET Kalan_Uye = Kalan_Uye + ?, Durum='Yarım' WHERE Blok_Kodu=?", (eski_uye, eski_b_kodu))
                                             if eski_frezler_str:
                                                 eski_frezler_list = [x.strip() for x in eski_frezler_str.split(",")]
                                                 for f_kod in eski_frezler_list:
                                                     c.execute("UPDATE aktif_frezler SET kullanilan_dk = MAX(0, kullanilan_dk - ?) WHERE frez_kod=?", (eski_frez_basina, f_kod))
-                                
+
                                         b_kodu = sec_blok.split("|")[0].strip()
                                         mevcut_uye = c.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (b_kodu,)).fetchone()[0]
                                         yeni_uye = mevcut_uye - harcanan_uye
                                         c.execute("UPDATE cam_bloklar SET Kalan_Uye=?, Durum=? WHERE Blok_Kodu=?", (yeni_uye, "Bitti" if yeni_uye <= 0 else "Yarım", b_kodu))
-                                    
+
                                         frez_isimleri = []
                                         for fr in sec_frezler:
                                             f_kodu = fr.split("|")[0].strip()
                                             frez_isimleri.append(f_kodu)
                                             mevcut = c.execute("SELECT toplam_omur_dk, kullanilan_dk FROM aktif_frezler WHERE frez_kod=?", (f_kodu,)).fetchone()
                                             c.execute("UPDATE aktif_frezler SET kullanilan_dk=? WHERE frez_kod=?", (mevcut[1] + frez_basina_dk, f_kodu))
-                                    
+
                                         yeni_cam_m = f"CAM: {b_kodu} ({harcanan_uye} Üye), Makine: {secili_makine}, Frezler: {','.join(frez_isimleri)}, Top. {harcanan_dk} Dk (Takım başı {frez_basina_dk} Dk)"
+                                        
+                                        if is_rpt_sarfiyat:
+                                            yeni_cam_m = f"{mevcut_malzeme} | RPT: {yeni_cam_m}"
+                                            
                                         c.execute("UPDATE isler SET Harcanan_Malzeme=? WHERE id=?", (yeni_cam_m, s_rowid))
-                                    
+
                                         # 🔒 KRİTİK KABURGA: ESKİ LOG KAYITLARINI SİL, YENİSİNİ YAZ
-                                        # Bu sayede aynı iş için asla çift blok/frez kaydı oluşmaz
-                                        c.execute("DELETE FROM uretim_loglari WHERE is_id=?", (s_rowid,))
+                                        # Eğer RPT değilse eski kaydı siliyoruz ki çift log olmasın. RPT ise silmeyip yenisini de ekliyoruz.
+                                        if not is_rpt_sarfiyat:
+                                            c.execute("DELETE FROM uretim_loglari WHERE is_id=?", (s_rowid,))
                                     
                                         is_adi_gunc = f"{secili_is['Klinik_Unvani']} - {secili_is['Hasta_Adi']}" if hasattr(secili_is, '__getitem__') else f"İş #{s_rowid}"
                                         b_adi_gunc = sec_blok.split("|")[1].split("(")[0].strip() if "|" in sec_blok else b_kodu
