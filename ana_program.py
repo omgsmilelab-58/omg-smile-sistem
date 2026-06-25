@@ -601,6 +601,8 @@ try: c.execute("ALTER TABLE isler ADD COLUMN Iskonto REAL DEFAULT 0.0")
 except: pass
 try: c.execute("ALTER TABLE isler ADD COLUMN Hasta_Kodu TEXT DEFAULT '-'")
 except: pass
+try: c.execute("ALTER TABLE isler ADD COLUMN Bakiye_Durumu TEXT DEFAULT 'Bekliyor'")
+except: pass
 c.execute('''CREATE TABLE IF NOT EXISTS stok (id SERIAL PRIMARY KEY, Urun_Kodu TEXT, Urun_Adi TEXT, Kategori TEXT, Mevcut_Miktar REAL, Birim TEXT, Kritik_Sinir REAL, Satis_Fiyati REAL, Durum TEXT DEFAULT 'Aktif', Renk TEXT DEFAULT '-', Guncelleme_Tarihi TEXT DEFAULT '-', Marka TEXT DEFAULT '-')''')
 c.execute('''CREATE TABLE IF NOT EXISTS fiyat_listesi (id SERIAL PRIMARY KEY, Hizmet_Adi TEXT, Kategori TEXT, Fiyat REAL, Para_Birimi TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS hizmet_maliyetleri (id SERIAL PRIMARY KEY, hizmet_id INTEGER, kalem_adi TEXT, tutar REAL)''')
@@ -4539,7 +4541,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             if klinikler:
                 f_klinik = st.selectbox("Filtrelenecek Klinik", ["Tümü"] + klinikler, key="fiyat_klinik_secim")
                 
-                query_fiyat = "SELECT id, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Adet, Tutar_TL, Fatura_Tarihi, Iskonto FROM isler"
+                query_fiyat = "SELECT id, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Adet, Tutar_TL, Fatura_Tarihi, Iskonto, Bakiye_Durumu FROM isler"
                 if f_klinik != "Tümü":
                     df_fiyat = pd.read_sql(f"{query_fiyat} WHERE Klinik_Unvani='{f_klinik}' ORDER BY id DESC LIMIT 200", conn)
                 else:
@@ -4639,33 +4641,55 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         if yeni_t_fiyat < 0: yeni_t_fiyat = 0
                         col4.metric("Yeni Toplam Tutar", f"{yeni_t_fiyat:,.2f} TL")
                         
-                        col_btn1, col_btn2 = st.columns(2)
-                        btn_guncelle = col_btn1.button("💾 Güncelle", use_container_width=True)
-                        btn_yansit = col_btn2.button("📊 Cari Ekstreye Yansıt", type="primary", use_container_width=True)
+                        bakiye_durumu = secili_kayit.get("BAKİYE DURUMU", "⏳ Bekliyor")
+                        aktarildi_mi = bakiye_durumu == "✅ Aktarıldı"
                         
+                        col_btn1, col_btn2 = st.columns(2)
+                        btn_guncelle = col_btn1.button("💾 Güncelle", use_container_width=True, disabled=aktarildi_mi)
+                        btn_yansit = col_btn2.button("📊 Cari Bakiyeye Yansıt", type="primary", use_container_width=True, disabled=aktarildi_mi)
+
+                        if aktarildi_mi:
+                            st.success("✅ Bu işlem cari bakiyeye aktarılmıştır.")
+                            btn_geri_cek = st.button("↩️ Geri Çek (Yeniden Fiyatlandırmak İçin)", use_container_width=True)
+                            
+                            if btn_geri_cek:
+                                idx_db = secili_kayit.name
+                                f_klinik_adi = secili_kayit["KLİNİK"]
+                                eski_veritabani_tutar = secili_kayit["ESKİ_TUTAR_TL"]
+                                
+                                try: c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani=?", (eski_veritabani_tutar, f_klinik_adi))
+                                except: pass
+                                
+                                try: c.execute("UPDATE isler SET Bakiye_Durumu='Bekliyor' WHERE id=?", (int(idx_db),))
+                                except: pass
+                                conn.commit()
+                                st.success("İşlem cari bakiyeden geri çekildi!")
+                                st.rerun()
+
                         if btn_guncelle or btn_yansit:
                             eski_veritabani_tutar = secili_kayit["ESKİ_TUTAR_TL"]
                             eski_adet = secili_kayit["ADET"]
                             eski_fatura = str(secili_kayit["FATURA TARİHİ"])
                             eski_iskonto = float(secili_kayit["İSKONTO"])
                             idx_db = secili_kayit.name  # Since index is "id"
-                            
+
                             fatura_str = str(yeni_fatura)
                             isk_float = float(yeni_iskonto)
-                            
-                            if (eski_veritabani_tutar != yeni_t_fiyat) or (eski_fatura != fatura_str) or (eski_iskonto != isk_float) or (float(secili_kayit["B.FİYAT"]) != yeni_fiyat):
+
+                            if (eski_veritabani_tutar != yeni_t_fiyat) or (eski_fatura != fatura_str) or (eski_iskonto != isk_float) or (float(secili_kayit["B.FİYAT"]) != yeni_fiyat) or btn_yansit:
                                 f_klinik_adi = secili_kayit["KLİNİK"]
-                                fark_toplam = float(yeni_t_fiyat - eski_veritabani_tutar)
                                 
                                 c.execute("UPDATE isler SET Tutar_TL=?, Adet=?, Fatura_Tarihi=?, Iskonto=? WHERE id=?", (float(yeni_t_fiyat), int(eski_adet), fatura_str, float(isk_float), int(idx_db)))
-                                
-                                if btn_yansit and fark_toplam != 0:
-                                    try: c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani=?", (fark_toplam, f_klinik_adi))
+
+                                if btn_yansit:
+                                    try: c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani=?", (yeni_t_fiyat, f_klinik_adi))
                                     except: pass
-                                
+                                    try: c.execute("UPDATE isler SET Bakiye_Durumu='Aktarıldı' WHERE id=?", (int(idx_db),))
+                                    except: pass
+
                                 conn.commit()
                                 if btn_yansit:
-                                    st.success("✅ Fiyatlar güncellendi ve cari bakiyeye yansıtıldı!")
+                                    st.success("✅ Fiyatlar güncellendi ve cari bakiyeye aktarıldı!")
                                 else:
                                     st.success("✅ Fiyatlar güncellendi (Bakiye değiştirilmedi).")
                                 st.rerun()
