@@ -2552,7 +2552,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                             if eski_frezler_str:
                                                 eski_frezler_list = [x.strip() for x in eski_frezler_str.split(",")]
                                                 for f_kod in eski_frezler_list:
-                                                    c.execute("UPDATE aktif_frezler SET kullanilan_dk = MAX(0, kullanilan_dk - ?) WHERE frez_kod=?", (eski_frez_basina, f_kod))
+                                                    c.execute("UPDATE aktif_frezler SET kullanilan_dk = GREATEST(0, kullanilan_dk - ?) WHERE frez_kod=?", (eski_frez_basina, f_kod))
 
                                         b_kodu = sec_blok.split("|")[0].strip()
                                         mevcut_uye = c.execute("SELECT Kalan_Uye FROM cam_bloklar WHERE Blok_Kodu=?", (b_kodu,)).fetchone()[0]
