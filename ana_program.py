@@ -4556,6 +4556,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         df_fiyat = df_fiyat.rename(columns={"fatura_tarihi": "Fatura_Tarihi"})
                     if 'iskonto' in df_fiyat.columns:
                         df_fiyat = df_fiyat.rename(columns={"iskonto": "Iskonto"})
+                    if 'bakiye_durumu' in df_fiyat.columns:
+                        df_fiyat = df_fiyat.rename(columns={"bakiye_durumu": "Bakiye_Durumu"})
                         
                     df_fiyat = df_fiyat.rename(columns={
                         "Teslim_Tarihi": "TESLİM TARİHİ",
@@ -4566,7 +4568,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         "Is_Turu": "İŞLEM TÜRÜ", 
                         "Adet": "ADET",
                         "Fatura_Tarihi": "FATURA TARİHİ",
-                        "Iskonto": "İSKONTO"
+                        "Iskonto": "İSKONTO",
+                        "Bakiye_Durumu": "BAKİYE DURUMU"
                     })
                     
                     df_fiyat["FATURA TARİHİ"] = df_fiyat["FATURA TARİHİ"].fillna("-")
@@ -4610,10 +4613,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     df_fiyat["T.FİYAT"] = (df_fiyat["B.FİYAT"] * df_fiyat["ADET"]) * (1 - (df_fiyat["İSKONTO"] / 100.0))
                     df_fiyat.loc[df_fiyat["T.FİYAT"] < 0, "T.FİYAT"] = 0
                     
+                    if "BAKİYE DURUMU" not in df_fiyat.columns:
+                        df_fiyat["BAKİYE DURUMU"] = "Bekliyor"
+                    df_fiyat["BAKİYE DURUMU"] = df_fiyat["BAKİYE DURUMU"].apply(lambda x: "✅ Aktarıldı" if str(x) == "Aktarıldı" else "⏳ Bekliyor")
+                    
                     df_fiyat = df_fiyat.set_index("id")
                     
-                    # İstenen sıra: SIRA NO - TARİH - KLİNİK - HASTA ADI - İŞLEM TÜRÜ - ADET - B.FİYAT - T.FİYAT
-                    df_fiyat = df_fiyat[["SIRA NO", "TESLİM TARİHİ", "KLİNİK", "HASTA ADI", "HASTA KODU", "İŞLEM TÜRÜ", "ADET", "FATURA TARİHİ", "İSKONTO", "B.FİYAT", "T.FİYAT", "ESKİ_TUTAR_TL"]]
+                    # İstenen sıra: SIRA NO - TARİH - KLİNİK - HASTA ADI - İŞLEM TÜRÜ - ADET - B.FİYAT - T.FİYAT - BAKİYE DURUMU
+                    df_fiyat = df_fiyat[["SIRA NO", "TESLİM TARİHİ", "KLİNİK", "HASTA ADI", "HASTA KODU", "İŞLEM TÜRÜ", "ADET", "FATURA TARİHİ", "İSKONTO", "B.FİYAT", "T.FİYAT", "BAKİYE DURUMU", "ESKİ_TUTAR_TL"]]
                     
                     st.caption("💡 İpucu: İşlemler (fatura tarihi, fiyat, iskonto) alanını açmak için tablodan bir satır seçiniz.")
                     
