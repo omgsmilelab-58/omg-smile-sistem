@@ -1423,8 +1423,11 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         
         df_borc = pd.read_sql(f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak FROM isler WHERE Klinik_Unvani='{kullanici_adi}' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')", conn)
         df_alacak = pd.read_sql(f"SELECT Tarih, Odeme_Turu || ' Ödemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak FROM tahsilatlar WHERE Klinik_Unvani='{kullanici_adi}'", conn)
+        kdv_c = float(ayar_getir("KDV_Orani", "20"))
+        carpan_c = 1.0 + (kdv_c / 100.0)
         df_borc = df_borc.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
         df_alacak = df_alacak.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
+        if not df_alacak.empty: df_alacak['Alacak'] = df_alacak['Alacak'] / carpan_c
         
         if not df_borc.empty or not df_alacak.empty:
             df_ekstre = pd.concat([df_borc, df_alacak]).sort_values(by="Tarih").reset_index(drop=True)
@@ -4837,7 +4840,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     t_aciklama = c2.text_input("Açıklama / Dekont No", key="tah_aciklama")
                     if st.form_submit_button("Tahsilatı Kaydet ve Bakiyeden Düş", type="primary") and t_tutar > 0:
                         c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (t_tarih.strftime("%Y-%m-%d"), t_klinik, t_turu, t_tutar, t_aciklama))
-                        c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani = ?", (t_tutar, t_klinik))
+                        kdv_o = float(ayar_getir("KDV_Orani", "20"))
+                        t_tutar_kdvsiz = t_tutar / (1.0 + (kdv_o / 100.0))
+                        c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani = ?", (t_tutar_kdvsiz, t_klinik))
                         conn.commit(); st.success("✅ Tahsilat işlendi, cari bakiye güncellendi!"); st.rerun()
 
         with tab_ekstre_arsiv:
@@ -4857,7 +4862,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     try:
                         # Tüm işlerin toplamını bulmak için LIMIT'siz ayrı bir sorgu yapalım ki tam bakiye çıksın
                         toplam_isler = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (cb_klinik,)).fetchone()[0] or 0.0
-                        toplam_tahsilat = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (cb_klinik,)).fetchone()[0] or 0.0
+                        kdv_orani_t = float(ayar_getir("KDV_Orani", "20"))
+                        carpan_t = 1.0 + (kdv_orani_t / 100.0)
+                        toplam_tahsilat_kdvli = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (cb_klinik,)).fetchone()[0] or 0.0
+                        toplam_tahsilat = toplam_tahsilat_kdvli / carpan_t
                         net_bakiye = toplam_isler - toplam_tahsilat
                         
                         # SIRA NO-HASTA KODU-HASTA ADI-İŞLEM TÜRÜ-ADET-İSKONTO-B. FİYAT-TUTAR(TL)
@@ -4953,6 +4961,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         df_ch_alacak['belge_no'] = 'TAH-' + df_ch_alacak['id'].astype(str)
                         df_ch_alacak['aciklama'] = df_ch_alacak['odeme_turu'].astype(str) + ' Tahsilatı (' + df_ch_alacak['aciklama'].astype(str) + ')'
                         df_ch_alacak['borc'] = 0.0
+                        kdv_orani_h = float(ayar_getir("KDV_Orani", "20"))
+                        carpan_h = 1.0 + (kdv_orani_h / 100.0)
+                        df_ch_alacak['alacak'] = df_ch_alacak['alacak'] / carpan_h
                         df_list.append(df_ch_alacak[['tarih', 'belge_no', 'aciklama', 'borc', 'alacak']])
                         
                     if df_list:
