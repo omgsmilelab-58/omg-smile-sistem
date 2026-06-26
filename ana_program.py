@@ -2319,7 +2319,17 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             c.execute("UPDATE isler SET Asama=?, Sorumlu_Personel=? WHERE id=?", (h_asama, h_sorumlu, b_rowid))
                             conn.commit(); st.rerun()
 
-            df_isler = pd.read_sql('SELECT id, Barkod, Tarih, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Renk, Adet as "Adet", Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Aciklama, Lot_Numarasi, Sertifika_No FROM isler', conn)
+            df_isler = pd.read_sql('''
+                SELECT id, Barkod, Tarih, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Renk, Adet as "Adet", Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Aciklama, Lot_Numarasi, Sertifika_No 
+                FROM isler i 
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM hesap_ekstreleri h
+                    JOIN faturalar f ON h.id = f.Ekstre_ID
+                    WHERE i.Klinik_Unvani = h.Klinik_Unvani
+                      AND i.Tarih >= h.Baslangic_Tarihi
+                      AND i.Tarih <= h.Bitis_Tarihi || ' 23:59:59'
+                )
+            ''', conn)
             if 'adet' in df_isler.columns: df_isler = df_isler.rename(columns={'adet': 'Adet'})
             
             # İşleri tarihe göre sırala (En yeniler üstte)
