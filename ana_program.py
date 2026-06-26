@@ -971,7 +971,7 @@ def ekstre_pdf_uret(klinik, df, son_bakiye):
     return pdf_out.encode('latin1') if hasattr(pdf_out, 'encode') else bytes(pdf_out)
 
 
-def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, aciklama=""):
+def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, kdv_orani=0, aciklama=""):
     """Fatura PDF oluşturur ve bytes döner."""
     def tr(metin): return str(metin).replace('ı','i').replace('ş','s').replace('ğ','g').replace('ö','o').replace('ç','c').replace('ü','u').replace('İ','I').replace('Ş','S').replace('Ğ','G').replace('Ö','O').replace('Ç','C').replace('Ü','U')
     pdf = FPDF(orientation='P', unit='mm', format='A4')
@@ -1018,9 +1018,18 @@ def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, a
 
     # Toplam
     pdf.ln(5)
-    pdf.set_font("Courier", "B", 12); pdf.set_text_color(220, 38, 38)
     para_birimi = ayar_getir("Para_Birimi", "TL")
-    pdf.cell(0, 10, tr(f"TOPLAM TAHAKKUK: {toplam_tutar:,.2f} {para_birimi}"), ln=True, align="R")
+    kdv_tutar = float(toplam_tutar) * (float(kdv_orani) / 100.0)
+    genel_toplam = float(toplam_tutar) + kdv_tutar
+    
+    pdf.set_font("Courier", "B", 11); pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 6, tr(f"ARA TOPLAM (KDV HARIC): {toplam_tutar:,.2f} {para_birimi}"), ln=True, align="R")
+    if kdv_orani > 0:
+        pdf.cell(0, 6, tr(f"KDV (%{kdv_orani}): {kdv_tutar:,.2f} {para_birimi}"), ln=True, align="R")
+    
+    pdf.set_font("Courier", "B", 13); pdf.set_text_color(220, 38, 38)
+    pdf.cell(0, 10, tr(f"GENEL TOPLAM: {genel_toplam:,.2f} {para_birimi}"), ln=True, align="R")
+    
     pdf.set_font("Courier", "", 9); pdf.set_text_color(100, 100, 100)
     pdf.cell(0, 6, tr("Bu fatura elektronik ortamda uretilmistir."), ln=True, align="C")
 
@@ -4977,10 +4986,17 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         except:
                             son_id = 0
                         otomatik_fatura_no = f"OMG-{datetime.now().year}-{str(son_id+1).zfill(4)}"
-                        fc1, fc2 = st.columns(2)
+                        fc1, fc2, fc3 = st.columns([2, 2, 1])
                         fatura_no_input = fc1.text_input("Fatura No", value=otomatik_fatura_no)
                         fatura_tarihi_input = fc2.text_input("Fatura Tarihi", value=datetime.now().strftime("%Y-%m-%d"))
-                        fatura_tutar_input = st.number_input("Fatura Tutarı (TL)", value=float(fat_tutar), step=100.0)
+                        fatura_kdv_input = fc3.selectbox("KDV Oranı (%)", [0, 1, 10, 20], index=0)
+                        
+                        fatura_tutar_input = st.number_input("Ara Toplam / Fatura Tutarı (KDV Hariç TL)", value=float(fat_tutar), step=100.0)
+                        
+                        kdv_tutar_hesap = fatura_tutar_input * (fatura_kdv_input / 100.0)
+                        genel_toplam_hesap = fatura_tutar_input + kdv_tutar_hesap
+                        st.info(f"🧾 **Hesaplanan KDV:** {kdv_tutar_hesap:,.2f} TL | **Genel Toplam:** {genel_toplam_hesap:,.2f} TL")
+                        
                         fatura_aciklama = st.text_area("Açıklama", placeholder="Fatura açıklaması...")
 
                         if st.form_submit_button("✅ Fatura Oluştur ve PDF Kaydet", type="primary"):
@@ -5000,14 +5016,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 except:
                                     pass
 
-                                fatura_pdf = fatura_pdf_uret(fatura_no_input, fat_klinik, df_ekstre_fat, fatura_tutar_input, fatura_tarihi_input, fatura_aciklama)
+                                fatura_pdf = fatura_pdf_uret(fatura_no_input, fat_klinik, df_ekstre_fat, fatura_tutar_input, fatura_tarihi_input, fatura_kdv_input, fatura_aciklama)
                                 dosya_fat = f"Fatura_{fatura_no_input}_{fat_klinik}.pdf"
                                 c.execute(
                                     "INSERT INTO faturalar (Fatura_No, Fatura_Tarihi, Klinik_Unvani, Ekstre_ID, "
                                     "Toplam_Tutar, Odenen_Tutar, Kalan_Tutar, Durum, PDF_Verisi, Dosya_Adi, Aciklama) "
                                     "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                                     (fatura_no_input, fatura_tarihi_input, fat_klinik, ekstre_id_f,
-                                     float(fatura_tutar_input), 0.0, float(fatura_tutar_input),
+                                     float(genel_toplam_hesap), 0.0, float(genel_toplam_hesap),
                                      "Beklemede", fatura_pdf, dosya_fat, fatura_aciklama))
                                 fatura_id_yeni = c.execute("SELECT id FROM faturalar ORDER BY id DESC LIMIT 1").fetchone()[0]
                                 c.execute("UPDATE hesap_ekstreleri SET Durum=?, Fatura_ID=? WHERE id=?", ("Faturalanmış", fatura_id_yeni, ekstre_id_f))
