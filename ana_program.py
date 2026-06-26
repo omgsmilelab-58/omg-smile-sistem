@@ -2001,7 +2001,51 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 </style>
         """, unsafe_allow_html=True)
 
-        tab_takip, tab_manuel_is, tab_cam = st.tabs(["🚀 Üretim Takibi & Güncelleme", "➕ Yeni Manuel İş Kaydı (Laboratuvar)", "💿 CAM Envanteri (Blok & Frez)"])
+        tab_takip, tab_arsiv, tab_manuel_is, tab_cam = st.tabs(["🚀 Üretim Takibi & Güncelleme", "🗄️ İş Arşivi", "➕ Yeni Manuel İş Kaydı (Laboratuvar)", "💿 CAM Envanteri (Blok & Frez)"])
+        
+        with tab_arsiv:
+            st.markdown("### 🗄️ İş Arşivi")
+            st.info("Geçmişten bugüne oluşturulan tüm işleri (aktif veya teslim edilmiş) bu alandan filtreleyip inceleyebilirsiniz.")
+            
+            ar1, ar2 = st.columns(2)
+            arsiv_tarih = ar1.date_input("Tarih Aralığı", value=(datetime.now() - timedelta(days=30), datetime.now()), key="arsiv_tarih")
+            arsiv_klinik = ar2.selectbox("Klinik Filtresi", ["Tümü"] + klinikler, key="arsiv_klinik_sec")
+            
+            if isinstance(arsiv_tarih, tuple) and len(arsiv_tarih) == 2:
+                bas_tar = arsiv_tarih[0].strftime("%Y-%m-%d")
+                bit_tar = (arsiv_tarih[1] + timedelta(days=1)).strftime("%Y-%m-%d")
+                
+                if arsiv_klinik == "Tümü":
+                    df_arsiv_isler = pd.read_sql("SELECT id, Teslim_Tarihi, Barkod, Hasta_Adi, Klinik_Unvani FROM isler WHERE Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(bas_tar, bit_tar))
+                else:
+                    df_arsiv_isler = pd.read_sql("SELECT id, Teslim_Tarihi, Barkod, Hasta_Adi, Klinik_Unvani FROM isler WHERE Klinik_Unvani=? AND Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(arsiv_klinik, bas_tar, bit_tar))
+                
+                if not df_arsiv_isler.empty:
+                    df_goster_ar = df_arsiv_isler.rename(columns={
+                        "id": "SIRA NO",
+                        "Teslim_Tarihi": "TESLİM TARİHİ",
+                        "Barkod": "HASTA NO",
+                        "Hasta_Adi": "HASTA ADI",
+                        "Klinik_Unvani": "KLİNİK"
+                    })
+                    
+                    st.caption("💡 İpucu: Hastanın geçmişini, fatura durumunu ve kullanılan malzemeleri görmek için tablodan satırına tıklayın.")
+                    event_ar = st.dataframe(df_goster_ar, hide_index=True, use_container_width=True, on_select="rerun", selection_mode="single-row", key="arsiv_tablosu")
+                    
+                    if event_ar and len(event_ar.selection.rows) > 0:
+                        sec_idx_ar = event_ar.selection.rows[0]
+                        s_hasta_ar = df_arsiv_isler.iloc[sec_idx_ar]["Hasta_Adi"]
+                        s_klinik_ar = df_arsiv_isler.iloc[sec_idx_ar]["Klinik_Unvani"]
+                        
+                        if st.session_state.get("son_acilan_hasta_arsiv") != f"{s_hasta_ar}_{s_klinik_ar}":
+                            st.session_state.son_acilan_hasta_arsiv = f"{s_hasta_ar}_{s_klinik_ar}"
+                            hasta_karti_goster(s_hasta_ar, s_klinik_ar)
+                    else:
+                        st.session_state.son_acilan_hasta_arsiv = None
+                else:
+                    st.warning("Belirtilen kriterlerde iş bulunamadı.")
+            else:
+                st.info("Lütfen bir tarih aralığı seçin.")
         
         with tab_manuel_is:
             st.markdown("### 📝 Laboratuvar İçi Reçete Kaydı")
@@ -2199,11 +2243,30 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             
             @st.dialog("🧑‍⚕️ Hasta Kartı", width="large")
             def hasta_karti_goster(hasta_adi, klinik_unvani):
-                st.markdown(f"## 🧑‍⚕️ {hasta_adi}")
-                st.markdown(f"**Klinik / Hekim:** {klinik_unvani}")
-                st.markdown("---")
+                h_isler = pd.read_sql("SELECT id, Tarih, Is_Turu, Adet, Asama, Aciklama, Harcanan_Malzeme, Sinter_Sarfiyati, Sorumlu_Personel, Tutar_TL FROM isler WHERE Hasta_Adi=? AND Klinik_Unvani=? ORDER BY Tarih ASC", conn, params=(hasta_adi, klinik_unvani))
                 
-                h_isler = pd.read_sql("SELECT Tarih, Is_Turu, Adet, Asama, Aciklama, Harcanan_Malzeme, Sinter_Sarfiyati, Sorumlu_Personel FROM isler WHERE Hasta_Adi=? AND Klinik_Unvani=? ORDER BY Tarih ASC", conn, params=(hasta_adi, klinik_unvani))
+                # Fiyat ve Fatura hesaplama
+                toplam_fiyat = float(h_isler['Tutar_TL'].sum()) if not h_isler.empty and 'Tutar_TL' in h_isler.columns else 0.0
+                
+                fatura_nolari = set()
+                if not h_isler.empty:
+                    ekstre_ids = c.execute("SELECT id, Baslangic_Tarihi, Bitis_Tarihi FROM hesap_ekstreleri WHERE Klinik_Unvani=?", (klinik_unvani,)).fetchall()
+                    for j_tarih_tam in h_isler['Tarih']:
+                        j_tarih = str(j_tarih_tam).split(" ")[0]
+                        for e_id, e_bas, e_bit in ekstre_ids:
+                            if e_bas <= j_tarih <= e_bit:
+                                fno = c.execute("SELECT Fatura_No FROM faturalar WHERE Ekstre_ID=?", (e_id,)).fetchone()
+                                if fno:
+                                    fatura_nolari.add(str(fno[0]))
+                
+                fatura_metni = ", ".join(fatura_nolari) if fatura_nolari else "Fatura Kesilmemiş"
+                
+                st.markdown(f"## 🧑‍⚕️ {hasta_adi}")
+                hk1, hk2, hk3 = st.columns(3)
+                hk1.markdown(f"**🏥 Klinik:** {klinik_unvani}")
+                hk2.markdown(f"**💰 Toplam Fiyat:** {toplam_fiyat:,.2f} TL")
+                hk3.markdown(f"**🧾 Fatura No:** {fatura_metni}")
+                st.markdown("---")
                 
                 if not h_isler.empty:
                     toplam_is = len(h_isler)
