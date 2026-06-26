@@ -4857,6 +4857,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     try:
                         # Tüm işlerin toplamını bulmak için LIMIT'siz ayrı bir sorgu yapalım ki tam bakiye çıksın
                         toplam_isler = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (cb_klinik,)).fetchone()[0] or 0.0
+                        toplam_tahsilat = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (cb_klinik,)).fetchone()[0] or 0.0
+                        net_bakiye = toplam_isler - toplam_tahsilat
                         
                         # SIRA NO-HASTA KODU-HASTA ADI-İŞLEM TÜRÜ-ADET-İSKONTO-B. FİYAT-TUTAR(TL)
                         df_isler_cb = pd.read_sql(
@@ -4897,15 +4899,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         st.error(f"Veriler yüklenemedi: {e_cb}")
                         df_isler_cb = pd.DataFrame()
                         toplam_isler = 0.0
+                        net_bakiye = 0.0
 
                     # Bakiye kartı (Listedeki toplamı gösterir)
                     para_birimi_cb = ayar_getir("Para_Birimi", "TL")
-                    renk_cb = "#ef4444" if toplam_isler > 0 else "#22c55e"
+                    renk_cb = "#ef4444" if net_bakiye > 0 else "#22c55e"
                     st.markdown(f"""
                     <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid {renk_cb}40;
                          border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px;'>
-                        <div style='color: #94a3b8; font-size: 14px; margin-bottom: 8px;'>⚡ Toplam Hizmet Tutarı (Bakiye)</div>
-                        <div style='color: {renk_cb}; font-size: 48px; font-weight: 800;'>{toplam_isler:,.2f} {para_birimi_cb}</div>
+                    <div style='color: #94a3b8; font-size: 14px; margin-bottom: 8px;'>⚡ Güncel Net Bakiye</div>
+                    <div style='color: {renk_cb}; font-size: 48px; font-weight: 800;'>{net_bakiye:,.2f} {para_birimi_cb}</div>
                         <div style='color: #64748b; font-size: 13px; margin-top: 8px;'>{cb_klinik}</div>
                     </div>
                     """, unsafe_allow_html=True)
