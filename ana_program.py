@@ -4946,6 +4946,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     df_bekleyen = pd.read_sql(
                         "SELECT id, Olusturma_Tarihi, Klinik_Unvani, Baslangic_Tarihi, Bitis_Tarihi, Net_Bakiye, Durum "
                         "FROM hesap_ekstreleri WHERE Durum='Taslak' ORDER BY id DESC", conn)
+                    col_map = {"id": "id", "olusturma_tarihi": "Olusturma_Tarihi", "klinik_unvani": "Klinik_Unvani", "baslangic_tarihi": "Baslangic_Tarihi", "bitis_tarihi": "Bitis_Tarihi", "net_bakiye": "Net_Bakiye", "durum": "Durum", "fatura_id": "Fatura_ID"}
+                    df_bekleyen = df_bekleyen.rename(columns=col_map)
                     if not df_bekleyen.empty:
                         with st.expander(f"📌 Faturalanmayı Bekleyen {len(df_bekleyen)} Ekstre", expanded=True):
                             for _, row_e in df_bekleyen.iterrows():
@@ -5104,8 +5106,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                "Net_Bakiye, Durum, Fatura_ID FROM hesap_ekstreleri")
                     if arsiv_klinik != "Tümü":
                         df_arsiv2 = pd.read_sql(f"{q_arsiv} WHERE Klinik_Unvani='{arsiv_klinik}' ORDER BY id DESC", conn)
+                        col_map = {"id": "id", "olusturma_tarihi": "Olusturma_Tarihi", "klinik_unvani": "Klinik_Unvani", "baslangic_tarihi": "Baslangic_Tarihi", "bitis_tarihi": "Bitis_Tarihi", "net_bakiye": "Net_Bakiye", "durum": "Durum", "fatura_id": "Fatura_ID"}
+                        df_arsiv2 = df_arsiv2.rename(columns=col_map)
                     else:
                         df_arsiv2 = pd.read_sql(f"{q_arsiv} ORDER BY id DESC", conn)
+                        col_map = {"id": "id", "olusturma_tarihi": "Olusturma_Tarihi", "klinik_unvani": "Klinik_Unvani", "baslangic_tarihi": "Baslangic_Tarihi", "bitis_tarihi": "Bitis_Tarihi", "net_bakiye": "Net_Bakiye", "durum": "Durum", "fatura_id": "Fatura_ID"}
+                        df_arsiv2 = df_arsiv2.rename(columns=col_map)
 
                     if not df_arsiv2.empty:
                         for _, ar_row in df_arsiv2.iterrows():
