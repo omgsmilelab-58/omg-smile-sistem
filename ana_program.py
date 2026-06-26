@@ -1412,7 +1412,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         para_birimi = ayar_getir("Para_Birimi", "TL")
         st.markdown(f"<div class='glass-card' style='text-align:center;'><h2 style='color:#FFFFFF;'>Güncel Borcunuz</h2><h1 class='neon-text-red'>{anlik_bakiye:,.2f} {para_birimi}</h1></div>", unsafe_allow_html=True)
         
-        df_borc = pd.read_sql(f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak FROM isler WHERE Klinik_Unvani='{kullanici_adi}' AND Tutar_TL > 0", conn)
+        df_borc = pd.read_sql(f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak FROM isler WHERE Klinik_Unvani='{kullanici_adi}' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')", conn)
         df_alacak = pd.read_sql(f"SELECT Tarih, Odeme_Turu || ' Ödemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak FROM tahsilatlar WHERE Klinik_Unvani='{kullanici_adi}'", conn)
         df_borc = df_borc.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
         df_alacak = df_alacak.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
@@ -4860,7 +4860,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             try:
                                 df_prev_borc = pd.read_sql(
                                     f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak "
-                                    f"FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Tutar_TL > 0 "
+                                    f"FROM isler WHERE Klinik_Unvani='{e_klinik}' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') "
                                     f"AND Tarih >= '{bas_str}' AND Tarih <= '{bit_str}'", conn)
                                 df_prev_alacak = pd.read_sql(
                                     f"SELECT Tarih, Odeme_Turu || ' Odemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak "
@@ -4991,7 +4991,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 try:
                                     ekstre_data = c.execute("SELECT Baslangic_Tarihi, Bitis_Tarihi FROM hesap_ekstreleri WHERE id=?", (ekstre_id_f,)).fetchone()
                                     if ekstre_data:
-                                        df_b = pd.read_sql(f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak FROM isler WHERE Klinik_Unvani='{fat_klinik}' AND Tarih >= '{ekstre_data[0]}' AND Tarih <= '{ekstre_data[1]}'", conn)
+                                        df_b = pd.read_sql(f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak FROM isler WHERE Klinik_Unvani='{fat_klinik}' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') AND Tarih >= '{ekstre_data[0]}' AND Tarih <= '{ekstre_data[1]}'", conn)
                                         df_a = pd.read_sql(f"SELECT Tarih, Odeme_Turu || ' Odemesi' as Islem, 0.0 as Borc, Tutar as Alacak FROM tahsilatlar WHERE Klinik_Unvani='{fat_klinik}' AND Tarih >= '{ekstre_data[0]}' AND Tarih <= '{ekstre_data[1]}'", conn)
                                         df_ekstre_fat = pd.concat([df_b, df_a]).sort_values("Tarih").reset_index(drop=True)
                                 except:
