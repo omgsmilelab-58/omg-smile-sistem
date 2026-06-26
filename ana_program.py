@@ -4660,11 +4660,11 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             if klinikler:
                 f_klinik = st.selectbox("Filtrelenecek Klinik", ["Tümü"] + klinikler, key="fiyat_klinik_secim")
                 
-                query_fiyat = "SELECT id, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Adet, Tutar_TL, Fatura_Tarihi, Iskonto, Bakiye_Durumu FROM isler"
+                query_fiyat = """SELECT id, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Adet, Tutar_TL, Fatura_Tarihi, Iskonto, Bakiye_Durumu FROM isler i WHERE NOT EXISTS (SELECT 1 FROM hesap_ekstreleri h JOIN faturalar f ON h.id = f.Ekstre_ID WHERE i.Klinik_Unvani = h.Klinik_Unvani AND i.Tarih >= h.Baslangic_Tarihi AND i.Tarih <= h.Bitis_Tarihi || ' 23:59:59')"""
                 if f_klinik != "Tümü":
-                    df_fiyat = pd.read_sql(f"{query_fiyat} WHERE Klinik_Unvani='{f_klinik}' ORDER BY id DESC LIMIT 200", conn)
+                    df_fiyat = pd.read_sql(f"{query_fiyat} AND i.Klinik_Unvani='{f_klinik}' ORDER BY i.id DESC LIMIT 200", conn)
                 else:
-                    df_fiyat = pd.read_sql(f"{query_fiyat} ORDER BY id DESC LIMIT 300", conn)
+                    df_fiyat = pd.read_sql(f"{query_fiyat} ORDER BY i.id DESC LIMIT 300", conn)
                     
                 if not df_fiyat.empty:
                     if 'adet' in df_fiyat.columns:
