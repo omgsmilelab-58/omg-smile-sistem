@@ -4829,14 +4829,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         with tab_tahsilat:
             if klinikler:
                 with st.form("tahsilat_form"):
-                    c1, c2 = st.columns(2)
-                    t_klinik = c1.selectbox("Ödeme Yapan Klinik", klinikler, key="tah_klinik")
-                    t_turu = c2.selectbox("Ödeme Türü", ["Havale / EFT", "Nakit", "Kredi Kartı", "Çek / Senet"], key="tah_tur")
+                    c1, c2, c3 = st.columns(3)
+                    t_tarih = c1.date_input("Tahsilat Tarihi", value=datetime.now(), key="tah_tarih")
+                    t_klinik = c2.selectbox("Ödeme Yapan Klinik", klinikler, key="tah_klinik")
+                    t_turu = c3.selectbox("Ödeme Türü", ["Havale / EFT", "Nakit", "Kredi Kartı", "Çek / Senet"], key="tah_tur")
                     t_tutar = c1.number_input("Alınan Tutar (TL)", min_value=0.0, value=0.0, step=100.0, key="tah_tutar")
                     t_aciklama = c2.text_input("Açıklama / Dekont No", key="tah_aciklama")
-                    
                     if st.form_submit_button("Tahsilatı Kaydet ve Bakiyeden Düş", type="primary") and t_tutar > 0:
-                        c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (datetime.now().strftime("%Y-%m-%d"), t_klinik, t_turu, t_tutar, t_aciklama))
+                        c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (t_tarih.strftime("%Y-%m-%d"), t_klinik, t_turu, t_tutar, t_aciklama))
                         c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani = ?", (t_tutar, t_klinik))
                         conn.commit(); st.success("✅ Tahsilat işlendi, cari bakiye güncellendi!"); st.rerun()
 
