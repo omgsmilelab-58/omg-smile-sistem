@@ -5107,6 +5107,23 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                                 conn.commit()
                                                 st.success(f"✅ {tah_tutar:,.2f} TL tahsilat kaydedildi, bakiye güncellendi!")
                                                 st.rerun()
+                                with st.expander(f"✏️ Fatura Düzelt — {fat_row['Fatura_No']}"):
+                                    with st.form(f"fat_duz_form_{fat_row['id']}"):
+                                        duz_col1, duz_col2, duz_col3 = st.columns(3)
+                                        d_fno = duz_col1.text_input("Fatura No", value=str(fat_row["Fatura_No"]), key=f"d_fno_{fat_row['id']}")
+                                        d_ftar = duz_col2.text_input("Fatura Tarihi", value=str(fat_row["Fatura_Tarihi"]), key=f"d_ftar_{fat_row['id']}")
+                                        d_tutar = duz_col3.number_input("Toplam Tutar (TL)", value=float(fat_row['Toplam_Tutar']), step=100.0, key=f"d_tutar_{fat_row['id']}")
+                                        
+                                        if st.form_submit_button("💾 Değişiklikleri Kaydet", type="primary"):
+                                            y_odenen = float(fat_row["Odenen_Tutar"] or 0)
+                                            y_kalan = d_tutar - y_odenen
+                                            y_durum = "Ödendi" if y_kalan <= 0 else "Kısmi Ödendi" if y_odenen > 0 else "Beklemede"
+                                            
+                                            c.execute("UPDATE faturalar SET Fatura_No=?, Fatura_Tarihi=?, Toplam_Tutar=?, Kalan_Tutar=?, Durum=? WHERE id=?", 
+                                                      (d_fno, d_ftar, float(d_tutar), float(y_kalan), y_durum, int(fat_row["id"])))
+                                            conn.commit()
+                                            st.success("Fatura başarıyla güncellendi!")
+                                            st.rerun()
                     else:
                         st.info("📭 Henüz fatura bulunmuyor.")
                 except Exception as e_fat_list:
