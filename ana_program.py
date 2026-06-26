@@ -4877,6 +4877,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 borc_col  = "Borc"  if "Borc"  in df_prev.columns else "borc"
                                 alacak_col = "Alacak" if "Alacak" in df_prev.columns else "alacak"
                                 tarih_col  = "Tarih"  if "Tarih"  in df_prev.columns else "tarih"
+                                df_prev['Kümülatif Bakiye'] = df_prev[borc_col].cumsum() - df_prev[alacak_col].cumsum()
                                 toplam_borc_prev   = float(df_prev[borc_col].sum())
                                 toplam_alacak_prev = float(df_prev[alacak_col].sum())
                                 net_bakiye_prev = toplam_borc_prev - toplam_alacak_prev
