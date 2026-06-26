@@ -5055,6 +5055,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         df_faturalar = pd.read_sql(f"{q_fat} WHERE Klinik_Unvani='{filtre_klinik_fat}' ORDER BY id DESC", conn)
                     else:
                         df_faturalar = pd.read_sql(f"{q_fat} ORDER BY id DESC", conn)
+                    col_map_fat = {"id": "id", "fatura_no": "Fatura_No", "fatura_tarihi": "Fatura_Tarihi", "klinik_unvani": "Klinik_Unvani", "toplam_tutar": "Toplam_Tutar", "odenen_tutar": "Odenen_Tutar", "kalan_tutar": "Kalan_Tutar", "durum": "Durum"}
+                    df_faturalar = df_faturalar.rename(columns=col_map_fat)
 
                     if not df_faturalar.empty:
                         for _, fat_row in df_faturalar.iterrows():
