@@ -1980,6 +1980,93 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 
     elif sayfa == "⚙️ İş Akışı":
         banner_olustur("⚙️", "Laboratuvar İş Akışı", "Üretim bandını kontrol edin, aşamaları güncelleyin ve fatura kesin.")
+
+        @st.dialog("🧑‍⚕️ Hasta Kartı", width="large")
+        def hasta_karti_goster(hasta_adi, klinik_unvani):
+            h_isler = pd.read_sql("SELECT id, Tarih, Is_Turu, Adet, Asama, Aciklama, Harcanan_Malzeme, Sinter_Sarfiyati, Sorumlu_Personel, Tutar_TL FROM isler WHERE Hasta_Adi=? AND Klinik_Unvani=? ORDER BY Tarih ASC", conn, params=(hasta_adi, klinik_unvani))
+            
+            # Fiyat ve Fatura hesaplama
+            toplam_fiyat = float(h_isler['Tutar_TL'].sum()) if not h_isler.empty and 'Tutar_TL' in h_isler.columns else 0.0
+            
+            fatura_nolari = set()
+            if not h_isler.empty:
+                ekstre_ids = c.execute("SELECT id, Baslangic_Tarihi, Bitis_Tarihi FROM hesap_ekstreleri WHERE Klinik_Unvani=?", (klinik_unvani,)).fetchall()
+                for j_tarih_tam in h_isler['Tarih']:
+                    j_tarih = str(j_tarih_tam).split(" ")[0]
+                    for e_id, e_bas, e_bit in ekstre_ids:
+                        if e_bas <= j_tarih <= e_bit:
+                            fno = c.execute("SELECT Fatura_No FROM faturalar WHERE Ekstre_ID=?", (e_id,)).fetchone()
+                            if fno:
+                                fatura_nolari.add(str(fno[0]))
+            
+            fatura_metni = ", ".join(fatura_nolari) if fatura_nolari else "Fatura Kesilmemiş"
+            
+            st.markdown(f"## 🧑‍⚕️ {hasta_adi}")
+            hk1, hk2, hk3 = st.columns(3)
+            hk1.markdown(f"**🏥 Klinik:** {klinik_unvani}")
+            hk2.markdown(f"**💰 Toplam Fiyat:** {toplam_fiyat:,.2f} TL")
+            hk3.markdown(f"**🧾 Fatura No:** {fatura_metni}")
+            st.markdown("---")
+            
+            if not h_isler.empty:
+                toplam_is = len(h_isler)
+                tamamlanan = len(h_isler[h_isler['Asama'] == 'Teslim Edildi'])
+                devam_eden = toplam_is - tamamlanan
+                
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Toplam Kayıtlı İş", toplam_is)
+                c2.metric("Tamamlanan", tamamlanan)
+                c3.metric("Devam Eden", devam_eden)
+                
+                st.markdown("#### 📜 Yapılan İşlemler (Reçeteler)")
+                if 'adet' in h_isler.columns: h_isler = h_isler.rename(columns={'adet': 'Adet'})
+                if 'sinter_sarfiyati' in h_isler.columns: h_isler = h_isler.rename(columns={'sinter_sarfiyati': 'Sinter_Sarfiyati'})
+                if 'harcanan_malzeme' in h_isler.columns: h_isler = h_isler.rename(columns={'harcanan_malzeme': 'Harcanan_Malzeme'})
+                h_isler_goster = h_isler.rename(columns={"Tarih": "TARİH", "Is_Turu": "İŞİN TÜRÜ", "Adet": "ADET", "Asama": "AŞAMA", "Aciklama": "AÇIKLAMA"})
+                st.dataframe(h_isler_goster[["TARİH", "İŞİN TÜRÜ", "ADET", "AŞAMA", "AÇIKLAMA"]], hide_index=True, use_container_width=True)
+                
+                st.markdown("#### 💎 Kullanılan Malzemeler ve Fırınlar")
+                malzemeler = []
+                import json
+                for _, r in h_isler.iterrows():
+                    satir_bilgi = []
+                    if pd.notna(r['Harcanan_Malzeme']) and str(r['Harcanan_Malzeme']).strip() != "-" and str(r['Harcanan_Malzeme']).strip() != "":
+                        satir_bilgi.append(f"**CAM:** {r['Harcanan_Malzeme']}")
+                    
+                    s_sarf = r['Sinter_Sarfiyati']
+                    if pd.notna(s_sarf) and str(s_sarf).strip() != "-" and str(s_sarf).strip() != "" and str(s_sarf).startswith("{"):
+                        try:
+                            s_data = json.loads(s_sarf)
+                            s_metin = ""
+                            if s_data.get("f1") and s_data["f1"] != "-- Seçiniz --" and s_data.get("s1", 0) > 0:
+                                s_metin += f"Fırın 1: {s_data['f1']} ({s_data['s1']} Dk)"
+                            if s_data.get("f2") and s_data["f2"] != "-- Seçiniz --" and s_data.get("s2", 0) > 0:
+                                if s_metin: s_metin += " | "
+                                s_metin += f"Fırın 2: {s_data['f2']} ({s_data['s2']} Dk)"
+                            if s_metin:
+                                satir_bilgi.append(f"**Sinter:** {s_metin}")
+                        except: pass
+                        
+                    if satir_bilgi:
+                        malzemeler.append(f"**{r['Is_Turu']} ({r['Tarih']})** 👉 " + " | ".join(satir_bilgi))
+                
+                if malzemeler:
+                    for m in malzemeler:
+                        st.markdown(f"- {m}")
+                else:
+                    st.info("Bu hastaya ait özel malzeme veya fırın sarfiyatı kaydedilmemiş.")
+                    
+                st.markdown("#### 👨‍🔧 İlgili Teknisyen(ler)")
+                teknisyenler = h_isler['Sorumlu_Personel'].unique()
+                t_list = [t for t in teknisyenler if t and str(t).strip() != "-"]
+                if t_list:
+                    st.markdown(", ".join(t_list))
+                else:
+                    st.caption("Henüz teknisyen atanmamış.")
+                    
+            else:
+                st.warning("Bu hastaya ait detaylı veri bulunamadı.")
+
         
         try:
             klinikler = [row[0] for row in c.execute("SELECT Klinik_Unvani FROM cariler WHERE Durum='Aktif' ORDER BY Klinik_Unvani ASC").fetchall()]
@@ -2241,91 +2328,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             df_isler.insert(0, 'SIRA NO', range(1, len(df_isler) + 1))
             st.subheader("📋 Reçeteler ve Üretim Takibi")
             
-            @st.dialog("🧑‍⚕️ Hasta Kartı", width="large")
-            def hasta_karti_goster(hasta_adi, klinik_unvani):
-                h_isler = pd.read_sql("SELECT id, Tarih, Is_Turu, Adet, Asama, Aciklama, Harcanan_Malzeme, Sinter_Sarfiyati, Sorumlu_Personel, Tutar_TL FROM isler WHERE Hasta_Adi=? AND Klinik_Unvani=? ORDER BY Tarih ASC", conn, params=(hasta_adi, klinik_unvani))
-                
-                # Fiyat ve Fatura hesaplama
-                toplam_fiyat = float(h_isler['Tutar_TL'].sum()) if not h_isler.empty and 'Tutar_TL' in h_isler.columns else 0.0
-                
-                fatura_nolari = set()
-                if not h_isler.empty:
-                    ekstre_ids = c.execute("SELECT id, Baslangic_Tarihi, Bitis_Tarihi FROM hesap_ekstreleri WHERE Klinik_Unvani=?", (klinik_unvani,)).fetchall()
-                    for j_tarih_tam in h_isler['Tarih']:
-                        j_tarih = str(j_tarih_tam).split(" ")[0]
-                        for e_id, e_bas, e_bit in ekstre_ids:
-                            if e_bas <= j_tarih <= e_bit:
-                                fno = c.execute("SELECT Fatura_No FROM faturalar WHERE Ekstre_ID=?", (e_id,)).fetchone()
-                                if fno:
-                                    fatura_nolari.add(str(fno[0]))
-                
-                fatura_metni = ", ".join(fatura_nolari) if fatura_nolari else "Fatura Kesilmemiş"
-                
-                st.markdown(f"## 🧑‍⚕️ {hasta_adi}")
-                hk1, hk2, hk3 = st.columns(3)
-                hk1.markdown(f"**🏥 Klinik:** {klinik_unvani}")
-                hk2.markdown(f"**💰 Toplam Fiyat:** {toplam_fiyat:,.2f} TL")
-                hk3.markdown(f"**🧾 Fatura No:** {fatura_metni}")
-                st.markdown("---")
-                
-                if not h_isler.empty:
-                    toplam_is = len(h_isler)
-                    tamamlanan = len(h_isler[h_isler['Asama'] == 'Teslim Edildi'])
-                    devam_eden = toplam_is - tamamlanan
-                    
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("Toplam Kayıtlı İş", toplam_is)
-                    c2.metric("Tamamlanan", tamamlanan)
-                    c3.metric("Devam Eden", devam_eden)
-                    
-                    st.markdown("#### 📜 Yapılan İşlemler (Reçeteler)")
-                    if 'adet' in h_isler.columns: h_isler = h_isler.rename(columns={'adet': 'Adet'})
-                    if 'sinter_sarfiyati' in h_isler.columns: h_isler = h_isler.rename(columns={'sinter_sarfiyati': 'Sinter_Sarfiyati'})
-                    if 'harcanan_malzeme' in h_isler.columns: h_isler = h_isler.rename(columns={'harcanan_malzeme': 'Harcanan_Malzeme'})
-                    h_isler_goster = h_isler.rename(columns={"Tarih": "TARİH", "Is_Turu": "İŞİN TÜRÜ", "Adet": "ADET", "Asama": "AŞAMA", "Aciklama": "AÇIKLAMA"})
-                    st.dataframe(h_isler_goster[["TARİH", "İŞİN TÜRÜ", "ADET", "AŞAMA", "AÇIKLAMA"]], hide_index=True, use_container_width=True)
-                    
-                    st.markdown("#### 💎 Kullanılan Malzemeler ve Fırınlar")
-                    malzemeler = []
-                    import json
-                    for _, r in h_isler.iterrows():
-                        satir_bilgi = []
-                        if pd.notna(r['Harcanan_Malzeme']) and str(r['Harcanan_Malzeme']).strip() != "-" and str(r['Harcanan_Malzeme']).strip() != "":
-                            satir_bilgi.append(f"**CAM:** {r['Harcanan_Malzeme']}")
-                        
-                        s_sarf = r['Sinter_Sarfiyati']
-                        if pd.notna(s_sarf) and str(s_sarf).strip() != "-" and str(s_sarf).strip() != "" and str(s_sarf).startswith("{"):
-                            try:
-                                s_data = json.loads(s_sarf)
-                                s_metin = ""
-                                if s_data.get("f1") and s_data["f1"] != "-- Seçiniz --" and s_data.get("s1", 0) > 0:
-                                    s_metin += f"Fırın 1: {s_data['f1']} ({s_data['s1']} Dk)"
-                                if s_data.get("f2") and s_data["f2"] != "-- Seçiniz --" and s_data.get("s2", 0) > 0:
-                                    if s_metin: s_metin += " | "
-                                    s_metin += f"Fırın 2: {s_data['f2']} ({s_data['s2']} Dk)"
-                                if s_metin:
-                                    satir_bilgi.append(f"**Sinter:** {s_metin}")
-                            except: pass
-                            
-                        if satir_bilgi:
-                            malzemeler.append(f"**{r['Is_Turu']} ({r['Tarih']})** 👉 " + " | ".join(satir_bilgi))
-                    
-                    if malzemeler:
-                        for m in malzemeler:
-                            st.markdown(f"- {m}")
-                    else:
-                        st.info("Bu hastaya ait özel malzeme veya fırın sarfiyatı kaydedilmemiş.")
-                        
-                    st.markdown("#### 👨‍🔧 İlgili Teknisyen(ler)")
-                    teknisyenler = h_isler['Sorumlu_Personel'].unique()
-                    t_list = [t for t in teknisyenler if t and str(t).strip() != "-"]
-                    if t_list:
-                        st.markdown(", ".join(t_list))
-                    else:
-                        st.caption("Henüz teknisyen atanmamış.")
-                        
-                else:
-                    st.warning("Bu hastaya ait detaylı veri bulunamadı.")
 
             if not df_isler.empty:
                 for c_name in ["barkod", "tarih", "teslim_tarihi", "klinik_unvani", "hasta_adi", "hasta_kodu", "is_turu", "renk", "adet", "asama", "sorumlu_personel"]:
