@@ -4843,7 +4843,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         with tab_ekstre_arsiv:
             st.markdown("#### 📋 Hesap Ekstreleri & Fatura Yönetimi")
 
-            alt_tab0, alt_tab1, alt_tab2, alt_tab3 = st.tabs(["💳 Cari Bakiye", "📋 Yeni Ekstre Oluştur", "🧾 Faturalar", "📂 Arşiv"])
+            alt_tab0, alt_tab_hareket, alt_tab1, alt_tab2, alt_tab3 = st.tabs(["💳 Cari Bakiye", "📈 Cari Hesap Hareketleri", "📋 Yeni Ekstre Oluştur", "🧾 Faturalar", "📂 Arşiv"])
             # ============================================================
             # ALT SEKME 0: CARİ BAKİYE
             # ============================================================
@@ -4924,6 +4924,61 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             # ============================================================
             # ALT SEKME 1: YENİ EKSTRE OLUŞTUR
             # ============================================================
+            # ============================================================
+            # ALT SEKME HAREKET: CARİ HESAP HAREKETLERİ
+            # ============================================================
+            with alt_tab_hareket:
+                st.markdown("##### 📈 Cari Hesap Hareketleri")
+                st.caption("Seçilen kliniğe ait tüm borç (işlem/reçete) ve alacak (tahsilat) kayıtlarının kronolojik olarak listelendiği ekstre hareketleridir.")
+                if klinikler:
+                    ch_klinik = st.selectbox("Hareketleri Gösterilecek Klinik", klinikler, key="ch_klinik_sec")
+                    
+                    df_ch_borc = pd.read_sql(f"SELECT Tarih, Barkod, Hasta_Adi, Is_Turu, Tutar_TL as borc FROM isler WHERE Klinik_Unvani='{ch_klinik}' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')", conn)
+                    df_ch_alacak = pd.read_sql(f"SELECT id, Tarih, Odeme_Turu, Aciklama, Tutar as alacak FROM tahsilatlar WHERE Klinik_Unvani='{ch_klinik}'", conn)
+                    
+                    df_list = []
+                    
+                    if not df_ch_borc.empty:
+                        df_ch_borc.columns = [c.lower() for c in df_ch_borc.columns]
+                        df_ch_borc['belge_no'] = df_ch_borc['barkod']
+                        df_ch_borc['aciklama'] = df_ch_borc['hasta_adi'].astype(str) + ' - ' + df_ch_borc['is_turu'].astype(str)
+                        df_ch_borc['alacak'] = 0.0
+                        df_list.append(df_ch_borc[['tarih', 'belge_no', 'aciklama', 'borc', 'alacak']])
+                        
+                    if not df_ch_alacak.empty:
+                        df_ch_alacak.columns = [c.lower() for c in df_ch_alacak.columns]
+                        df_ch_alacak['belge_no'] = 'TAH-' + df_ch_alacak['id'].astype(str)
+                        df_ch_alacak['aciklama'] = df_ch_alacak['odeme_turu'].astype(str) + ' Tahsilatı (' + df_ch_alacak['aciklama'].astype(str) + ')'
+                        df_ch_alacak['borc'] = 0.0
+                        df_list.append(df_ch_alacak[['tarih', 'belge_no', 'aciklama', 'borc', 'alacak']])
+                        
+                    if df_list:
+                        df_hareket = pd.concat(df_list).sort_values(by="tarih").reset_index(drop=True)
+                        
+                        df_hareket['bakiye'] = df_hareket['borc'].cumsum() - df_hareket['alacak'].cumsum()
+                        
+                        # Ters çevirme (En yeni en üstte)
+                        df_hareket = df_hareket.iloc[::-1].reset_index(drop=True)
+                        
+                        df_goster_ch = df_hareket.rename(columns={
+                            "tarih": "TARİH",
+                            "belge_no": "BELGE NO",
+                            "aciklama": "AÇIKLAMA",
+                            "borc": "BORÇ",
+                            "alacak": "ALACAK",
+                            "bakiye": "BAKİYE"
+                        })
+                        
+                        st.dataframe(df_goster_ch.style.format({
+                            "BORÇ": "{:,.2f} ₺", 
+                            "ALACAK": "{:,.2f} ₺", 
+                            "BAKİYE": "{:,.2f} ₺"
+                        }), hide_index=True, use_container_width=True)
+                    else:
+                        st.info("Bu kliniğe ait herhangi bir hesap hareketi bulunamadı.")
+                else:
+                    st.info("Kayıtlı klinik bulunamadı.")
+
             with alt_tab1:
                 st.markdown("##### 📋 Geriye Dönük Hesap Ekstresi Oluştur")
                 if klinikler:
