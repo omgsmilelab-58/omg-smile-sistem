@@ -4907,6 +4907,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         st.error(f"Veriler yüklenemedi: {e_cb}")
                         df_isler_cb = pd.DataFrame()
                         toplam_isler = 0.0
+                        toplam_tahsilat = 0.0
                         net_bakiye = 0.0
 
                     # Bakiye kartı (Listedeki toplamı gösterir)
@@ -4918,6 +4919,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     <div style='color: #94a3b8; font-size: 14px; margin-bottom: 8px;'>⚡ Güncel Net Bakiye</div>
                     <div style='color: {renk_cb}; font-size: 48px; font-weight: 800;'>{net_bakiye:,.2f} {para_birimi_cb}</div>
                         <div style='color: #64748b; font-size: 13px; margin-top: 8px;'>{cb_klinik}</div>
+                        <div style='display: flex; justify-content: space-around; margin-top: 24px; border-top: 1px solid #334155; padding-top: 16px;'>
+                            <div>
+                                <div style='color: #94a3b8; font-size: 13px;'>Toplam Borç (Reçeteler)</div>
+                                <div style='color: #cbd5e1; font-size: 20px; font-weight: 700;'>{toplam_isler:,.2f} {para_birimi_cb}</div>
+                            </div>
+                            <div>
+                                <div style='color: #94a3b8; font-size: 13px;'>Ödenen (Net Tahsilat)</div>
+                                <div style='color: #22c55e; font-size: 20px; font-weight: 700;'>{toplam_tahsilat:,.2f} {para_birimi_cb}</div>
+                            </div>
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
 
