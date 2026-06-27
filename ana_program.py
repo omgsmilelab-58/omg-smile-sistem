@@ -1382,14 +1382,7 @@ for kat_adi, moduller in kategoriler.items():
                     st.session_state.aktif_sayfa = modul
                     st.rerun()
 
-ekstra_moduller = [m for m in menu if not any(m in mods for mods in kategoriler.values())]
-if ekstra_moduller:
-    with st.sidebar.expander("🧩 5. Diğer Modüller", expanded=(st.session_state.aktif_sayfa in ekstra_moduller)):
-        for modul in ekstra_moduller:
-            btn_type = "primary" if modul == st.session_state.aktif_sayfa else "secondary"
-            if st.button(modul, key=f"nav_{modul}", use_container_width=True, type=btn_type):
-                st.session_state.aktif_sayfa = modul
-                st.rerun()
+# Diğer modüller menüsü iptal edildi (ekstra_moduller)
 
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 
