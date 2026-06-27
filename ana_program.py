@@ -2787,7 +2787,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             
                                 btn_text = "⚙️ CAM Sarfiyatını Güncelle" if mevcut_malzeme else "⚙️ CAM Sarfiyatını Kaydet"
                                 
-                                is_rpt_sarfiyat = st.checkbox("🔄 Bu üretim bir RPT (Yeniden Yapım) içindir. Önceki sarfiyatı iade etme, yeni sarfiyatı stoktan ilave olarak düş.", value=False) if mevcut_malzeme else False
+                                is_rpt_sarfiyat = False
 
                                 if st.button(btn_text, type="primary"):
                                     if sec_frezler and harcanan_dk > 0:
