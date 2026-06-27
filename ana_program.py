@@ -1353,7 +1353,7 @@ kategoriler = {
     ],
     "🤝 2. Müşteri & İletişim (CRM)": [
         "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
-        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "🗓️ Doktor Takvimi"
+        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali"
     ],
     "💰 3. Finans & Tedarik": [
         "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
@@ -1397,6 +1397,12 @@ if rol in ["Admin", "Yönetici", "Sekreter"]:
     if st.sidebar.button("🤖 OMG AI Asistan", type="primary", use_container_width=True): st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"; st.rerun()
 
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
+if "🗓️ Doktor Takvimi" in menu:
+    if st.sidebar.button("🗓️ Doktor Takvimi", type="primary", use_container_width=True):
+        st.session_state.aktif_sayfa = "🗓️ Doktor Takvimi"
+        st.rerun()
+    st.sidebar.markdown("<br>", unsafe_allow_html=True)
+
 if st.sidebar.button("🚪 Çıkış Yap / Kilitle", use_container_width=True): st.session_state.clear(); st.rerun()
 
 if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
@@ -1583,6 +1589,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
 
 
     elif sayfa == "🗓️ Doktor Takvimi":
+        st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
         st.markdown("""
         <div class="glass-card" style="text-align:center; padding: 60px 20px; margin-top:30px;">
             <h1 style="font-size: 80px; margin-bottom: 20px;">🗓️</h1>
