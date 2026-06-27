@@ -1607,7 +1607,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
         st.markdown("""
         <iframe 
-            src="https://0e8a1227c63c3030-88-236-178-232.serveousercontent.com" 
+            src="https://c9e8265e534867.lhr.life" 
             width="100%" 
             style="border:none; border-radius: 8px; height: 85vh;">
         </iframe>
