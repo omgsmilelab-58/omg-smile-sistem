@@ -4260,7 +4260,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                                          (yeni_miktar, datetime.now().strftime('%Y-%m-%d %H:%M'), secilen_kod, secilen_renk))
                                                 conn.commit()
                                                 st.success(f"✅ Güncellendi!")
-                                                st.rerun()
                                             except Exception as e:
                                                 st.error(f"Hata: {e}")
                                                 
@@ -4295,7 +4294,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                                                  (datetime.now().strftime("%Y-%m-%d %H:%M"), secilen_kod, mevcut_kayit[0], dusulecek_miktar, islem_turu, dusme_nedeni, st.session_state.get('kullanici_adi', 'Bilinmeyen')))
                                                     conn.commit()
                                                     st.success(f"✅ Stoktan düşüldü! Yeni Miktar: {yeni_mevcut}")
-                                                    st.rerun()
                                                 except Exception as e:
                                                     st.error(f"Hata: {e}")
                                                     
@@ -4599,7 +4597,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                                 c.execute("UPDATE aktif_frezler SET durum='Aktif' WHERE frez_kod=?", (secilen_kod,))
                                                 conn.commit()
                                                 st.success(f"{secilen_kod} başarıyla aktif hale getirildi.")
-                                                st.rerun()
                                     with c2:
                                         if st.button("🗑️ Kalıcı Olarak Sil", use_container_width=True, key=f"btn_sil_{secilen_kod}"):
                                             c.execute("DELETE FROM malzeme_arsivi WHERE Urun_Kodu=?", (secilen_kod,))
@@ -4659,7 +4656,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                                            str(st.session_state.get("kullanici_adi","Sistem"))))
                                                 conn.commit()
                                                 st.success(f"Log kaydi silindi. Blok iade: {'Evet' if iade_et else 'Hayir'}. Audit kaydi dusuldu.")
-                                                st.rerun()
                                             elif onay_metni and onay_metni != "ONAYLA":
                                                 st.error("Onay metni hatali. Tam olarak 'ONAYLA' yaziniz.")
                                 except Exception as log_e:
@@ -5032,20 +5028,40 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 
             with alt_tahsilat:
                 if klinikler:
+                    t_klinik = st.selectbox("Ödeme Yapan Klinik", klinikler, key="tah_klinik_sec")
+                    # Bekleyen faturalari getir
+                    bekleyen_faturalar = c.execute("SELECT id, Fatura_No, Kalan_Tutar FROM faturalar WHERE Klinik_Unvani=? AND Kalan_Tutar > 0", (t_klinik,)).fetchall()
+                    fatura_secenekleri = {"Fatura Bağımsız (Genel Bakiye)": None}
+                    for fid, fno, fkal in bekleyen_faturalar:
+                        fatura_secenekleri[f"{fno} (Kalan: {float(fkal or 0):,.2f} TL)"] = fid
+                    
                     with st.form("tahsilat_form"):
                         c1, c2, c3 = st.columns(3)
                         t_tarih = c1.date_input("Tahsilat Tarihi", value=datetime.now(), key="tah_tarih")
-                        t_klinik = c2.selectbox("Ödeme Yapan Klinik", klinikler, key="tah_klinik")
+                        t_fatura_anahtar = c2.selectbox("İlgili Fatura (Opsiyonel)", list(fatura_secenekleri.keys()), key="tah_fat_sec")
                         t_turu = c3.selectbox("Ödeme Türü", ["Havale / EFT", "Nakit", "Kredi Kartı", "Çek / Senet"], key="tah_tur")
                         t_tutar = c1.number_input("Alınan Tutar (TL)", min_value=0.0, value=0.0, step=100.0, key="tah_tutar")
                         t_aciklama = c2.text_input("Açıklama / Dekont No", key="tah_aciklama")
                         if st.form_submit_button("Tahsilatı Kaydet ve Bakiyeden Düş", type="primary") and t_tutar > 0:
-                            c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (t_tarih.strftime("%Y-%m-%d"), t_klinik, t_turu, t_tutar, t_aciklama))
+                            secilen_fat_id = fatura_secenekleri[t_fatura_anahtar]
+                            tah_tarih_str = t_tarih.strftime("%Y-%m-%d")
+                            if secilen_fat_id:
+                                fat_raw = c.execute("SELECT Toplam_Tutar, Odenen_Tutar, Fatura_No FROM faturalar WHERE id=?", (secilen_fat_id,)).fetchone()
+                                if fat_raw:
+                                    yeni_odenen = float(fat_raw[1] or 0) + t_tutar
+                                    yeni_kalan = float(fat_raw[0] or 0) - yeni_odenen
+                                    yeni_durum = "Ödendi" if yeni_kalan <= 0 else "Kısmi Ödendi"
+                                    c.execute("UPDATE faturalar SET Odenen_Tutar=?, Kalan_Tutar=?, Durum=? WHERE id=?", (yeni_odenen, max(0.0, yeni_kalan), yeni_durum, secilen_fat_id))
+                                    c.execute("INSERT INTO fatura_tahsilatlar (Fatura_ID, Tarih, Tutar, Odeme_Turu, Aciklama, Klinik_Unvani) VALUES (?,?,?,?,?,?)", (secilen_fat_id, tah_tarih_str, t_tutar, t_turu, t_aciklama, t_klinik))
+                                    t_aciklama = f"Fatura: {fat_raw[2]} - {t_aciklama}"
+                            
+                            c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (tah_tarih_str, t_klinik, t_turu, t_tutar, t_aciklama))
                             kdv_o = float(ayar_getir("KDV_Orani", "20"))
                             t_tutar_kdvsiz = t_tutar / (1.0 + (kdv_o / 100.0))
                             c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani = ?", (t_tutar_kdvsiz, t_klinik))
-                            conn.commit(); st.success("✅ Tahsilat işlendi, cari bakiye güncellendi!"); st.rerun()
-
+                            conn.commit()
+                            st.success("✅ Tahsilat işlendi, cari bakiye güncellendi!")
+                            st.rerun()
 
             # ============================================================
             # ALT SEKME 0: CARİ BAKİYE
@@ -5444,33 +5460,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 except:
                                     pass
 
-                                # Tahsilat giriş formu
-                                if float(fat_row.get("Kalan_Tutar", 0) or 0) > 0:
-                                    with st.expander(f"💵 Tahsilat Gir — {fat_row['Fatura_No']}"):
-                                        with st.form(f"tah_form_{fat_row['id']}"):
-                                            t1, t2, t3 = st.columns(3)
-                                            tah_tutar = t1.number_input("Tutar (TL)", min_value=0.0,
-                                                                         max_value=float(fat_row["Kalan_Tutar"] or 0),
-                                                                         step=100.0, key=f"tah_t_{fat_row['id']}")
-                                            tah_tur = t2.selectbox("Ödeme Türü", ["Havale/EFT", "Nakit", "Kredi Kartı", "Çek/Senet"],
-                                                                    key=f"tah_tur_{fat_row['id']}")
-                                            tah_acik = t3.text_input("Dekont/Not", key=f"tah_a_{fat_row['id']}")
-                                            if st.form_submit_button("✅ Tahsilatı Kaydet", type="primary") and tah_tutar > 0:
-                                                tah_tarih = datetime.now().strftime("%Y-%m-%d")
-                                                c.execute("INSERT INTO fatura_tahsilatlar (Fatura_ID, Tarih, Tutar, Odeme_Turu, Aciklama, Klinik_Unvani) VALUES (?,?,?,?,?,?)",
-                                                          (int(fat_row["id"]), tah_tarih, float(tah_tutar), tah_tur, tah_acik, str(fat_row["Klinik_Unvani"])))
-                                                yeni_odenen = float(fat_row["Odenen_Tutar"] or 0) + float(tah_tutar)
-                                                yeni_kalan = float(fat_row["Toplam_Tutar"] or 0) - yeni_odenen
-                                                yeni_durum = "Ödendi" if yeni_kalan <= 0 else "Kısmi Ödendi"
-                                                c.execute("UPDATE faturalar SET Odenen_Tutar=?, Kalan_Tutar=?, Durum=? WHERE id=?",
-                                                          (yeni_odenen, max(0.0, yeni_kalan), yeni_durum, int(fat_row["id"])))
-                                                c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani=?",
-                                                          (float(tah_tutar), str(fat_row["Klinik_Unvani"])))
-                                                c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)",
-                                                          (tah_tarih, str(fat_row["Klinik_Unvani"]), tah_tur, float(tah_tutar), f"Fatura: {fat_row['Fatura_No']} - {tah_acik}"))
-                                                conn.commit()
-                                                st.success(f"✅ {tah_tutar:,.2f} TL tahsilat kaydedildi, bakiye güncellendi!")
-                                                st.rerun()
                                 with st.expander(f"✏️ Fatura Düzelt — {fat_row['Fatura_No']}"):
                                     with st.form(f"fat_duz_form_{fat_row['id']}"):
                                         duz_col1, duz_col2, duz_col3, duz_col4 = st.columns([2, 2, 2, 1])
@@ -5888,13 +5877,11 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                                     c.execute("UPDATE fiyat_listesi SET Fiyat=?, Para_Birimi=? WHERE id=?", (yeni_fiyat, yeni_pb, h_id))
                                                     conn.commit()
                                                     st.success("Başarıyla güncellendi!")
-                                                    st.rerun()
                                                     
                                                 if c_btn2.form_submit_button("🗑️ Sil"):
                                                     c.execute("DELETE FROM fiyat_listesi WHERE id=?", (h_id,))
                                                     conn.commit()
                                                     st.success("Başarıyla silindi!")
-                                                    st.rerun()
                 else:
                     st.info("Sistemde henüz kayıtlı hizmet fiyatı bulunamadı.")
 
