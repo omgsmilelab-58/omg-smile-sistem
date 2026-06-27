@@ -971,67 +971,183 @@ def ekstre_pdf_uret(klinik, df, son_bakiye):
     return pdf_out.encode('latin1') if hasattr(pdf_out, 'encode') else bytes(pdf_out)
 
 
-def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, kdv_orani=0, aciklama=""):
-    """Fatura PDF oluşturur ve bytes döner."""
+def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, kdv_orani=20, aciklama=""):
+    import uuid
     def tr(metin): return str(metin).replace('ı','i').replace('ş','s').replace('ğ','g').replace('ö','o').replace('ç','c').replace('ü','u').replace('İ','I').replace('Ş','S').replace('Ğ','G').replace('Ö','O').replace('Ç','C').replace('Ü','U')
+    def sayiyi_yaziya_cevir(sayi):
+        birler = ["", "Bir", "Iki", "Uc", "Dort", "Bes", "Alti", "Yedi", "Sekiz", "Dokuz"]
+        onlar = ["", "On", "Yirmi", "Otuz", "Kirk", "Elli", "Atmis", "Yetmis", "Seksen", "Doksan"]
+        binler = ["", "Bin", "Milyon", "Milyar"]
+        tam_kisim = int(sayi)
+        krs_kisim = int(round((sayi - tam_kisim) * 100))
+        if tam_kisim == 0: return "Sifir TRY"
+        def uclu_oku(n):
+            if n == 0: return ""
+            yuz = n // 100
+            kalan = n % 100
+            on = kalan // 10
+            bir = kalan % 10
+            okunus = ""
+            if yuz > 1: okunus += birler[yuz] + "Yuz"
+            elif yuz == 1: okunus += "Yuz"
+            okunus += onlar[on] + birler[bir]
+            return okunus
+        str_sayi = str(tam_kisim)
+        gruplar = []
+        while len(str_sayi) > 0:
+            gruplar.append(int(str_sayi[-3:]))
+            str_sayi = str_sayi[:-3]
+        sonuc = ""
+        for i in range(len(gruplar)-1, -1, -1):
+            grup = gruplar[i]
+            if grup == 0: continue
+            if i == 1 and grup == 1: sonuc += "Bin"
+            else: sonuc += uclu_oku(grup) + binler[i]
+        krs_metin = f" {uclu_oku(krs_kisim)}Kurus" if krs_kisim > 0 else ""
+        return f"#{sonuc} TRY{krs_metin}#"
+
+    try:
+        k_veri = c.execute("SELECT Firma_Unvani, Adres, Vergi_Dairesi, Vergi_No FROM cariler WHERE Klinik_Unvani=?", (klinik,)).fetchone()
+        if k_veri:
+            klinik_bilgi = {"Firma_Unvani": k_veri[0], "Adres": k_veri[1], "Vergi_Dairesi": k_veri[2], "Vergi_No": k_veri[3], "Klinik_Unvani": klinik}
+        else:
+            klinik_bilgi = {"Klinik_Unvani": klinik}
+    except:
+        klinik_bilgi = {"Klinik_Unvani": klinik}
+
     pdf = FPDF(orientation='P', unit='mm', format='A4')
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
-
-    logo_yolu = ayar_getir("Kurumsal_Logo", "-")
-    if logo_yolu != "-" and os.path.exists(logo_yolu):
-        pdf.image(logo_yolu, x=10, y=10, w=35)
-        pdf.set_y(25)
-
-    # Başlık
-    pdf.set_font("Courier", "B", 18); pdf.set_text_color(30, 58, 138)
-    pdf.cell(0, 10, "FATURA", ln=True, align="C")
-    pdf.set_font("Courier", "B", 11); pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 7, tr(f"Fatura No: {fatura_no}"), ln=True, align="C")
-    pdf.ln(3)
-
-    # Bilgi satırları
-    pdf.set_font("Courier", "", 10)
-    pdf.cell(0, 6, tr(f"Klinik: {klinik}"), ln=True)
-    pdf.cell(0, 6, tr(f"Fatura Tarihi: {fatura_tarihi}"), ln=True)
-    if aciklama:
-        pdf.cell(0, 6, tr(f"Aciklama: {aciklama}"), ln=True)
-    pdf.ln(5)
-
-    # Tablo başlığı
-    pdf.set_fill_color(220, 220, 220); pdf.set_font("Courier", "B", 9)
-    pdf.cell(25, 8, "Tarih", border=1, fill=True)
-    pdf.cell(95, 8, tr("Islem"), border=1, fill=True)
-    pdf.cell(30, 8, "Borc (TL)", border=1, align="R", fill=True)
-    pdf.cell(30, 8, "Alacak (TL)", border=1, align="R", ln=True, fill=True)
-
     pdf.set_font("Courier", "", 8)
-    for _, row in ekstre_df.iterrows():
-        islem = str(row.get('Islem', ''))
-        if len(islem) > 47: islem = islem[:44] + "..."
-        borc = float(row.get('Borc', 0) or 0)
-        alacak = float(row.get('Alacak', 0) or 0)
-        pdf.cell(25, 6, str(row.get('Tarih', '-')), border=1)
-        pdf.cell(95, 6, tr(islem), border=1)
-        pdf.cell(30, 6, f"{borc:,.2f}", border=1, align="R")
-        pdf.cell(30, 6, f"{alacak:,.2f}", border=1, align="R", ln=True)
 
-    # Toplam
+    # 1. Sol Üst: Gönderici Bilgileri
+    pdf.set_xy(10, 10)
+    pdf.set_font("Courier", "B", 9)
+    pdf.cell(0, 4, tr("OMG SMILE SAGLIK TEKNOLOJILERI VE HIZMETLERI LIMITED SIRKETI"), ln=True)
+    pdf.set_font("Courier", "", 8)
+    satirlar = [
+        "AHMETTURANGAZİ OSB MAH. OSB-10 SK.",
+        "No:2 /1A",
+        "MERKEZ / SIVAS / TURKIYE",
+        "Tel: 0501 542 0258",
+        "E-Posta: info@omgsmile.com.tr",
+        "Vergi Dairesi: Kale Vergi Dairesi Mudurlugu",
+        "VKN: 6420997799",
+        "TICARETSICILNO: 000"
+    ]
+    for s in satirlar:
+        pdf.cell(0, 4, tr(s), ln=True)
+
+    pdf.set_line_width(0.8)
+    pdf.line(10, 45, 100, 45)
+    pdf.set_line_width(0.2)
+
+    # 2. Orta: Logo ve e-Fatura
+    try:
+        if os.path.exists('gib_logo.png'):
+            pdf.image('gib_logo.png', x=95, y=10, w=20)
+    except: pass
+    pdf.set_xy(90, 32)
+    pdf.set_font("Courier", "B", 12)
+    pdf.cell(30, 5, "e-FATURA", align='C')
+
+    # 3. Sağ Üst: Kutu Bilgiler
+    pdf.set_font("Courier", "B", 8)
+    x_sag, y_sag = 135, 15
+    kutu_satirlari = [
+        ("Ozellestirme No:", "TR1.2"),
+        ("Senaryo:", "TEMELFATURA"),
+        ("Fatura Tipi:", "SATIS"),
+        ("Fatura No:", tr(fatura_no)),
+        ("Fatura Tarihi:", tr(fatura_tarihi))
+    ]
+    for baslik, deger in kutu_satirlari:
+        pdf.set_xy(x_sag, y_sag)
+        pdf.cell(30, 5, baslik, border=1, fill=False)
+        pdf.cell(35, 5, deger, border=1, fill=False)
+        y_sag += 5
+
+    # 4. Sol Orta: Alıcı Bilgileri
+    pdf.set_xy(10, 50)
+    pdf.set_font("Courier", "B", 9)
+    pdf.cell(0, 5, "SAYIN", ln=True)
+    pdf.set_font("Courier", "", 8)
+    k_unvan = klinik_bilgi.get("Firma_Unvani", klinik)
+    if not k_unvan or k_unvan == "-": k_unvan = klinik
+    pdf.cell(0, 4, tr(k_unvan), ln=True)
+    pdf.cell(0, 4, tr(klinik_bilgi.get("Adres", "-")), ln=True)
+    pdf.cell(0, 4, tr(f"Vergi Dairesi: {klinik_bilgi.get('Vergi_Dairesi', '-')}"), ln=True)
+    pdf.cell(0, 4, tr(f"VKN: {klinik_bilgi.get('Vergi_No', '-')}"), ln=True)
+
+    # 5. ETTN
+    pdf.set_xy(10, 80)
+    pdf.set_font("Courier", "B", 8)
+    pdf.cell(0, 5, f"ETTN: {str(uuid.uuid4())}", ln=True)
+
+    # 6. Tablo Başlığı
+    pdf.set_xy(10, 90)
+    pdf.set_fill_color(240, 240, 240)
+    pdf.set_font("Courier", "B", 8)
+    w_cols = [10, 75, 15, 25, 20, 25, 25]
+    h_cols = ["Sira No", "Mal Hizmet", "Miktar", "Birim Fiyat", "KDV Orani", "KDV Tutari", "Mal Hizmet Tutari"]
+    for i in range(len(w_cols)): pdf.cell(w_cols[i], 8, h_cols[i], border=1, align="C", fill=True)
+    pdf.ln()
+
+    # Tablo Satırları
+    pdf.set_font("Courier", "", 7)
+    sira = 1
+    kdv_oran_float = float(kdv_orani) if kdv_orani else 20.0
+    
+    # Gercek KDV tutari ve Mal tutarini tekrar hesaplayalim
+    # (Faturalarda tutarlar genel toplama mi, kdv harice mi diye bakmak gerek, 
+    # ama ana programda 'fatura_tutar_input' toplam KDV haric mi dahil mi?
+    # Ana programda: toplam_tutar = isler'in tutar_TL toplami. Bunlar KDV Haric.
+    
+    for _, row in ekstre_df.iterrows():
+        b = float(row.get('Borc', 0) or 0)
+        if b <= 0: continue
+        islem_adi = str(row.get('Islem', '-'))
+        if len(islem_adi) > 55: islem_adi = islem_adi[:52] + "..."
+        k_tutari = b * (kdv_oran_float / 100.0)
+        
+        pdf.cell(w_cols[0], 6, str(sira), border=1, align="C")
+        pdf.cell(w_cols[1], 6, tr(islem_adi), border=1)
+        pdf.cell(w_cols[2], 6, "1 Adet", border=1, align="C")
+        pdf.cell(w_cols[3], 6, f"{b:,.2f}TL", border=1, align="R")
+        pdf.cell(w_cols[4], 6, f"%{kdv_oran_float:.2f}", border=1, align="C")
+        pdf.cell(w_cols[5], 6, f"{k_tutari:,.2f}TL", border=1, align="R")
+        pdf.cell(w_cols[6], 6, f"{b:,.2f}TL", border=1, align="R")
+        pdf.ln()
+        sira += 1
+
+    # 7. Dip Toplamlar
     pdf.ln(5)
-    para_birimi = ayar_getir("Para_Birimi", "TL")
-    kdv_tutar = float(toplam_tutar) * (float(kdv_orani) / 100.0)
-    genel_toplam = float(toplam_tutar) + kdv_tutar
+    pdf.set_font("Courier", "B", 8)
+    toplam_mal_hizmet = float(toplam_tutar)
+    toplam_kdv = toplam_mal_hizmet * (kdv_oran_float / 100.0)
+    genel_toplam = toplam_mal_hizmet + toplam_kdv
+    sol_bosluk = sum(w_cols) - 70 
     
-    pdf.set_font("Courier", "B", 11); pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 6, tr(f"ARA TOPLAM (KDV HARIC): {toplam_tutar:,.2f} {para_birimi}"), ln=True, align="R")
-    if kdv_orani > 0:
-        pdf.cell(0, 6, tr(f"KDV (%{kdv_orani}): {kdv_tutar:,.2f} {para_birimi}"), ln=True, align="R")
-    
-    pdf.set_font("Courier", "B", 13); pdf.set_text_color(220, 38, 38)
-    pdf.cell(0, 10, tr(f"GENEL TOPLAM: {genel_toplam:,.2f} {para_birimi}"), ln=True, align="R")
-    
-    pdf.set_font("Courier", "", 9); pdf.set_text_color(100, 100, 100)
-    pdf.cell(0, 6, tr("Bu fatura elektronik ortamda uretilmistir."), ln=True, align="C")
+    toplamlar = [
+        ("Mal Hizmet Toplam Tutari", f"{toplam_mal_hizmet:,.2f}TL"),
+        (f"Hesaplanan GERCEK USULDE KDV (%{kdv_oran_float:.2f})", f"{toplam_kdv:,.2f}TL"),
+        ("Vergiler Dahil Toplam Tutar", f"{genel_toplam:,.2f}TL"),
+        ("Odenecek Tutar", f"{genel_toplam:,.2f}TL")
+    ]
+    for baslik, deger in toplamlar:
+        pdf.set_x(10 + sol_bosluk)
+        pdf.cell(45, 6, baslik, border=1, align="R", fill=False)
+        pdf.cell(25, 6, deger, border=1, align="R", fill=False)
+        pdf.ln()
+
+    # 8. Yazıyla
+    pdf.ln(5)
+    pdf.set_font("Courier", "", 9)
+    yazi = sayiyi_yaziya_cevir(genel_toplam)
+    pdf.cell(0, 15, f"YALNIZ: {yazi}", border=1, ln=True)
+    if aciklama:
+        pdf.ln(2)
+        pdf.cell(0, 6, tr(f"Aciklama: {aciklama}"), ln=True)
 
     pdf_out = pdf.output(dest='S')
     return pdf_out.encode('latin1') if hasattr(pdf_out, 'encode') else bytes(pdf_out)
