@@ -4250,10 +4250,30 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         liste_verileri = []
                         essiz_kodlar = df_arsiv['stok_kodu'].unique()
                         
-                        def kategori_belirle(urun_adi, isler_serisi):
+                        stok_malzeme_map = {}
+                        if len(essiz_kodlar) > 0:
+                            kod_list = "', '".join([str(k) for k in essiz_kodlar])
+                            try:
+                                q = f"SELECT Urun_Kodu, Malzeme FROM stok WHERE Urun_Kodu IN ('{kod_list}') AND Malzeme IS NOT NULL AND Malzeme != '-'"
+                                rows = c.execute(q).fetchall()
+                                for r in rows:
+                                    if r[1]:
+                                        stok_malzeme_map[r[0]] = r[1]
+                            except:
+                                pass
+                                
+                        def kategori_belirle(urun_adi, isler_serisi, urun_malzeme):
                             u_adi = str(urun_adi).lower()
+                            u_malz = str(urun_malzeme).lower()
                             isler = isler_serisi.astype(str).str.lower()
                             
+                            if 'pmma' in u_malz:
+                                return 'PMMA'
+                            if 'zirkon' in u_malz or 'zircon' in u_malz:
+                                return 'ZİRKONYUM'
+                            if 'titan' in u_malz:
+                                return 'TİTANYUM'
+                                
                             if 'frez' in u_adi:
                                 return 'FREZ'
                             if 'pmma' in u_adi:
@@ -4271,6 +4291,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 return 'TİTANYUM'
                                 
                             return 'DİĞER'
+
                         for kod in essiz_kodlar:
                             df_urun = df_arsiv[df_arsiv['stok_kodu'] == kod]
                             ilk_kayit = df_urun.iloc[-1] 
@@ -4288,8 +4309,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             if not arsiv_kayitlari.empty:
                                 pasif_nedeni = f"{arsiv_kayitlari.iloc[0]['islem_turu']} - {arsiv_kayitlari.iloc[0]['aciklama']}"
                                 
-                            kategori = kategori_belirle(urun_adi, df_urun['yapilan_is'])
-                                
+                            urun_malzeme = stok_malzeme_map.get(kod, "")
+                            kategori = kategori_belirle(urun_adi, df_urun['yapilan_is'], urun_malzeme)
                             liste_verileri.append({
                                 "Stok Kodu": kod,
                                 "Ürün Adı": urun_adi,
