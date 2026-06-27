@@ -1256,11 +1256,11 @@ rol = st.session_state["kullanici_rolu"]; kullanici_adi = st.session_state['kull
 ana_klinik = st.session_state.get('ana_klinik', '')
 if "aktif_sayfa" not in st.session_state: st.session_state.aktif_sayfa = "🎯 Komuta Merkezi"
 
-if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi"]
-elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik"]
+if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi", "🗓️ Doktor Takvimi"]
+elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik", "🗓️ Doktor Takvimi"]
 elif rol == "Teknisyen": menu = ["⚙️ İş Akışı", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "📱 Teknisyen Terminali", "📦 Stok Yönetimi", "🏭 Tedarikçi Yönetimi", "🔧 Makine Parkuru ve Bakımı"]
-elif rol == "Klinik": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🧾 Detaylı Ekstre"]
-elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)"]
+elif rol == "Klinik": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🧾 Detaylı Ekstre", "🗓️ Doktor Takvimi"]
+elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🗓️ Doktor Takvimi"]
 elif rol == "Kurye": menu = ["🛵 Kurye Mobil Terminali", "📺 Lobi / TV Ekranı"]
 elif rol == "Kiosk": menu = ["📺 Lobi / TV Ekranı"]
 
@@ -1353,7 +1353,7 @@ kategoriler = {
     ],
     "🤝 2. Müşteri & İletişim (CRM)": [
         "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
-        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali"
+        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "🗓️ Doktor Takvimi"
     ],
     "💰 3. Finans & Tedarik": [
         "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
@@ -1581,6 +1581,21 @@ if rol in ["Klinik", "Klinik_Asistan"]:
             else:
                 st.info("Fiyat listesi şu an güncelleniyor...")
 
+
+    elif sayfa == "🗓️ Doktor Takvimi":
+        st.markdown("""
+        <div class="glass-card" style="text-align:center; padding: 60px 20px; margin-top:30px;">
+            <h1 style="font-size: 80px; margin-bottom: 20px;">🗓️</h1>
+            <h2 class="neon-text-blue" style="margin-bottom: 15px;">Doktor Takvimi Entegrasyonu (Çok Yakında)</h2>
+            <p style="color: #cbd5e1; font-size: 18px; max-width: 650px; margin: 0 auto; line-height: 1.6;">
+                Bu bölüm şu anda <b>yapım aşamasındadır</b>.<br><br>
+                Geliştirilmekte olan "Doktor Takvimi" programı yayına alındığında, API bağlantıları kurularak tüm randevular buraya entegre edilecektir. Hekimlerimiz doğrudan bu takvim üzerinden hastalarını yönetecek ve tek tıkla OMG Smile sistemine sipariş (reçete) gönderebileceklerdir.
+            </p>
+            <div style="margin-top: 40px;">
+                <span style="background-color: #3b82f640; color: #60a5fa; padding: 10px 20px; border-radius: 20px; font-weight: bold; border: 1px solid #3b82f6;">🚧 API Bağlantısı Bekleniyor 🚧</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     elif sayfa == "🧾 Detaylı Ekstre" and rol == "Klinik":
         banner_olustur("🧾", "Detaylı Hesap Ekstresi", "Borç ve ödeme geçmişinizi takip edin.")
         anlik_bakiye = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (kullanici_adi,)).fetchone()[0]
