@@ -1606,7 +1606,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
     elif sayfa == "🗓️ Doktor Takvimi":
         st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
         st.markdown("""
-        <div class="glass-card" style="text-align:center; padding: 60px 20px; margin-top:30px;">
+        <div class="glass-card" style="text-align:center; padding: 60px 20px 30px 20px; margin-top:30px;">
             <h1 style="font-size: 80px; margin-bottom: 20px;">🗓️</h1>
             <h2 class="neon-text-blue" style="margin-bottom: 15px;">Doktor Takvimi Entegrasyonu (Çok Yakında)</h2>
             <p style="color: #cbd5e1; font-size: 18px; max-width: 650px; margin: 0 auto; line-height: 1.6;">
@@ -1618,7 +1618,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
             </div>
         </div>
         """, unsafe_allow_html=True)
-        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("<style>div[data-testid='stVerticalBlock'] > div:has(button) { margin-top: -30px; }</style>", unsafe_allow_html=True)
         c_bos, c_geri, c_bos2 = st.columns([1, 2, 1])
         if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True):
             st.session_state.aktif_sayfa = menu[0]
