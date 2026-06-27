@@ -2273,14 +2273,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 bas_tar = arsiv_tarih[0].strftime("%Y-%m-%d")
                 bit_tar = (arsiv_tarih[1] + timedelta(days=1)).strftime("%Y-%m-%d")
                 
+                fat_sorgu = "(SELECT COUNT(*) FROM hesap_ekstreleri e INNER JOIN faturalar f ON f.Ekstre_ID = e.id WHERE e.Klinik_Unvani = isler.Klinik_Unvani AND isler.Tarih >= e.Baslangic_Tarihi AND isler.Tarih <= e.Bitis_Tarihi) as Faturali_Mi"
                 if arsiv_klinik == "Tümü":
-                    df_arsiv_isler = pd.read_sql("SELECT id, Teslim_Tarihi, Barkod, Hasta_Adi, Klinik_Unvani FROM isler WHERE Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(bas_tar, bit_tar))
+                    df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Barkod, Hasta_Adi, Klinik_Unvani, {fat_sorgu} FROM isler WHERE Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(bas_tar, bit_tar))
                 else:
-                    df_arsiv_isler = pd.read_sql("SELECT id, Teslim_Tarihi, Barkod, Hasta_Adi, Klinik_Unvani FROM isler WHERE Klinik_Unvani=? AND Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(arsiv_klinik, bas_tar, bit_tar))
+                    df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Barkod, Hasta_Adi, Klinik_Unvani, {fat_sorgu} FROM isler WHERE Klinik_Unvani=? AND Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(arsiv_klinik, bas_tar, bit_tar))
                 
                 if not df_arsiv_isler.empty:
-                    df_goster_ar = df_arsiv_isler.rename(columns={
-                        "id": "SIRA NO",
+                    df_arsiv_isler['id_gosterim'] = df_arsiv_isler.apply(lambda r: f"🟢 {r['id']}" if r['Faturali_Mi'] == 0 else str(r['id']), axis=1)
+                    df_goster_ar = df_arsiv_isler[['id_gosterim', 'Teslim_Tarihi', 'Barkod', 'Hasta_Adi', 'Klinik_Unvani']].rename(columns={
+                        "id_gosterim": "SIRA NO",
                         "Teslim_Tarihi": "TESLİM TARİHİ",
                         "Barkod": "HASTA NO",
                         "Hasta_Adi": "HASTA ADI",
