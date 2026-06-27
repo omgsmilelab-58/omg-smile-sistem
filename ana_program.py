@@ -1221,9 +1221,50 @@ else:
 alt_baslik = f"{rol} Yetkisi" if rol != "Klinik_Asistan" else f"{ana_klinik} Asistanı"
 st.sidebar.markdown(f"""<div class='glass-card' style='padding: 15px; text-align:center; margin-bottom:20px;'><h4 class='neon-text-blue' style='margin:0;'>{kullanici_adi.upper()}</h4><span style='color:#FFFFFF; font-size:12px;'>{alt_baslik}</span></div>""", unsafe_allow_html=True)
 
-def menu_guncelle(): st.session_state.aktif_sayfa = st.session_state.menu_secici
-menu_idx = menu.index(st.session_state.aktif_sayfa) if st.session_state.aktif_sayfa in menu else 0
-st.sidebar.selectbox("Modül Seçiniz:", menu, index=menu_idx, key="menu_secici", on_change=menu_guncelle)
+kategoriler = {
+    "🛠️ 1. Operasyon & Üretim": [
+        "🏠 Komuta Merkezi", "📅 Görev & Planlama", "⚙️ İş Akışı", 
+        "📱 Teknisyen Terminali", "📺 Lobi / TV Ekranı", "🦷 Klinik Paneli"
+    ],
+    "🤝 2. Müşteri & İletişim (CRM)": [
+        "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
+        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali"
+    ],
+    "💰 3. Finans & Tedarik": [
+        "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
+        "🏭 Tedarikçi Yönetimi", "🧾 Detaylı Ekstre"
+    ],
+    "🏢 4. Altyapı & Yönetim": [
+        "🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", 
+        "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi"
+    ]
+}
+
+kategori_bulundu = False
+for mods in kategoriler.values():
+    if st.session_state.aktif_sayfa in mods:
+        kategori_bulundu = True
+        break
+
+for kat_adi, moduller in kategoriler.items():
+    izinli_moduller = [m for m in moduller if m in menu]
+    if izinli_moduller:
+        is_expanded = (st.session_state.aktif_sayfa in izinli_moduller) or (not kategori_bulundu and kat_adi.startswith("🛠️"))
+        with st.sidebar.expander(kat_adi, expanded=is_expanded):
+            for modul in izinli_moduller:
+                btn_type = "primary" if modul == st.session_state.aktif_sayfa else "secondary"
+                if st.button(modul, key=f"nav_{modul}", use_container_width=True, type=btn_type):
+                    st.session_state.aktif_sayfa = modul
+                    st.rerun()
+
+ekstra_moduller = [m for m in menu if not any(m in mods for mods in kategoriler.values())]
+if ekstra_moduller:
+    with st.sidebar.expander("🧩 5. Diğer Modüller", expanded=(st.session_state.aktif_sayfa in ekstra_moduller)):
+        for modul in ekstra_moduller:
+            btn_type = "primary" if modul == st.session_state.aktif_sayfa else "secondary"
+            if st.button(modul, key=f"nav_{modul}", use_container_width=True, type=btn_type):
+                st.session_state.aktif_sayfa = modul
+                st.rerun()
 
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 
