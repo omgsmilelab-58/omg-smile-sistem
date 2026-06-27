@@ -1088,7 +1088,7 @@ def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, k
     pdf.set_xy(10, 90)
     pdf.set_fill_color(240, 240, 240)
     pdf.set_font("Courier", "B", 8)
-    w_cols = [10, 65, 15, 20, 20, 25, 25]
+    w_cols = [12, 60, 15, 20, 20, 23, 30]
     h_cols = ["Sira No", "Mal Hizmet", "Miktar", "Birim Fiyat", "KDV Orani", "KDV Tutari", "Mal Hizmet Tutari"]
     for i in range(len(w_cols)): pdf.cell(w_cols[i], 8, h_cols[i], border=1, align="C", fill=True)
     pdf.ln()
@@ -1097,30 +1097,16 @@ def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, k
     pdf.set_font("Courier", "", 7)
     sira = 1
     kdv_oran_float = float(kdv_orani) if kdv_orani else 20.0
-    
-    # Gercek KDV tutari ve Mal tutarini tekrar hesaplayalim
-    # (Faturalarda tutarlar genel toplama mi, kdv harice mi diye bakmak gerek, 
-    # ama ana programda 'fatura_tutar_input' toplam KDV haric mi dahil mi?
-    # Ana programda: toplam_tutar = isler'in tutar_TL toplami. Bunlar KDV Haric.
-    
-    
-    if ekstre_df.empty:
-        # Eger herhangi bir sebeple kalemler bos gelirse, toplam tutari tek kalem olarak gosterelim.
-        pdf.cell(w_cols[0], 6, "1", border=1, align="C")
-        pdf.cell(w_cols[1], 6, "Muhtelif Dis Protez Islemleri", border=1)
-        pdf.cell(w_cols[2], 6, "1 Adet", border=1, align="C")
-        pdf.cell(w_cols[3], 6, f"{float(toplam_tutar):,.2f}TL", border=1, align="R")
-        pdf.cell(w_cols[4], 6, f"%{kdv_oran_float:.2f}", border=1, align="C")
-        pdf.cell(w_cols[5], 6, f"{float(toplam_tutar) * (kdv_oran_float / 100.0):,.2f}TL", border=1, align="R")
-        pdf.cell(w_cols[6], 6, f"{float(toplam_tutar):,.2f}TL", border=1, align="R")
-        pdf.ln()
+    item_printed = False
+
     for _, row in ekstre_df.iterrows():
-        b = float(row.get('Borc', 0) or 0)
+        b = float(row.get('Borc', row.get('borc', 0)) or 0)
         if b <= 0: continue
-        islem_adi = str(row.get('Islem', '-'))
-        if len(islem_adi) > 55: islem_adi = islem_adi[:52] + "..."
+        item_printed = True
+        islem_adi = str(row.get('Islem', row.get('islem', '-')))
+        if len(islem_adi) > 45: islem_adi = islem_adi[:42] + "..."
         k_tutari = b * (kdv_oran_float / 100.0)
-        
+
         pdf.cell(w_cols[0], 6, str(sira), border=1, align="C")
         pdf.cell(w_cols[1], 6, tr(islem_adi), border=1)
         pdf.cell(w_cols[2], 6, "1 Adet", border=1, align="C")
@@ -1130,6 +1116,17 @@ def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, k
         pdf.cell(w_cols[6], 6, f"{b:,.2f}TL", border=1, align="R")
         pdf.ln()
         sira += 1
+
+    if not item_printed:
+        pdf.cell(w_cols[0], 6, "1", border=1, align="C")
+        pdf.cell(w_cols[1], 6, "Muhtelif Dis Protez Islemleri", border=1)
+        pdf.cell(w_cols[2], 6, "1 Adet", border=1, align="C")
+        pdf.cell(w_cols[3], 6, f"{float(toplam_tutar):,.2f}TL", border=1, align="R")
+        pdf.cell(w_cols[4], 6, f"%{kdv_oran_float:.2f}", border=1, align="C")
+        pdf.cell(w_cols[5], 6, f"{float(toplam_tutar) * (kdv_oran_float / 100.0):,.2f}TL", border=1, align="R")
+        pdf.cell(w_cols[6], 6, f"{float(toplam_tutar):,.2f}TL", border=1, align="R")
+        pdf.ln()
+
 
     # 7. Dip Toplamlar
     pdf.ln(5)
