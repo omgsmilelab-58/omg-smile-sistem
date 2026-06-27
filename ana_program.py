@@ -610,6 +610,7 @@ c.execute('''CREATE TABLE IF NOT EXISTS personeller (id SERIAL PRIMARY KEY, Ad_S
 c.execute('''CREATE TABLE IF NOT EXISTS kullanicilar (id SERIAL PRIMARY KEY, Kullanici_Adi TEXT, Sifre TEXT, Rol TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS giderler (id SERIAL PRIMARY KEY, Tarih TEXT, Kategori TEXT, Aciklama TEXT, Tutar REAL)''')
 c.execute('''CREATE TABLE IF NOT EXISTS tahsilatlar (id SERIAL PRIMARY KEY, Tarih TEXT, Klinik_Unvani TEXT, Odeme_Turu TEXT, Tutar REAL, Aciklama TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS fatura_tahsilatlar (id SERIAL PRIMARY KEY, Fatura_ID INTEGER, Tarih TEXT, Tutar REAL, Odeme_Turu TEXT, Aciklama TEXT, Klinik_Unvani TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS is_fotograflari (id SERIAL PRIMARY KEY, Is_ID INTEGER, Dosya_Yolu TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS is_3d_modelleri (id SERIAL PRIMARY KEY, Is_ID INTEGER, Dosya_Yolu TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS cihazlar (id SERIAL PRIMARY KEY, Cihaz_Adi TEXT, Kategori TEXT, Calisma_Saati REAL DEFAULT 0, Bakim_Siniri REAL DEFAULT 500, Son_Bakim_Tarihi TEXT, Durum TEXT DEFAULT 'Aktif', Gorsel_Yolu TEXT DEFAULT '-', Haftalik_Hedef TEXT DEFAULT '2026-01-01', Aylik_Hedef TEXT DEFAULT '2026-01-01', Yillik_Hedef TEXT DEFAULT '2026-01-01')''')
@@ -5062,6 +5063,50 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             conn.commit()
                             st.success("✅ Tahsilat işlendi, cari bakiye güncellendi!")
                             st.rerun()
+                    st.markdown("---")
+                    st.markdown("##### 📜 Geçmiş Tahsilatlar")
+                    
+                    gecmis_tah = c.execute("SELECT id, Tarih, Odeme_Turu, Tutar, Aciklama FROM tahsilatlar WHERE Klinik_Unvani=? ORDER BY id DESC LIMIT 50", (t_klinik,)).fetchall()
+                    if gecmis_tah:
+                        for tah in gecmis_tah:
+                            with st.container(border=True):
+                                ct1, ct2, ct3, ct4 = st.columns([3, 2, 3, 1.5])
+                                ct1.markdown(f"📅 **{tah[1]}**  \n🏷️ {tah[2]}")
+                                ct2.metric("Tutar", f"{float(tah[3] or 0):,.2f} TL")
+                                ct3.markdown(f"📝 {tah[4]}")
+                                
+                                if ct4.button("🗑️ İptal Et", key=f"iptal_tah_{tah[0]}", help="Tahsilatı iptal edip cari bakiyeyi geri yükler"):
+                                    tah_id = tah[0]
+                                    tah_tutar = float(tah[3] or 0)
+                                    tah_tarih = tah[1]
+                                    tah_tur = tah[2]
+                                    tah_aciklama = tah[4]
+                                    
+                                    kdv_o = float(ayar_getir("KDV_Orani", "20"))
+                                    t_tutar_kdvsiz = tah_tutar / (1.0 + (kdv_o / 100.0))
+                                    c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani = ?", (t_tutar_kdvsiz, t_klinik))
+                                    
+                                    fat_tah_rec = c.execute("SELECT id, Fatura_ID FROM fatura_tahsilatlar WHERE Klinik_Unvani=? AND Tarih=? AND Tutar=? AND Odeme_Turu=?", (t_klinik, tah_tarih, tah_tutar, tah_tur)).fetchone()
+                                    if fat_tah_rec:
+                                        fat_tah_id = fat_tah_rec[0]
+                                        fatura_id = fat_tah_rec[1]
+                                        
+                                        fat_raw = c.execute("SELECT Toplam_Tutar, Odenen_Tutar FROM faturalar WHERE id=?", (fatura_id,)).fetchone()
+                                        if fat_raw:
+                                            yeni_odenen = float(fat_raw[1] or 0) - tah_tutar
+                                            yeni_kalan = float(fat_raw[0] or 0) - yeni_odenen
+                                            yeni_durum = "Beklemede" if yeni_odenen <= 0 else "Kısmi Ödendi"
+                                            c.execute("UPDATE faturalar SET Odenen_Tutar=?, Kalan_Tutar=?, Durum=? WHERE id=?", (max(0.0, yeni_odenen), max(0.0, yeni_kalan), yeni_durum, fatura_id))
+                                        
+                                        c.execute("DELETE FROM fatura_tahsilatlar WHERE id=?", (fat_tah_id,))
+                                        
+                                    c.execute("DELETE FROM tahsilatlar WHERE id=?", (tah_id,))
+                                    conn.commit()
+                                    st.success("✅ Tahsilat iptal edildi ve bakiye geri yüklendi!")
+                                    st.rerun()
+                    else:
+                        st.info("Bu kliniğe ait geçmiş tahsilat bulunmuyor.")
+
 
             # ============================================================
             # ALT SEKME 0: CARİ BAKİYE
