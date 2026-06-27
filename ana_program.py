@@ -1386,17 +1386,32 @@ for kat_adi, moduller in kategoriler.items():
 
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 
+st.sidebar.markdown("""
+<style>
+    [data-testid=\"stSidebar\"] > div:first-child {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+    }
+    [data-testid=\"stSidebar\"] .stMarkdown:has(div.bottom-spacer) {
+        flex-grow: 1 !important;
+    }
+    div.bottom-spacer {
+        height: 100%;
+    }
+</style>
+<div class=\"bottom-spacer\"></div>
+""", unsafe_allow_html=True)
+
 if rol in ["Admin", "Yönetici", "Sekreter"]:
     if st.sidebar.button("🤖 OMG AI Asistan", type="primary", use_container_width=True): st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"; st.rerun()
 
-st.sidebar.markdown("<br>", unsafe_allow_html=True)
 if "🗓️ Doktor Takvimi" in menu:
     if st.sidebar.button("🗓️ Doktor Takvimi", type="primary", use_container_width=True):
         st.session_state.aktif_sayfa = "🗓️ Doktor Takvimi"
         st.rerun()
-    st.sidebar.markdown("<br>", unsafe_allow_html=True)
 
-st.sidebar.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 10px 0;'>", unsafe_allow_html=True)
+st.sidebar.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 5px 0;'>", unsafe_allow_html=True)
 if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
     c1, c2 = st.sidebar.columns(2)
     if c1.button("🚪 Çıkış", help="Sistemden Çıkış Yap", use_container_width=True):
