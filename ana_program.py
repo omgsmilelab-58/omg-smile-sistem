@@ -1606,19 +1606,13 @@ if rol in ["Klinik", "Klinik_Asistan"]:
     elif sayfa == "🗓️ Doktor Takvimi":
         st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
         st.markdown("""
-        <div class="glass-card" style="text-align:center; padding: 60px 20px 30px 20px; margin-top:30px;">
-            <h1 style="font-size: 80px; margin-bottom: 20px;">🗓️</h1>
-            <h2 class="neon-text-blue" style="margin-bottom: 15px;">Doktor Takvimi Entegrasyonu (Çok Yakında)</h2>
-            <p style="color: #cbd5e1; font-size: 18px; max-width: 650px; margin: 0 auto; line-height: 1.6;">
-                Bu bölüm şu anda <b>yapım aşamasındadır</b>.<br><br>
-                Geliştirilmekte olan "Doktor Takvimi" programı yayına alındığında, API bağlantıları kurularak tüm randevular buraya entegre edilecektir. Hekimlerimiz doğrudan bu takvim üzerinden hastalarını yönetecek ve tek tıkla OMG Smile sistemine sipariş (reçete) gönderebileceklerdir.
-            </p>
-            <div style="margin-top: 40px;">
-                <span style="background-color: #3b82f640; color: #60a5fa; padding: 10px 20px; border-radius: 20px; font-weight: bold; border: 1px solid #3b82f6;">🚧 API Bağlantısı Bekleniyor 🚧</span>
-            </div>
-        </div>
+        <iframe 
+            src="http://<sizin-bilgisayarin-ip-adresi-veya-ngrok-linki>:5555" 
+            width="100%" 
+            style="border:none; border-radius: 8px; height: 85vh;">
+        </iframe>
         """, unsafe_allow_html=True)
-        st.markdown("<style>div[data-testid='stVerticalBlock'] > div:has(button) { margin-top: -30px; }</style>", unsafe_allow_html=True)
+        st.markdown("<style>div[data-testid='stVerticalBlock'] > div:has(button) { margin-top: 10px; }</style>", unsafe_allow_html=True)
         c_bos, c_geri, c_bos2 = st.columns([1, 2, 1])
         if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True):
             st.session_state.aktif_sayfa = menu[0]
