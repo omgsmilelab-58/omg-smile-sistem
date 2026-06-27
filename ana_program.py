@@ -4253,16 +4253,24 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         def kategori_belirle(urun_adi, isler_serisi):
                             u_adi = str(urun_adi).lower()
                             isler = isler_serisi.astype(str).str.lower()
+                            
                             if 'frez' in u_adi:
                                 return 'FREZ'
-                            if isler.str.contains('zirkon|zircon').any() or 'zirkon' in u_adi or 'zircon' in u_adi:
-                                return 'ZİRKONYUM'
-                            if isler.str.contains('pmma').any() or 'pmma' in u_adi:
+                            if 'pmma' in u_adi:
                                 return 'PMMA'
-                            if isler.str.contains('titan').any() or 'titan' in u_adi:
+                            if 'zirkon' in u_adi or 'zircon' in u_adi:
+                                return 'ZİRKONYUM'
+                            if 'titan' in u_adi:
                                 return 'TİTANYUM'
+                                
+                            if isler.str.contains('zirkon|zircon').any():
+                                return 'ZİRKONYUM'
+                            if isler.str.contains('pmma').any():
+                                return 'PMMA'
+                            if isler.str.contains('titan').any():
+                                return 'TİTANYUM'
+                                
                             return 'DİĞER'
-
                         for kod in essiz_kodlar:
                             df_urun = df_arsiv[df_arsiv['stok_kodu'] == kod]
                             ilk_kayit = df_urun.iloc[-1] 
