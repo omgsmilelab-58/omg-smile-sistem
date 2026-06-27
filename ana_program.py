@@ -4683,8 +4683,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         except:
             klinikler = []
 
-        tab_tahsilat, tab_gider, tab_analitik, tab_nakit, tab_fiyat, tab_ekstre_arsiv = st.tabs(["💵 Tahsilat Gir", "💸 Giderler", "📈 Gerçek Kârlılık (CFO)", "🌊 Nakit Radarı & FP&A Tahminleme", "🏷️ İş Fiyatlandırma", "📂 Hesap Ekstreleri"])
-        
+        tab_fiyat, tab_ekstre_arsiv, tab_finans_veri = st.tabs(["🏷️ İş Fiyatlandırma", "📂 Hesap Ekstreleri", "📊 Finans Veri Tabloları"])
+
         with tab_fiyat:
             st.markdown("#### 🏷️ İş Fiyatlandırma")
             st.caption("İş Akışı'nda oluşturulan ve henüz fiyatlandırılmamış (Tutarı 0 olan) veya fiyatı güncellenmek istenen reçetelerin fiyatlarını bu tablodan belirleyebilirsiniz. Belirlenen tutarlar otomatik olarak kliniğin borç bakiyesine yansıtılır.")
@@ -4858,26 +4858,28 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             else:
                 st.warning("Sistemde kayıtlı klinik bulunmuyor.")
 
-        with tab_tahsilat:
-            if klinikler:
-                with st.form("tahsilat_form"):
-                    c1, c2, c3 = st.columns(3)
-                    t_tarih = c1.date_input("Tahsilat Tarihi", value=datetime.now(), key="tah_tarih")
-                    t_klinik = c2.selectbox("Ödeme Yapan Klinik", klinikler, key="tah_klinik")
-                    t_turu = c3.selectbox("Ödeme Türü", ["Havale / EFT", "Nakit", "Kredi Kartı", "Çek / Senet"], key="tah_tur")
-                    t_tutar = c1.number_input("Alınan Tutar (TL)", min_value=0.0, value=0.0, step=100.0, key="tah_tutar")
-                    t_aciklama = c2.text_input("Açıklama / Dekont No", key="tah_aciklama")
-                    if st.form_submit_button("Tahsilatı Kaydet ve Bakiyeden Düş", type="primary") and t_tutar > 0:
-                        c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (t_tarih.strftime("%Y-%m-%d"), t_klinik, t_turu, t_tutar, t_aciklama))
-                        kdv_o = float(ayar_getir("KDV_Orani", "20"))
-                        t_tutar_kdvsiz = t_tutar / (1.0 + (kdv_o / 100.0))
-                        c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani = ?", (t_tutar_kdvsiz, t_klinik))
-                        conn.commit(); st.success("✅ Tahsilat işlendi, cari bakiye güncellendi!"); st.rerun()
-
         with tab_ekstre_arsiv:
             st.markdown("#### 📋 Hesap Ekstreleri & Fatura Yönetimi")
 
-            alt_tab0, alt_tab_hareket, alt_tab1, alt_tab2, alt_tab3 = st.tabs(["💳 Cari Bakiye", "📈 Cari Hesap Hareketleri", "📋 Yeni Ekstre Oluştur", "🧾 Faturalar", "📂 Arşiv"])
+            alt_tahsilat, alt_tab0, alt_tab_hareket, alt_tab1, alt_tab2, alt_tab3 = st.tabs(["💵 Tahsilat Gir", "💳 Cari Bakiye", "📈 Cari Hesap Hareketleri", "📋 Yeni Ekstre Oluştur", "🧾 Faturalar", "📂 Arşiv"])
+
+            with alt_tahsilat:
+                if klinikler:
+                    with st.form("tahsilat_form"):
+                        c1, c2, c3 = st.columns(3)
+                        t_tarih = c1.date_input("Tahsilat Tarihi", value=datetime.now(), key="tah_tarih")
+                        t_klinik = c2.selectbox("Ödeme Yapan Klinik", klinikler, key="tah_klinik")
+                        t_turu = c3.selectbox("Ödeme Türü", ["Havale / EFT", "Nakit", "Kredi Kartı", "Çek / Senet"], key="tah_tur")
+                        t_tutar = c1.number_input("Alınan Tutar (TL)", min_value=0.0, value=0.0, step=100.0, key="tah_tutar")
+                        t_aciklama = c2.text_input("Açıklama / Dekont No", key="tah_aciklama")
+                        if st.form_submit_button("Tahsilatı Kaydet ve Bakiyeden Düş", type="primary") and t_tutar > 0:
+                            c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (t_tarih.strftime("%Y-%m-%d"), t_klinik, t_turu, t_tutar, t_aciklama))
+                            kdv_o = float(ayar_getir("KDV_Orani", "20"))
+                            t_tutar_kdvsiz = t_tutar / (1.0 + (kdv_o / 100.0))
+                            c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani = ?", (t_tutar_kdvsiz, t_klinik))
+                            conn.commit(); st.success("✅ Tahsilat işlendi, cari bakiye güncellendi!"); st.rerun()
+
+
             # ============================================================
             # ALT SEKME 0: CARİ BAKİYE
             # ============================================================
@@ -5385,163 +5387,141 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 except Exception as e_arsiv2:
                     st.error(f"Arşiv yüklenemedi: {e_arsiv2}")
 
-        with tab_gider:
-            with st.container(border=True):
-                st.markdown("#### 💸 Genel Gider Girişi")
-                with st.form("gider_form"):
-                    c1, c2 = st.columns(2)
-                    
-                    # 🚨 YENİ GİDER KATEGORİLERİ BURADA 🚨
-                    kat = c1.selectbox("Gider Kategorisi", [
-                        "Personel maaşları",
-                        "Kira",
-                        "Faturalar (Elektrik-Su-Doğalgaz-İnternet)",
-                        "Yemek (Mutfak)",
-                        "Yakıt/Ulaşım/Kargo",
-                        "Hammadde (Blok, Metal tozu)",
-                        "Sarf Malzeme",
-                        "Teknik bakım/onarım",
-                        "Diğer (Demirbaş, temizlik...)"
-                    ], key="gid_tur")
-                    
-                    tut = c2.number_input("Tutar (TL)", min_value=0.0, step=100.0, key="gid_tut")
-                    acik = st.text_input("Açıklama", key="gid_acik")
-                    if st.form_submit_button("💸 Gideri Kaydet", type="primary") and tut > 0:
-                        c.execute("INSERT INTO giderler (Tarih, Kategori, Aciklama, Tutar) VALUES (?,?,?,?)", (datetime.now().strftime("%Y-%m-%d"), kat, acik, tut))
-                        conn.commit(); st.success("✅ Gider kaydedildi!"); st.rerun()
-            
-            st.markdown("#### 📑 Son Gider Hareketleri")
-            df_giderler = pd.read_sql("SELECT * FROM giderler ORDER BY Tarih DESC", conn)
-            st.dataframe(df_giderler, hide_index=True, use_container_width=True)
-            
-        with tab_analitik:
-            st.markdown("""<style>.cfo-card { background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; padding: 25px 15px; text-align: center; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px); transition: transform 0.3s ease, border-color 0.3s ease; margin-bottom: 20px; } .cfo-card:hover { transform: translateY(-5px); border-color: rgba(56, 189, 248, 0.8); } .cfo-title { color: #94a3b8; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; } .cfo-val-blue { color: #38bdf8; font-size: 38px; font-weight: 900; text-shadow: 0 0 15px rgba(56,189,248,0.4); } .cfo-val-red { color: #f87171; font-size: 38px; font-weight: 900; text-shadow: 0 0 15px rgba(248,113,113,0.4); } .cfo-val-green { color: #34d399; font-size: 38px; font-weight: 900; text-shadow: 0 0 15px rgba(52,211,153,0.4); } .cfo-val-gray { color: #cbd5e1; font-size: 38px; font-weight: 900; } .cfo-sub { color: #64748b; font-size: 14px; font-weight: 600; margin-top: 8px; } .cfo-sub-down { color: #f87171; font-weight: bold; } .cfo-sub-up { color: #34d399; font-weight: bold; }</style>""", unsafe_allow_html=True)
-            
-            euro_kuru = guncel_euro_kuru_getir()
-            try:
-                df_is_f = pd.read_sql("SELECT Klinik_Unvani, Is_Turu, Tutar_TL FROM isler", conn)
-                if not df_is_f.empty:
-                    df_is_f['Tutar_TL'] = pd.to_numeric(df_is_f['Tutar_TL'], errors='coerce')
-                    toplam_gelir = df_is_f['Tutar_TL'].sum()
-                else: toplam_gelir = 0
-            except: df_is_f = pd.DataFrame(); toplam_gelir = 0
-            
-            try:
-                df_tum_giderler = pd.read_sql("SELECT * FROM giderler", conn)
-                if not df_tum_giderler.empty:
-                    gider_tur_kolonu = df_tum_giderler.columns[1] 
-                    gider_tutar_kolonu = df_tum_giderler.columns[3]
-                    df_tum_giderler[gider_tutar_kolonu] = pd.to_numeric(df_tum_giderler[gider_tutar_kolonu], errors='coerce')
-                    toplam_sabit_gider = df_tum_giderler[gider_tutar_kolonu].sum()
-                else: toplam_sabit_gider = 0
-            except: df_tum_giderler = pd.DataFrame(); toplam_sabit_gider = 0
-            
-            try: toplam_üye_sayısı = c.execute("SELECT sum(22 - Kalan_Uye) FROM cam_bloklar").fetchone()[0] or 1
-            except: toplam_üye_sayısı = 1
-            if toplam_üye_sayısı <= 0: toplam_üye_sayısı = 1
-                
-            try: frez_maliyeti_euro = c.execute("SELECT sum((CAST(kullanilan_dk AS FLOAT) / toplam_omur_dk) * birim_fiyat_euro) FROM aktif_frezler WHERE toplam_omur_dk > 0").fetchone()[0] or 0
-            except: frez_maliyeti_euro = 0
-                
-            blok_maliyeti_tl = (toplam_üye_sayısı * 150)
-            toplam_uretim_maliyeti = (frez_maliyeti_euro * euro_kuru) + blok_maliyeti_tl
-            toplam_toplam_gider = toplam_sabit_gider + toplam_uretim_maliyeti
-            net_kar = toplam_gelir - toplam_toplam_gider
-            
-            c_f1, c_f2, c_f3 = st.columns(3)
-            c_f1.markdown(f'<div class="cfo-card"><div class="cfo-title">💎 Toplam Ciro</div><div class="cfo-val-blue">{toplam_gelir:,.0f} ₺</div><div class="cfo-sub">Klinik Hakedişleri</div></div>', unsafe_allow_html=True)
-            c_f2.markdown(f'<div class="cfo-card"><div class="cfo-title">🔥 Toplam Maliyet</div><div class="cfo-val-red">{toplam_toplam_gider:,.0f} ₺</div><div class="cfo-sub"><span class="cfo-sub-down">▼ {toplam_uretim_maliyeti:,.0f} ₺</span> Üretim</div></div>', unsafe_allow_html=True)
-            kar_class = "cfo-val-green" if net_kar > 0 else "cfo-val-red" if net_kar < 0 else "cfo-val-gray"
-            kar_marji = int((net_kar/toplam_gelir)*100) if toplam_gelir > 0 else 0
-            kar_sinif = "cfo-sub-up" if net_kar > 0 else "cfo-sub-down"
-            c_f3.markdown(f'<div class="cfo-card"><div class="cfo-title">💰 Net Kâr / Zarar</div><div class="{kar_class}">{net_kar:,.0f} ₺</div><div class="cfo-sub"><span class="{kar_sinif}">%{kar_marji}</span> Net Marj</div></div>', unsafe_allow_html=True)
 
-            st.markdown("<br>", unsafe_allow_html=True)
-            col_graf1, col_graf2 = st.columns(2)
-            
-            with col_graf1:
-                st.markdown("<h5 style='text-align:center; color:#e2e8f0;'>💸 GİDER DAĞILIMI</h5>", unsafe_allow_html=True)
-                if not df_tum_giderler.empty:
-                    df_g_pasta = df_tum_giderler.groupby(gider_tur_kolonu)[gider_tutar_kolonu].sum().reset_index()
-                    df_g_pasta.columns = ["Kategori", "Tutar"]
-                else: df_g_pasta = pd.DataFrame(columns=["Kategori", "Tutar"])
-                
-                # Üretim maliyetini pastaya ekle
-                yeni_satir = pd.DataFrame({"Kategori": ["Üretim (Frez/Blok)"], "Tutar": [toplam_uretim_maliyeti]})
-                df_g_pasta = pd.concat([df_g_pasta, yeni_satir], ignore_index=True)
-                
-                if df_g_pasta["Tutar"].sum() > 0:
-                    fig_gider = px.pie(df_g_pasta, names="Kategori", values="Tutar", hole=0.5, color_discrete_sequence=px.colors.qualitative.Pastel)
-                    fig_gider.update_traces(textposition='inside', textinfo='percent+label', insidetextfont=dict(color='white', size=14))
-                    fig_gider.update_layout(template="plotly_dark", showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-                    st.plotly_chart(fig_gider, use_container_width=True)
+        with tab_finans_veri:
+            st.markdown("#### 📊 Finans Veri Tabloları")
+            alt_karlilik, alt_nakit = st.tabs(["📈 Gerçek Kârlılık", "🌊 Nakit Radarı"])
 
-            with col_graf2:
-                st.markdown("<h5 style='text-align:center; color:#e2e8f0;'>🏆 EN KÂRLI KLİNİKLER</h5>", unsafe_allow_html=True)
-                if not df_is_f.empty:
-                    klinik_ciro = df_is_f.groupby("Klinik_Unvani")["Tutar_TL"].sum().reset_index().sort_values(by="Tutar_TL", ascending=True)
-                    fig_c = px.bar(klinik_ciro, x="Tutar_TL", y="Klinik_Unvani", orientation='h', color="Tutar_TL", color_continuous_scale="Tealgrn")
-                    fig_c.update_traces(texttemplate='<b>%{x:,.0f} ₺</b>', textposition='outside')
-                    fig_c.update_layout(template="plotly_dark", showlegend=False, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis=dict(visible=False), yaxis=dict(title=""))
-                    st.plotly_chart(fig_c, use_container_width=True)
-
-        with tab_nakit:
-            st.markdown("### 🌊 CFO Radarı: Nakit Akışı ve Gelecek Tahminleme (FP&A)")
-            st.info("2. Madde (Bütçe Tahminleme) ve 3. Madde (Likidite/Tahsilat Yönetimi) prensiplerine göre çalışır.")
+            with alt_karlilik:
+                st.markdown("""<style>.cfo-card { background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; padding: 25px 15px; text-align: center; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px); transition: transform 0.3s ease, border-color 0.3s ease; margin-bottom: 20px; } .cfo-card:hover { transform: translateY(-5px); border-color: rgba(56, 189, 248, 0.8); } .cfo-title { color: #94a3b8; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; } .cfo-val-blue { color: #38bdf8; font-size: 38px; font-weight: 900; text-shadow: 0 0 15px rgba(56,189,248,0.4); } .cfo-val-red { color: #f87171; font-size: 38px; font-weight: 900; text-shadow: 0 0 15px rgba(248,113,113,0.4); } .cfo-val-green { color: #34d399; font-size: 38px; font-weight: 900; text-shadow: 0 0 15px rgba(52,211,153,0.4); } .cfo-val-gray { color: #cbd5e1; font-size: 38px; font-weight: 900; } .cfo-sub { color: #64748b; font-size: 14px; font-weight: 600; margin-top: 8px; } .cfo-sub-down { color: #f87171; font-weight: bold; } .cfo-sub-up { color: #34d399; font-weight: bold; }</style>""", unsafe_allow_html=True)
             
-            euro_kuru = guncel_euro_kuru_getir()
-            mevcut_ay = datetime.now().strftime("%Y-%m")
-            bugun_gun = datetime.now().day
-            
-            try:
-                toplam_alacak = c.execute("SELECT sum(Bakiye) FROM cariler WHERE Bakiye > 0").fetchone()[0] or 0
-                bu_ay_tahsilat = c.execute(f"SELECT sum(Tutar) FROM tahsilatlar WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
-                bu_ay_fatura = c.execute(f"SELECT sum(Tutar_TL) FROM isler WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
-                bu_ay_gider = c.execute(f"SELECT sum(Tutar) FROM giderler WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
-            except: toplam_alacak, bu_ay_tahsilat, bu_ay_fatura, bu_ay_gider = 0, 0, 0, 0
-                
-            tahsilat_orani = (bu_ay_tahsilat / bu_ay_fatura * 100) if bu_ay_fatura > 0 else 0
-            
-            st.markdown("#### 💵 Nakit ve Alacak Yönetimi (Likidite)")
-            n_col1, n_col2, n_col3 = st.columns(3)
-            n_col1.metric("Piyasadaki Toplam Alacak", f"{toplam_alacak:,.2f} TL")
-            n_col2.metric("Bu Ay Kesilen Fatura", f"{bu_ay_fatura:,.2f} TL")
-            n_col3.metric("Bu Ay Giren Sıcak Para", f"{bu_ay_tahsilat:,.2f} TL", delta=f"%{tahsilat_orani:.1f} Başarı", delta_color="normal" if tahsilat_orani >= 70 else "inverse")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            n_graf1, n_graf2 = st.columns([2, 1.5])
-            with n_graf1:
-                st.markdown("##### 🚨 En Çok Borcu Olan İlk 5 Klinik")
+                euro_kuru = guncel_euro_kuru_getir()
                 try:
-                    df_borclular = pd.read_sql("SELECT Klinik_Unvani, Bakiye FROM cariler WHERE Bakiye > 0 ORDER BY Bakiye DESC LIMIT 5", conn)
-                    if not df_borclular.empty:
-                        fig_borc = px.bar(df_borclular, x="Bakiye", y="Klinik_Unvani", orientation='h', color="Bakiye", color_continuous_scale="Reds")
-                        fig_borc.update_traces(texttemplate='<b>%{x:,.0f} ₺</b>', textposition='outside')
-                        fig_borc.update_layout(template="plotly_dark", margin=dict(t=10, b=10, l=10, r=60), showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", yaxis={'categoryorder':'total ascending', 'title': ''}, xaxis={'visible': False}, coloraxis_showscale=False)
-                        st.plotly_chart(fig_borc, use_container_width=True)
-                except: pass
-                
-            with n_graf2:
-                st.markdown("##### 🌍 Kur Riski Simülatörü")
-                simule_kur = st.slider("Tahmini Euro Kuru (TL)", min_value=45.0, max_value=75.0, value=euro_kuru, step=0.5)
-                try: f_maliyet_euro = c.execute("SELECT sum((CAST(kullanilan_dk AS FLOAT) / toplam_omur_dk) * birim_fiyat_euro) FROM aktif_frezler WHERE toplam_omur_dk > 0").fetchone()[0] or 0
-                except: f_maliyet_euro = 0
-                simule_maliyet = f_maliyet_euro * simule_kur
-                fark = simule_maliyet - (f_maliyet_euro * euro_kuru)
-                st.markdown(f"<div class='cfo-card' style='border-color: {'#f87171' if fark > 0 else '#34d399'}; padding:20px;'><div class='cfo-sub'>Aylık Frez Maliyeti (Simüle):</div><div style='font-size:28px; font-weight:900; color:#f8fafc; margin: 10px 0;'>{simule_maliyet:,.0f} ₺</div><div style='color:{'#f87171' if fark > 0 else '#34d399'}; font-weight:700;'>Kur {simule_kur} ₺ olursa fark: +{fark:,.0f} ₺</div></div>", unsafe_allow_html=True)
-                
-            st.markdown("---")
-            st.markdown("#### 🔮 Gelecek Tahminleme (Forecasting)")
-            if bugun_gun > 0:
-                beklenen_ay_sonu_ciro = (bu_ay_fatura / bugun_gun) * 30
-                beklenen_ay_sonu_gider = (bu_ay_gider / bugun_gun) * 30
-                beklenen_net_kar = beklenen_ay_sonu_ciro - beklenen_ay_sonu_gider
-            else: beklenen_ay_sonu_ciro, beklenen_ay_sonu_gider, beklenen_net_kar = 0, 0, 0
+                    df_is_f = pd.read_sql("SELECT Klinik_Unvani, Is_Turu, Tutar_TL FROM isler", conn)
+                    if not df_is_f.empty:
+                        df_is_f['Tutar_TL'] = pd.to_numeric(df_is_f['Tutar_TL'], errors='coerce')
+                        toplam_gelir = df_is_f['Tutar_TL'].sum()
+                    else: toplam_gelir = 0
+                except: df_is_f = pd.DataFrame(); toplam_gelir = 0
             
-            f_col1, f_col2, f_col3 = st.columns(3)
-            f_col1.metric("Ay Sonu Tahmini Ciro", f"{beklenen_ay_sonu_ciro:,.2f} TL")
-            f_col2.metric("Ay Sonu Tahmini Gider", f"{beklenen_ay_sonu_gider:,.2f} TL")
-            f_col3.metric("Tahmini Kapanış Kârı", f"{beklenen_net_kar:,.2f} TL", delta_color="normal" if beklenen_net_kar > 0 else "inverse")
+                try:
+                    df_tum_giderler = pd.read_sql("SELECT * FROM giderler", conn)
+                    if not df_tum_giderler.empty:
+                        gider_tur_kolonu = df_tum_giderler.columns[1] 
+                        gider_tutar_kolonu = df_tum_giderler.columns[3]
+                        df_tum_giderler[gider_tutar_kolonu] = pd.to_numeric(df_tum_giderler[gider_tutar_kolonu], errors='coerce')
+                        toplam_sabit_gider = df_tum_giderler[gider_tutar_kolonu].sum()
+                    else: toplam_sabit_gider = 0
+                except: df_tum_giderler = pd.DataFrame(); toplam_sabit_gider = 0
+            
+                try: toplam_üye_sayısı = c.execute("SELECT sum(22 - Kalan_Uye) FROM cam_bloklar").fetchone()[0] or 1
+                except: toplam_üye_sayısı = 1
+                if toplam_üye_sayısı <= 0: toplam_üye_sayısı = 1
+                
+                try: frez_maliyeti_euro = c.execute("SELECT sum((CAST(kullanilan_dk AS FLOAT) / toplam_omur_dk) * birim_fiyat_euro) FROM aktif_frezler WHERE toplam_omur_dk > 0").fetchone()[0] or 0
+                except: frez_maliyeti_euro = 0
+                
+                blok_maliyeti_tl = (toplam_üye_sayısı * 150)
+                toplam_uretim_maliyeti = (frez_maliyeti_euro * euro_kuru) + blok_maliyeti_tl
+                toplam_toplam_gider = toplam_sabit_gider + toplam_uretim_maliyeti
+                net_kar = toplam_gelir - toplam_toplam_gider
+            
+                c_f1, c_f2, c_f3 = st.columns(3)
+                c_f1.markdown(f'<div class="cfo-card"><div class="cfo-title">💎 Toplam Ciro</div><div class="cfo-val-blue">{toplam_gelir:,.0f} ₺</div><div class="cfo-sub">Klinik Hakedişleri</div></div>', unsafe_allow_html=True)
+                c_f2.markdown(f'<div class="cfo-card"><div class="cfo-title">🔥 Toplam Maliyet</div><div class="cfo-val-red">{toplam_toplam_gider:,.0f} ₺</div><div class="cfo-sub"><span class="cfo-sub-down">▼ {toplam_uretim_maliyeti:,.0f} ₺</span> Üretim</div></div>', unsafe_allow_html=True)
+                kar_class = "cfo-val-green" if net_kar > 0 else "cfo-val-red" if net_kar < 0 else "cfo-val-gray"
+                kar_marji = int((net_kar/toplam_gelir)*100) if toplam_gelir > 0 else 0
+                kar_sinif = "cfo-sub-up" if net_kar > 0 else "cfo-sub-down"
+                c_f3.markdown(f'<div class="cfo-card"><div class="cfo-title">💰 Net Kâr / Zarar</div><div class="{kar_class}">{net_kar:,.0f} ₺</div><div class="cfo-sub"><span class="{kar_sinif}">%{kar_marji}</span> Net Marj</div></div>', unsafe_allow_html=True)
+
+                st.markdown("<br>", unsafe_allow_html=True)
+                col_graf1, col_graf2 = st.columns(2)
+            
+                with col_graf1:
+                    st.markdown("<h5 style='text-align:center; color:#e2e8f0;'>💸 GİDER DAĞILIMI</h5>", unsafe_allow_html=True)
+                    if not df_tum_giderler.empty:
+                        df_g_pasta = df_tum_giderler.groupby(gider_tur_kolonu)[gider_tutar_kolonu].sum().reset_index()
+                        df_g_pasta.columns = ["Kategori", "Tutar"]
+                    else: df_g_pasta = pd.DataFrame(columns=["Kategori", "Tutar"])
+                
+                    # Üretim maliyetini pastaya ekle
+                    yeni_satir = pd.DataFrame({"Kategori": ["Üretim (Frez/Blok)"], "Tutar": [toplam_uretim_maliyeti]})
+                    df_g_pasta = pd.concat([df_g_pasta, yeni_satir], ignore_index=True)
+                
+                    if df_g_pasta["Tutar"].sum() > 0:
+                        fig_gider = px.pie(df_g_pasta, names="Kategori", values="Tutar", hole=0.5, color_discrete_sequence=px.colors.qualitative.Pastel)
+                        fig_gider.update_traces(textposition='inside', textinfo='percent+label', insidetextfont=dict(color='white', size=14))
+                        fig_gider.update_layout(template="plotly_dark", showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+                        st.plotly_chart(fig_gider, use_container_width=True)
+
+                with col_graf2:
+                    st.markdown("<h5 style='text-align:center; color:#e2e8f0;'>🏆 EN KÂRLI KLİNİKLER</h5>", unsafe_allow_html=True)
+                    if not df_is_f.empty:
+                        klinik_ciro = df_is_f.groupby("Klinik_Unvani")["Tutar_TL"].sum().reset_index().sort_values(by="Tutar_TL", ascending=True)
+                        fig_c = px.bar(klinik_ciro, x="Tutar_TL", y="Klinik_Unvani", orientation='h', color="Tutar_TL", color_continuous_scale="Tealgrn")
+                        fig_c.update_traces(texttemplate='<b>%{x:,.0f} ₺</b>', textposition='outside')
+                        fig_c.update_layout(template="plotly_dark", showlegend=False, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis=dict(visible=False), yaxis=dict(title=""))
+                        st.plotly_chart(fig_c, use_container_width=True)
+
+
+            with alt_nakit:
+                st.markdown("### 🌊 CFO Radarı: Nakit Akışı ve Gelecek Tahminleme (FP&A)")
+                st.info("2. Madde (Bütçe Tahminleme) ve 3. Madde (Likidite/Tahsilat Yönetimi) prensiplerine göre çalışır.")
+            
+                euro_kuru = guncel_euro_kuru_getir()
+                mevcut_ay = datetime.now().strftime("%Y-%m")
+                bugun_gun = datetime.now().day
+            
+                try:
+                    toplam_alacak = c.execute("SELECT sum(Bakiye) FROM cariler WHERE Bakiye > 0").fetchone()[0] or 0
+                    bu_ay_tahsilat = c.execute(f"SELECT sum(Tutar) FROM tahsilatlar WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
+                    bu_ay_fatura = c.execute(f"SELECT sum(Tutar_TL) FROM isler WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
+                    bu_ay_gider = c.execute(f"SELECT sum(Tutar) FROM giderler WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
+                except: toplam_alacak, bu_ay_tahsilat, bu_ay_fatura, bu_ay_gider = 0, 0, 0, 0
+                
+                tahsilat_orani = (bu_ay_tahsilat / bu_ay_fatura * 100) if bu_ay_fatura > 0 else 0
+            
+                st.markdown("#### 💵 Nakit ve Alacak Yönetimi (Likidite)")
+                n_col1, n_col2, n_col3 = st.columns(3)
+                n_col1.metric("Piyasadaki Toplam Alacak", f"{toplam_alacak:,.2f} TL")
+                n_col2.metric("Bu Ay Kesilen Fatura", f"{bu_ay_fatura:,.2f} TL")
+                n_col3.metric("Bu Ay Giren Sıcak Para", f"{bu_ay_tahsilat:,.2f} TL", delta=f"%{tahsilat_orani:.1f} Başarı", delta_color="normal" if tahsilat_orani >= 70 else "inverse")
+            
+                st.markdown("<br>", unsafe_allow_html=True)
+                n_graf1, n_graf2 = st.columns([2, 1.5])
+                with n_graf1:
+                    st.markdown("##### 🚨 En Çok Borcu Olan İlk 5 Klinik")
+                    try:
+                        df_borclular = pd.read_sql("SELECT Klinik_Unvani, Bakiye FROM cariler WHERE Bakiye > 0 ORDER BY Bakiye DESC LIMIT 5", conn)
+                        if not df_borclular.empty:
+                            fig_borc = px.bar(df_borclular, x="Bakiye", y="Klinik_Unvani", orientation='h', color="Bakiye", color_continuous_scale="Reds")
+                            fig_borc.update_traces(texttemplate='<b>%{x:,.0f} ₺</b>', textposition='outside')
+                            fig_borc.update_layout(template="plotly_dark", margin=dict(t=10, b=10, l=10, r=60), showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", yaxis={'categoryorder':'total ascending', 'title': ''}, xaxis={'visible': False}, coloraxis_showscale=False)
+                            st.plotly_chart(fig_borc, use_container_width=True)
+                    except: pass
+                
+                with n_graf2:
+                    st.markdown("##### 🌍 Kur Riski Simülatörü")
+                    simule_kur = st.slider("Tahmini Euro Kuru (TL)", min_value=45.0, max_value=75.0, value=euro_kuru, step=0.5)
+                    try: f_maliyet_euro = c.execute("SELECT sum((CAST(kullanilan_dk AS FLOAT) / toplam_omur_dk) * birim_fiyat_euro) FROM aktif_frezler WHERE toplam_omur_dk > 0").fetchone()[0] or 0
+                    except: f_maliyet_euro = 0
+                    simule_maliyet = f_maliyet_euro * simule_kur
+                    fark = simule_maliyet - (f_maliyet_euro * euro_kuru)
+                    st.markdown(f"<div class='cfo-card' style='border-color: {'#f87171' if fark > 0 else '#34d399'}; padding:20px;'><div class='cfo-sub'>Aylık Frez Maliyeti (Simüle):</div><div style='font-size:28px; font-weight:900; color:#f8fafc; margin: 10px 0;'>{simule_maliyet:,.0f} ₺</div><div style='color:{'#f87171' if fark > 0 else '#34d399'}; font-weight:700;'>Kur {simule_kur} ₺ olursa fark: +{fark:,.0f} ₺</div></div>", unsafe_allow_html=True)
+                
+                st.markdown("---")
+                st.markdown("#### 🔮 Gelecek Tahminleme (Forecasting)")
+                if bugun_gun > 0:
+                    beklenen_ay_sonu_ciro = (bu_ay_fatura / bugun_gun) * 30
+                    beklenen_ay_sonu_gider = (bu_ay_gider / bugun_gun) * 30
+                    beklenen_net_kar = beklenen_ay_sonu_ciro - beklenen_ay_sonu_gider
+                else: beklenen_ay_sonu_ciro, beklenen_ay_sonu_gider, beklenen_net_kar = 0, 0, 0
+            
+                f_col1, f_col2, f_col3 = st.columns(3)
+                f_col1.metric("Ay Sonu Tahmini Ciro", f"{beklenen_ay_sonu_ciro:,.2f} TL")
+                f_col2.metric("Ay Sonu Tahmini Gider", f"{beklenen_ay_sonu_gider:,.2f} TL")
+                f_col3.metric("Tahmini Kapanış Kârı", f"{beklenen_net_kar:,.2f} TL", delta_color="normal" if beklenen_net_kar > 0 else "inverse")
+
 
     elif sayfa == "🛵 Kurye Lojistik":
         banner_olustur("🛵", "Kurye ve Lojistik Yönetimi", "Kliniklerden gelen teslim alma taleplerini yönetin ve kuryeleri yönlendirin.")
@@ -5608,7 +5588,36 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             banner_olustur("📉", "Maliyet Yönetimi & Fiyat Listesi", "Birim maliyet analizi, hedef fiyat belirleme, hizmet bedellerini yönetme ve kurumsal döküman işlemleri.")
             
             # 🚨 ANA SEKMELER BURADA BAŞLIYOR 🚨
-            tab_m2, tab1, tab2, tab3, tab4 = st.tabs(["⚙️ Değişken Ayarları", "➕ Yeni Hizmet Ekle", "📊 Hizmet Listesi", "📁 Dökümanlar & Katalog", "💰 Hizmet Maliyet Tablosu"])
+            tab_m2, tab_gider, tab1, tab2, tab3, tab4 = st.tabs(["⚙️ Değişken Ayarları", "💸 Giderler", "➕ Yeni Hizmet Ekle", "📊 Hizmet Listesi", "📁 Dökümanlar & Katalog", "💰 Hizmet Maliyet Tablosu"])
+            with tab_gider:
+                with st.container(border=True):
+                    st.markdown("#### 💸 Genel Gider Girişi")
+                    with st.form("gider_form"):
+                        c1, c2 = st.columns(2)
+                    
+                        # 🚨 YENİ GİDER KATEGORİLERİ BURADA 🚨
+                        kat = c1.selectbox("Gider Kategorisi", [
+                            "Personel maaşları",
+                            "Kira",
+                            "Faturalar (Elektrik-Su-Doğalgaz-İnternet)",
+                            "Yemek (Mutfak)",
+                            "Yakıt/Ulaşım/Kargo",
+                            "Hammadde (Blok, Metal tozu)",
+                            "Sarf Malzeme",
+                            "Teknik bakım/onarım",
+                            "Diğer (Demirbaş, temizlik...)"
+                        ], key="gid_tur")
+                    
+                        tut = c2.number_input("Tutar (TL)", min_value=0.0, step=100.0, key="gid_tut")
+                        acik = st.text_input("Açıklama", key="gid_acik")
+                        if st.form_submit_button("💸 Gideri Kaydet", type="primary") and tut > 0:
+                            c.execute("INSERT INTO giderler (Tarih, Kategori, Aciklama, Tutar) VALUES (?,?,?,?)", (datetime.now().strftime("%Y-%m-%d"), kat, acik, tut))
+                            conn.commit(); st.success("✅ Gider kaydedildi!"); st.rerun()
+            
+                st.markdown("#### 📑 Son Gider Hareketleri")
+                df_giderler = pd.read_sql("SELECT * FROM giderler ORDER BY Tarih DESC", conn)
+                st.dataframe(df_giderler, hide_index=True, use_container_width=True)
+            
             
             # 🚨 TABLO İÇERİKLERİNİ ORTALAMAK İÇİN GENEL CSS ZIRHI 🚨
             st.markdown("""
