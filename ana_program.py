@@ -2280,7 +2280,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Barkod, Hasta_Adi, Klinik_Unvani, {fat_sorgu} FROM isler WHERE Klinik_Unvani=? AND Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(arsiv_klinik, bas_tar, bit_tar))
                 
                 if not df_arsiv_isler.empty:
-                    df_arsiv_isler['id_gosterim'] = df_arsiv_isler.apply(lambda r: f"🟢 {r['id']}" if r['Faturali_Mi'] == 0 else str(r['id']), axis=1)
+                    df_arsiv_isler['id_gosterim'] = df_arsiv_isler.apply(lambda r: f"🟢 {r['id']}" if r.get('Faturali_Mi', r.get('faturali_mi', 1)) == 0 else str(r['id']), axis=1)
                     df_goster_ar = df_arsiv_isler[['id_gosterim', 'Teslim_Tarihi', 'Barkod', 'Hasta_Adi', 'Klinik_Unvani']].rename(columns={
                         "id_gosterim": "SIRA NO",
                         "Teslim_Tarihi": "TESLİM TARİHİ",
