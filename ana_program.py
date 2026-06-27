@@ -1619,7 +1619,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         </div>
         """, unsafe_allow_html=True)
         st.markdown("<br><br>", unsafe_allow_html=True)
-        c_bos, c_geri, c_bos2 = st.columns([2, 1, 2])
+        c_bos, c_geri, c_bos2 = st.columns([1, 2, 1])
         if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True):
             st.session_state.aktif_sayfa = menu[0]
             st.rerun()
