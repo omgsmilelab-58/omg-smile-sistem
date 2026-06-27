@@ -1590,11 +1590,6 @@ if rol in ["Klinik", "Klinik_Asistan"]:
 
     elif sayfa == "🗓️ Doktor Takvimi":
         st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-        c_geri, c_bos = st.columns([1, 5])
-        if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True):
-            st.session_state.aktif_sayfa = menu[0]
-            st.rerun()
         st.markdown("""
         <div class="glass-card" style="text-align:center; padding: 60px 20px; margin-top:30px;">
             <h1 style="font-size: 80px; margin-bottom: 20px;">🗓️</h1>
@@ -1608,6 +1603,11 @@ if rol in ["Klinik", "Klinik_Asistan"]:
             </div>
         </div>
         """, unsafe_allow_html=True)
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        c_bos, c_geri, c_bos2 = st.columns([2, 1, 2])
+        if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True):
+            st.session_state.aktif_sayfa = menu[0]
+            st.rerun()
     elif sayfa == "🧾 Detaylı Ekstre" and rol == "Klinik":
         banner_olustur("🧾", "Detaylı Hesap Ekstresi", "Borç ve ödeme geçmişinizi takip edin.")
         anlik_bakiye = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (kullanici_adi,)).fetchone()[0]
