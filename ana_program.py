@@ -1088,7 +1088,7 @@ def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, k
     pdf.set_xy(10, 90)
     pdf.set_fill_color(240, 240, 240)
     pdf.set_font("Courier", "B", 8)
-    w_cols = [10, 75, 15, 25, 20, 25, 25]
+    w_cols = [10, 65, 15, 20, 20, 25, 25]
     h_cols = ["Sira No", "Mal Hizmet", "Miktar", "Birim Fiyat", "KDV Orani", "KDV Tutari", "Mal Hizmet Tutari"]
     for i in range(len(w_cols)): pdf.cell(w_cols[i], 8, h_cols[i], border=1, align="C", fill=True)
     pdf.ln()
@@ -1103,6 +1103,17 @@ def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, k
     # ama ana programda 'fatura_tutar_input' toplam KDV haric mi dahil mi?
     # Ana programda: toplam_tutar = isler'in tutar_TL toplami. Bunlar KDV Haric.
     
+    
+    if ekstre_df.empty:
+        # Eger herhangi bir sebeple kalemler bos gelirse, toplam tutari tek kalem olarak gosterelim.
+        pdf.cell(w_cols[0], 6, "1", border=1, align="C")
+        pdf.cell(w_cols[1], 6, "Muhtelif Dis Protez Islemleri", border=1)
+        pdf.cell(w_cols[2], 6, "1 Adet", border=1, align="C")
+        pdf.cell(w_cols[3], 6, f"{float(toplam_tutar):,.2f}TL", border=1, align="R")
+        pdf.cell(w_cols[4], 6, f"%{kdv_oran_float:.2f}", border=1, align="C")
+        pdf.cell(w_cols[5], 6, f"{float(toplam_tutar) * (kdv_oran_float / 100.0):,.2f}TL", border=1, align="R")
+        pdf.cell(w_cols[6], 6, f"{float(toplam_tutar):,.2f}TL", border=1, align="R")
+        pdf.ln()
     for _, row in ekstre_df.iterrows():
         b = float(row.get('Borc', 0) or 0)
         if b <= 0: continue
@@ -5405,11 +5416,22 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         for _, fat_row in df_faturalar.iterrows():
                             durum_icon = durum_renk.get(str(fat_row.get("Durum", "")), "⚪")
                             with st.container(border=True):
-                                fa1, fa2, fa3, fa4 = st.columns([3, 2, 2, 2])
+                                fa1, fa2, fa3, fa4, fa5 = st.columns([3, 2, 2, 2, 1.5])
                                 fa1.markdown(str(durum_icon) + " **" + str(fat_row["Fatura_No"]) + "**  \n🏥 " + str(fat_row["Klinik_Unvani"]) + "  \n📅 " + str(fat_row["Fatura_Tarihi"]))
                                 fa2.metric("Toplam", f"{float(fat_row['Toplam_Tutar'] or 0):,.2f} TL")
                                 fa3.metric("Kalan", f"{float(fat_row['Kalan_Tutar'] or 0):,.2f} TL",
                                           delta=f"-{float(fat_row['Odenen_Tutar'] or 0):,.2f} ödendi")
+                                          
+                                if fa5.button("🗑️ Geri Çek", key=f"revert_fat_{fat_row['id']}", help="Faturayı iptal edip ekstreyi taslak durumuna döndürür"):
+                                    fat_id = int(fat_row['id'])
+                                    # Faturaya bagli ekstreyi bulalim
+                                    bagli_ekstre = c.execute("SELECT Ekstre_ID FROM faturalar WHERE id=?", (fat_id,)).fetchone()
+                                    if bagli_ekstre and bagli_ekstre[0]:
+                                        c.execute("UPDATE hesap_ekstreleri SET Durum='Taslak', Fatura_ID=NULL WHERE id=?", (bagli_ekstre[0],))
+                                    c.execute("DELETE FROM faturalar WHERE id=?", (fat_id,))
+                                    conn.commit()
+                                    st.success("Fatura iptal edildi ve ekstre geri çekildi!")
+                                    st.rerun()
 
                                 # PDF indir
                                 try:
