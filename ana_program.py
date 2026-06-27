@@ -1403,12 +1403,19 @@ if "🗓️ Doktor Takvimi" in menu:
         st.rerun()
     st.sidebar.markdown("<br>", unsafe_allow_html=True)
 
-if st.sidebar.button("🚪 Çıkış Yap / Kilitle", use_container_width=True): st.session_state.clear(); st.rerun()
-
+st.sidebar.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 10px 0;'>", unsafe_allow_html=True)
 if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
-    st.sidebar.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 10px 0;'>", unsafe_allow_html=True)
-    if st.sidebar.button("⚙️ Ayarlar (Sistem & Güvenlik)", key="btn_ayarlar_alt"):
-        st.session_state.aktif_sayfa = "⚙️ Ayarlar"; st.rerun()
+    c1, c2 = st.sidebar.columns(2)
+    if c1.button("🚪 Çıkış", help="Sistemden Çıkış Yap", use_container_width=True):
+        st.session_state.clear()
+        st.rerun()
+    if c2.button("⚙️ Ayarlar", help="Sistem ve Güvenlik Ayarları", use_container_width=True):
+        st.session_state.aktif_sayfa = "⚙️ Ayarlar"
+        st.rerun()
+else:
+    if st.sidebar.button("🚪 Çıkış Yap", help="Sistemden Çıkış Yap", use_container_width=True):
+        st.session_state.clear()
+        st.rerun()
 
 sayfa = st.session_state.aktif_sayfa
 
