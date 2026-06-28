@@ -5249,7 +5249,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 if klinikler:
                     ch_klinik = st.selectbox("Hareketleri Gösterilecek Klinik", klinikler, key="ch_klinik_sec")
                     
-                    df_ch_borc = pd.read_sql(f\"SELECT Tarih, Barkod, Hasta_Adi, Is_Turu, Tutar_TL as borc FROM isler WHERE Klinik_Unvani='{ch_klinik}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')\", conn)
+                    df_ch_borc = pd.read_sql(f"SELECT Tarih, Barkod, Hasta_Adi, Is_Turu, Tutar_TL as borc FROM isler WHERE Klinik_Unvani='{ch_klinik}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')", conn)
                     df_ch_alacak = pd.read_sql(f"SELECT id, Tarih, Odeme_Turu, Aciklama, Tutar as alacak FROM tahsilatlar WHERE Klinik_Unvani='{ch_klinik}'", conn)
                     
                     df_list = []
@@ -5318,7 +5318,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             try:
                                 df_prev_borc = pd.read_sql(
                                     f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak "
-                                    f\"FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') \"
+                                    f"FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') "
                                     f"AND Tarih >= '{bas_str}' AND Tarih <= '{bit_str}'", conn)
                                 df_prev_alacak = pd.read_sql(
                                     f"SELECT Tarih, Odeme_Turu || ' Odemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak "
@@ -5336,7 +5336,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     guncel_bakiye_row = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (e_klinik,)).fetchone()
                                     guncel_bakiye = float(guncel_bakiye_row[0]) if guncel_bakiye_row else 0.0
                                     
-                                    gelecek_borc_row = c.execute(f\"SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu='Aktarıldı' AND Tutar_TL > 0 AND Tarih > '{bit_str}'\").fetchone()
+                                    gelecek_borc_row = c.execute(f"SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu='Aktarıldı' AND Tutar_TL > 0 AND Tarih > '{bit_str}'").fetchone()
                                     gelecek_borc = float(gelecek_borc_row[0] or 0.0) if gelecek_borc_row else 0.0
                                     
                                     gelecek_alacak_row = c.execute(f"SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani='{e_klinik}' AND Tarih > '{bit_str}'").fetchone()
