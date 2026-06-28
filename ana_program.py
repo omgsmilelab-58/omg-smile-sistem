@@ -1977,10 +1977,17 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             ai_tahmin = (toplam_gelir / bugun_gun) * 30
             para_birimi = ayar_getir("Para_Birimi", "TL")
             
+            # Gerçek zamanlı global bakiye hesaplaması
+            _g_toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Bakiye_Durumu='Aktarıldı'").fetchone()[0] or 0.0
+            _g_kdv = float(ayar_getir("KDV_Orani", "20"))
+            _g_tahs_kdvli = c.execute("SELECT SUM(Tutar) FROM tahsilatlar").fetchone()[0] or 0.0
+            _g_tahs_net = _g_tahs_kdvli / (1.0 + (_g_kdv / 100.0))
+            global_piyasa_alacak = _g_toplam_is - _g_tahs_net
+
             f1, f2, f3, f4 = st.columns(4)
             f1.markdown(f"<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Gerçekleşen Ciro</span><br><span class='neon-text-green' style='font-size:30px;'>{toplam_gelir:,.0f} {para_birimi}</span></div>", unsafe_allow_html=True)
             f2.markdown(f"<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>🤖 AI Ay Sonu Tahmini</span><br><span class='neon-text-blue' style='font-size:30px;'>{ai_tahmin:,.0f} {para_birimi}</span></div>", unsafe_allow_html=True)
-            f3.markdown(f"<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Piyasadaki Alacak</span><br><span class='neon-text-red' style='font-size:30px;'>{df_cariler['Bakiye'].sum() if not df_cariler.empty else 0:,.0f} {para_birimi}</span></div>", unsafe_allow_html=True)
+            f3.markdown(f"<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Piyasadaki Alacak</span><br><span class='neon-text-red' style='font-size:30px;'>{global_piyasa_alacak:,.0f} {para_birimi}</span></div>", unsafe_allow_html=True)
             f4.markdown(f"<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Aktif Üretim</span><br><span style='color:#fff; font-size:30px; font-weight:900;'>{len(df_isler[df_isler['Asama'] != 'Teslim Edildi'])} Adet</span></div>", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
 
