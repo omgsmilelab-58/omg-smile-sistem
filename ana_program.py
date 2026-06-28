@@ -1565,7 +1565,11 @@ if rol in ["Klinik", "Klinik_Asistan"]:
             m1.markdown(f"""<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Laboratuvardaki İşler</span><br><span class='neon-text-blue' style='font-size:32px;'>{len(df_isler[df_isler["Asama"] != "Teslim Edildi"])}</span></div>""", unsafe_allow_html=True)
             m2.markdown(f"""<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Teslim Edilenler</span><br><span class='neon-text-green' style='font-size:32px;'>{len(df_isler[df_isler["Asama"] == "Teslim Edildi"])}</span></div>""", unsafe_allow_html=True)
         else:
-            anlik_bakiye = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (ana_klinik,)).fetchone()[0]
+            _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (ana_klinik,)).fetchone()[0] or 0.0
+            _kdv = float(ayar_getir("KDV_Orani", "20"))
+            _tahs_kdvli = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (ana_klinik,)).fetchone()[0] or 0.0
+            _tahs_net = _tahs_kdvli / (1.0 + (_kdv / 100.0))
+            anlik_bakiye = _toplam_is - _tahs_net
             para_birimi = ayar_getir("Para_Birimi", "TL")
             m1, m2, m3 = st.columns(3)
             m1.markdown(f"""<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Laboratuvardaki İşler</span><br><span class='neon-text-blue' style='font-size:32px;'>{len(df_isler[df_isler["Asama"] != "Teslim Edildi"])}</span></div>""", unsafe_allow_html=True)
@@ -1721,7 +1725,11 @@ if rol in ["Klinik", "Klinik_Asistan"]:
             st.rerun()
     elif sayfa == "🧾 Detaylı Ekstre" and rol == "Klinik":
         banner_olustur("🧾", "Detaylı Hesap Ekstresi", "Borç ve ödeme geçmişinizi takip edin.")
-        anlik_bakiye = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (kullanici_adi,)).fetchone()[0]
+        _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (kullanici_adi,)).fetchone()[0] or 0.0
+        _kdv = float(ayar_getir("KDV_Orani", "20"))
+        _tahs_kdvli = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (kullanici_adi,)).fetchone()[0] or 0.0
+        _tahs_net = _tahs_kdvli / (1.0 + (_kdv / 100.0))
+        anlik_bakiye = _toplam_is - _tahs_net
         para_birimi = ayar_getir("Para_Birimi", "TL")
         st.markdown(f"<div class='glass-card' style='text-align:center;'><h2 style='color:#FFFFFF;'>Güncel Borcunuz</h2><h1 class='neon-text-red'>{anlik_bakiye:,.2f} {para_birimi}</h1></div>", unsafe_allow_html=True)
         
