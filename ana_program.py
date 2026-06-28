@@ -2757,6 +2757,27 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             # --------------------------------------------
                             c.execute("DELETE FROM is_fotograflari WHERE Is_ID=?", (s_rowid,))
                             c.execute("DELETE FROM is_3d_modelleri WHERE Is_ID=?", (s_rowid,))
+                            # MAKİNE PARKULU: İŞ SİLİNİRSE ÇALIŞMA SÜRELERİNİ GERİ AL
+                            d_sinter_row = c.execute("SELECT Sinter_Sarfiyati, Harcanan_Malzeme FROM isler WHERE id=?", (s_rowid,)).fetchone()
+                            if d_sinter_row:
+                                d_sinter = d_sinter_row[0]
+                                d_cam = d_sinter_row[1]
+                                if d_sinter and d_sinter != "-" and d_sinter.startswith("{"):
+                                    try:
+                                        import json
+                                        ds_data = json.loads(d_sinter)
+                                        df1 = ds_data.get("f1", "-- Seçiniz --"); ds1 = ds_data.get("s1", 0)
+                                        df2 = ds_data.get("f2", "-- Seçiniz --"); ds2 = ds_data.get("s2", 0)
+                                        if df1 != "-- Seçiniz --" and ds1 > 0: c.execute("UPDATE cihazlar SET Calisma_Saati = GREATEST(0, Calisma_Saati - ?) WHERE Cihaz_Adi=?", (ds1 / 60.0, df1))
+                                        if df2 != "-- Seçiniz --" and ds2 > 0: c.execute("UPDATE cihazlar SET Calisma_Saati = GREATEST(0, Calisma_Saati - ?) WHERE Cihaz_Adi=?", (ds2 / 60.0, df2))
+                                    except: pass
+                                if d_cam and "Makine:" in d_cam:
+                                    import re
+                                    d_match = re.search(r'Makine:\s*(.*?),\s*Frezler.*?Top\.\s*(\d+)\s*Dk', d_cam)
+                                    if d_match:
+                                        dm_makine = d_match.group(1).strip()
+                                        dm_dk = int(d_match.group(2))
+                                        c.execute("UPDATE cihazlar SET Calisma_Saati = GREATEST(0, Calisma_Saati - ?) WHERE Cihaz_Adi=?", (dm_dk / 60.0, dm_makine))
                             c.execute("DELETE FROM isler WHERE id=?", (s_rowid,))
                             log_mesaji = f"[{s_barkod}] Numaralı iş kalıcı olarak silindi. ({is_verisi[4]} - {is_verisi[5]})"
                             c.execute("INSERT INTO sistem_loglari (Tarih_Saat, Kullanici, Aksiyon, Goruldu) VALUES (?,?,?,0)", 
@@ -2995,6 +3016,11 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                             yeni_cam_m = f"{mevcut_malzeme} | RPT: {yeni_cam_m}"
                                             
                                         c.execute("UPDATE isler SET Harcanan_Malzeme=? WHERE id=?", (yeni_cam_m, s_rowid))
+                                        # MAKİNE PARKULU: ÇALIŞMA SÜRESİNİ OTOMATİK EKLİYORUZ (CAM)
+                                        if mevcut_malzeme and eski_makine and eski_dk > 0 and not is_rpt_sarfiyat:
+                                            c.execute("UPDATE cihazlar SET Calisma_Saati = GREATEST(0, Calisma_Saati - ?) WHERE Cihaz_Adi=?", (eski_dk / 60.0, eski_makine))
+                                        if harcanan_dk > 0:
+                                            c.execute("UPDATE cihazlar SET Calisma_Saati = Calisma_Saati + ? WHERE Cihaz_Adi=?", (harcanan_dk / 60.0, secili_makine))
 
                                         # 🔒 KRİTİK KABURGA: ESKİ LOG KAYITLARINI SİL, YENİSİNİ YAZ
                                         # Eğer RPT değilse eski kaydı siliyoruz ki çift log olmasın. RPT ise silmeyip yenisini de ekliyoruz.
@@ -3067,6 +3093,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         if st.button(btn_txt, type="primary"):
                             yeni_sinter_json = json.dumps({"f1": f1_val, "s1": s1_val, "f2": f2_val, "s2": s2_val})
                             c.execute("UPDATE isler SET Sinter_Sarfiyati=? WHERE id=?", (yeni_sinter_json, s_rowid))
+                            # MAKİNE PARKULU: ÇALIŞMA SÜRESİNİ OTOMATİK EKLİYORUZ (SİNTER)
+                            if mevcut_sinter:
+                                if eski_f1 != "-- Seçiniz --" and eski_s1 > 0:
+                                    c.execute("UPDATE cihazlar SET Calisma_Saati = GREATEST(0, Calisma_Saati - ?) WHERE Cihaz_Adi=?", (eski_s1 / 60.0, eski_f1))
+                                if eski_f2 != "-- Seçiniz --" and eski_s2 > 0:
+                                    c.execute("UPDATE cihazlar SET Calisma_Saati = GREATEST(0, Calisma_Saati - ?) WHERE Cihaz_Adi=?", (eski_s2 / 60.0, eski_f2))
+                            if f1_val != "-- Seçiniz --" and s1_val > 0:
+                                c.execute("UPDATE cihazlar SET Calisma_Saati = Calisma_Saati + ? WHERE Cihaz_Adi=?", (s1_val / 60.0, f1_val))
+                            if f2_val != "-- Seçiniz --" and s2_val > 0:
+                                c.execute("UPDATE cihazlar SET Calisma_Saati = Calisma_Saati + ? WHERE Cihaz_Adi=?", (s2_val / 60.0, f2_val))
                             conn.commit()
                             st.success("Sinter Sarfiyatı başarıyla işlendi!")
                             st.rerun()
