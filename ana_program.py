@@ -1737,26 +1737,45 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         para_birimi = ayar_getir("Para_Birimi", "TL")
         st.markdown(f"<div class='glass-card' style='text-align:center;'><h2 style='color:#FFFFFF;'>Güncel Borcunuz</h2><h1 class='neon-text-red'>{anlik_bakiye:,.2f} {para_birimi}</h1></div>", unsafe_allow_html=True)
         
-        df_borc = pd.read_sql(f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak FROM isler WHERE Klinik_Unvani='{kullanici_adi}' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')", conn)
-        df_alacak = pd.read_sql(f"SELECT Tarih, Odeme_Turu || ' Ödemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak FROM tahsilatlar WHERE Klinik_Unvani='{kullanici_adi}'", conn)
-        kdv_c = float(ayar_getir("KDV_Orani", "20"))
-        carpan_c = 1.0 + (kdv_c / 100.0)
-        df_borc = df_borc.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
-        df_alacak = df_alacak.rename(columns={"tarih": "Tarih", "islem": "Islem", "borc": "Borc", "alacak": "Alacak"})
-        if not df_alacak.empty: df_alacak['Alacak'] = df_alacak['Alacak'] / carpan_c
+        df_ch_borc = pd.read_sql(f"SELECT Tarih, Barkod, Hasta_Adi, Is_Turu, Tutar_TL as borc FROM isler WHERE Klinik_Unvani='{kullanici_adi}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')", conn)
+        df_ch_alacak = pd.read_sql(f"SELECT id, Tarih, Odeme_Turu, Aciklama, Tutar as alacak FROM tahsilatlar WHERE Klinik_Unvani='{kullanici_adi}'", conn)
         
-        if not df_borc.empty or not df_alacak.empty:
-            df_ekstre = pd.concat([df_borc, df_alacak]).sort_values(by="Tarih").reset_index(drop=True)
-            toplam_yazilan_borc = df_ekstre['Borc'].sum() if not df_ekstre.empty else 0
-            toplam_alinan_odeme = df_ekstre['Alacak'].sum() if not df_ekstre.empty else 0
-            devreden_bakiye = anlik_bakiye - toplam_yazilan_borc + toplam_alinan_odeme
-            
-            ilk_satir = pd.DataFrame({"Tarih": ["-"], "Islem": ["Geçmişten Devreden Bakiye"], "Borc": [devreden_bakiye if devreden_bakiye > 0 else 0], "Alacak": [abs(devreden_bakiye) if devreden_bakiye < 0 else 0]})
-            df_ekstre = pd.concat([ilk_satir, df_ekstre], ignore_index=True)
-            df_ekstre['Kümülatif Bakiye'] = df_ekstre['Borc'].cumsum() - df_ekstre['Alacak'].cumsum()
-            
+        df_list = []
+        if not df_ch_borc.empty:
+            df_ch_borc.columns = [c.lower() for c in df_ch_borc.columns]
+            df_ch_borc['belge_no'] = df_ch_borc['barkod']
+            df_ch_borc['aciklama'] = df_ch_borc['hasta_adi'].astype(str) + ' - ' + df_ch_borc['is_turu'].astype(str)
+            df_ch_borc['alacak'] = 0.0
+            df_list.append(df_ch_borc[['tarih', 'belge_no', 'aciklama', 'borc', 'alacak']])
+        
+        if not df_ch_alacak.empty:
+            df_ch_alacak.columns = [c.lower() for c in df_ch_alacak.columns]
+            df_ch_alacak['belge_no'] = 'TAH-' + df_ch_alacak['id'].astype(str)
+            df_ch_alacak['aciklama'] = df_ch_alacak['odeme_turu'].astype(str) + ' Tahsilatı (' + df_ch_alacak['aciklama'].astype(str) + ')'
+            df_ch_alacak['borc'] = 0.0
+            kdv_c = float(ayar_getir("KDV_Orani", "20"))
+            carpan_c = 1.0 + (kdv_c / 100.0)
+            df_ch_alacak['alacak'] = df_ch_alacak['alacak'] / carpan_c
+            df_list.append(df_ch_alacak[['tarih', 'belge_no', 'aciklama', 'borc', 'alacak']])
+        
+        if df_list:
+            df_hareket = pd.concat(df_list).sort_values(by="tarih").reset_index(drop=True)
+            df_hareket['bakiye'] = df_hareket['borc'].cumsum() - df_hareket['alacak'].cumsum()
+            df_hareket_ters = df_hareket.iloc[::-1].reset_index(drop=True)
+        
+            df_goster_ch = df_hareket_ters.rename(columns={
+                "tarih": "TARİH", "belge_no": "BELGE NO", "aciklama": "AÇIKLAMA", "borc": "BORÇ", "alacak": "ALACAK", "bakiye": "BAKİYE"
+            })
+        
             st.markdown("---")
-            st.dataframe(df_ekstre.style.format({"Borc": "{:,.2f}", "Alacak": "{:,.2f}", "Kümülatif Bakiye": "{:,.2f}"}), hide_index=True, use_container_width=True)
+            st.dataframe(df_goster_ch.style.format({
+                "BORÇ": "{:,.2f} ₺", "ALACAK": "{:,.2f} ₺", "BAKİYE": "{:,.2f} ₺"
+            }), hide_index=True, use_container_width=True)
+        
+            df_ekstre = df_hareket.copy()
+            df_ekstre['Islem'] = df_ekstre['belge_no'].astype(str) + " - " + df_ekstre['aciklama'].astype(str)
+            df_ekstre = df_ekstre.rename(columns={"tarih": "Tarih", "borc": "Borc", "alacak": "Alacak", "bakiye": "Kümülatif Bakiye"})
+        
             pdf_dosyasi = ekstre_pdf_uret(kullanici_adi, df_ekstre, anlik_bakiye)
             st.download_button("📥 PDF İndir & Yazdır", data=pdf_dosyasi, file_name=f"{kullanici_adi}_Ekstre.pdf", mime="application/pdf", type="primary", use_container_width=True)
         else:
