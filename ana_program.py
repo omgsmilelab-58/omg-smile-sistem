@@ -5532,15 +5532,19 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                           delta=f"-{float(fat_row['Odenen_Tutar'] or 0):,.2f} ödendi")
                                           
                                 if fa5.button("🗑️ Geri Çek", key=f"revert_fat_{fat_row['id']}", help="Faturayı iptal edip ekstreyi taslak durumuna döndürür"):
-                                    fat_id = int(fat_row['id'])
-                                    # Faturaya bagli ekstreyi bulalim
-                                    bagli_ekstre = c.execute("SELECT Ekstre_ID FROM faturalar WHERE id=?", (fat_id,)).fetchone()
-                                    if bagli_ekstre and bagli_ekstre[0]:
-                                        c.execute("UPDATE hesap_ekstreleri SET Durum='Taslak', Fatura_ID=NULL WHERE id=?", (bagli_ekstre[0],))
-                                    c.execute("DELETE FROM faturalar WHERE id=?", (fat_id,))
-                                    conn.commit()
-                                    st.success("Fatura iptal edildi ve ekstre geri çekildi!")
-                                    st.rerun()
+                                    odenen = float(fat_row.get('Odenen_Tutar') or 0)
+                                    if odenen > 0:
+                                        st.error("⚠️ ÖNCE TAHSİLATI GERİ ÇEK! Faturaya ait tahsilat bulunduğu için fatura geri çekilemez.")
+                                    else:
+                                        fat_id = int(fat_row['id'])
+                                        # Faturaya bagli ekstreyi bulalim
+                                        bagli_ekstre = c.execute("SELECT Ekstre_ID FROM faturalar WHERE id=?", (fat_id,)).fetchone()
+                                        if bagli_ekstre and bagli_ekstre[0]:
+                                            c.execute("UPDATE hesap_ekstreleri SET Durum='Taslak', Fatura_ID=NULL WHERE id=?", (bagli_ekstre[0],))
+                                        c.execute("DELETE FROM faturalar WHERE id=?", (fat_id,))
+                                        conn.commit()
+                                        st.success("Fatura iptal edildi ve ekstre geri çekildi!")
+                                        st.rerun()
 
                                 # PDF indir
                                 try:
