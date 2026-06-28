@@ -6754,6 +6754,26 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     
                     st.markdown("### 🏢 Kurumsal Kimlik Ayarları")
                     st.info("Laboratuvarınızın belgelerde ve sistemde görünecek olan temel kimlik bilgilerini belirleyin.")
+                    st.markdown("#### Genel & İletişim Bilgileri")
+                    k_c1, k_c2 = st.columns(2)
+                    with k_c1:
+                        y_lab_adi = st.text_input("Laboratuvar Adı", value=ayar_getir("Lab_Ad", "OMG Smile Sistem"))
+                        y_lab_kurulus = st.text_input("Kuruluş Tarihi", value=ayar_getir("Lab_Kurulus_Tarihi", "Bilinmiyor"))
+                        y_lab_sorumlu = st.text_input("Sorumlu Kişi", value=ayar_getir("Lab_Sorumlu_Kisi", "Belirtilmemiş"))
+                    with k_c2:
+                        y_lab_iban = st.text_input("IBAN (Cari Hesap)", value=ayar_getir("Lab_IBAN", "TR00 0000 0000 0000 0000 0000 00"))
+                        y_lab_telefon = st.text_input("Telefon", value=ayar_getir("Lab_Telefon", "Belirtilmemiş"))
+                        y_lab_adres = st.text_area("Adres", value=ayar_getir("Lab_Adres", "Belirtilmemiş"))
+                    if st.button("Kurumsal Bilgileri Kaydet", type="primary"):
+                        ayar_kaydet("Lab_Ad", y_lab_adi)
+                        ayar_kaydet("Lab_Kurulus_Tarihi", y_lab_kurulus)
+                        ayar_kaydet("Lab_Sorumlu_Kisi", y_lab_sorumlu)
+                        ayar_kaydet("Lab_IBAN", y_lab_iban)
+                        ayar_kaydet("Lab_Telefon", y_lab_telefon)
+                        ayar_kaydet("Lab_Adres", y_lab_adres)
+                        st.success("Kurumsal bilgiler başarıyla güncellendi!")
+                        st.rerun()
+                    st.markdown("---")
                     c_s1, c_s2 = st.columns(2)
                     with c_s1:
                         st.markdown("#### Barkod & Belge Ön Eki (Prefix)")
