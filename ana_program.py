@@ -2209,7 +2209,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             st.markdown(f"## 🧑‍⚕️ {hasta_adi}")
             hk1, hk2, hk3 = st.columns(3)
             hk1.markdown(f"**🏥 Klinik:** {klinik_unvani}")
-            hk2.markdown(f"**💰 Toplam Fiyat:** {toplam_fiyat:,.2f} TL")
+            if st.session_state.get('kullanici_rolu') in ['Yönetici', 'Admin']:
+                hk2.markdown(f"**💰 Toplam Fiyat:** {toplam_fiyat:,.2f} TL")
+            else:
+                hk2.markdown(f"**💰 Toplam Fiyat:** ***** TL")
             hk3.markdown(f"**🧾 Fatura No:** {fatura_metni}")
             st.markdown("---")
             
