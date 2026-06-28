@@ -622,7 +622,7 @@ def hasta_karti_goster(hasta_adi, klinik_unvani):
         c2.metric("Tamamlanan", tamamlanan)
         c3.metric("Devam Eden", devam_eden)
         
-            if st.session_state.get("kullanici_rolu") not in ["Klinik", "Klinik_Asistan"]:
+        if st.session_state.get("kullanici_rolu") not in ["Klinik", "Klinik_Asistan"]:
 
             st.markdown("#### 📜 Yapılan İşlemler (Reçeteler)")
             if 'adet' in h_isler.columns: h_isler = h_isler.rename(columns={'adet': 'Adet'})
