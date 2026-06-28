@@ -1352,11 +1352,11 @@ rol = st.session_state["kullanici_rolu"]; kullanici_adi = st.session_state['kull
 ana_klinik = st.session_state.get('ana_klinik', '')
 if "aktif_sayfa" not in st.session_state: st.session_state.aktif_sayfa = "🎯 Komuta Merkezi"
 
-if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi", "🗓️ Doktor Takvimi"]
-elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik", "🗓️ Doktor Takvimi"]
+if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi", "🏢 Kurumsal Bilgi"]
+elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik", "🏢 Kurumsal Bilgi"]
 elif rol == "Teknisyen": menu = ["⚙️ İş Akışı", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "📱 Teknisyen Terminali", "📦 Stok Yönetimi", "🏭 Tedarikçi Yönetimi", "🔧 Makine Parkuru ve Bakımı"]
-elif rol == "Klinik": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🧾 Detaylı Ekstre", "🗓️ Doktor Takvimi"]
-elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🗓️ Doktor Takvimi"]
+elif rol == "Klinik": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🧾 Detaylı Ekstre", "🏢 Kurumsal Bilgi"]
+elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🏢 Kurumsal Bilgi"]
 elif rol == "Kurye": menu = ["🛵 Kurye Mobil Terminali", "📺 Lobi / TV Ekranı"]
 elif rol == "Kiosk": menu = ["📺 Lobi / TV Ekranı"]
 
@@ -1502,9 +1502,9 @@ st.sidebar.markdown("""
 if rol in ["Admin", "Yönetici", "Sekreter"]:
     if st.sidebar.button("🤖 OMG AI Asistan", type="primary", use_container_width=True): st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"; st.rerun()
 
-if "🗓️ Doktor Takvimi" in menu:
-    if st.sidebar.button("🗓️ Doktor Takvimi", type="primary", use_container_width=True):
-        st.session_state.aktif_sayfa = "🗓️ Doktor Takvimi"
+if "🏢 Kurumsal Bilgi" in menu:
+    if st.sidebar.button("🏢 Kurumsal Bilgi", type="primary", use_container_width=True):
+        st.session_state.aktif_sayfa = "🏢 Kurumsal Bilgi"
         st.rerun()
 
 st.sidebar.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 5px 0;'>", unsafe_allow_html=True)
@@ -1713,15 +1713,36 @@ if rol in ["Klinik", "Klinik_Asistan"]:
                 st.info("Fiyat listesi şu an güncelleniyor...")
 
 
-    elif sayfa == "🗓️ Doktor Takvimi":
-        st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
-        st.markdown("""
-        <iframe 
-            src="https://e1ee30a1a45007.lhr.life" 
-            width="100%" 
-            style="border:none; border-radius: 8px; height: 85vh;">
-        </iframe>
+    elif sayfa == "🏢 Kurumsal Bilgi":
+        banner_olustur("🏢", "Laboratuvar Kurumsal Bilgi", "Laboratuvarımıza ait resmi kurumsal bilgiler, ödeme ve iletişim detayları.")
+        
+        lab_adi = ayar_getir("Lab_Ad", "OMG Smile Sistem")
+        lab_kurulus = ayar_getir("Lab_Kurulus_Tarihi", "Bilinmiyor")
+        lab_iban = ayar_getir("Lab_IBAN", "TR00 0000 0000 0000 0000 0000 00")
+        lab_sorumlu = ayar_getir("Lab_Sorumlu_Kisi", "Belirtilmemiş")
+        lab_telefon = ayar_getir("Lab_Telefon", "Belirtilmemiş")
+        lab_adres = ayar_getir("Lab_Adres", "Belirtilmemiş")
+        
+        st.markdown(f"""
+        <div class='glass-card' style='padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 20px;'>
+            <h1 style='color: #4CAF50; font-size: 2.5em; margin-bottom: 10px;'>{lab_adi}</h1>
+            <hr style='border-top: 2px solid rgba(255,255,255,0.1); margin: 20px 0;'>
+            <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; text-align: left;'>
+                <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px;'>
+                    <h3 style='color: #88C0D0; margin-bottom: 15px;'><i class='fas fa-info-circle'></i> Genel Bilgiler</h3>
+                    <p><b>🏢 Kuruluş Tarihi:</b> <span style='color:#E5E9F0;'>{lab_kurulus}</span></p>
+                    <p><b>👨‍💼 Sorumlu Kişi:</b> <span style='color:#E5E9F0;'>{lab_sorumlu}</span></p>
+                </div>
+                <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px;'>
+                    <h3 style='color: #A3BE8C; margin-bottom: 15px;'><i class='fas fa-money-check-alt'></i> Finans & İletişim</h3>
+                    <p><b>💳 IBAN (Cari Hesap):</b> <span style='color:#EBCB8B; font-family: monospace; font-size: 1.1em;'>{lab_iban}</span></p>
+                    <p><b>📞 Telefon:</b> <span style='color:#E5E9F0;'>{lab_telefon}</span></p>
+                    <p><b>📍 Adres:</b> <span style='color:#E5E9F0;'>{lab_adres}</span></p>
+                </div>
+            </div>
+        </div>
         """, unsafe_allow_html=True)
+        
         st.markdown("<style>div[data-testid='stVerticalBlock'] > div:has(button) { margin-top: 10px; }</style>", unsafe_allow_html=True)
         c_bos, c_geri, c_bos2 = st.columns([1, 2, 1])
         if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True):
