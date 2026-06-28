@@ -1759,7 +1759,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             """, unsafe_allow_html=True)
             
         if st.session_state.w_ciro:
-            toplam_gelir = pd.to_numeric(df_isler['Tutar_TL'], errors='coerce').sum() if not df_isler.empty else 0
+            toplam_gelir = pd.to_numeric(df_isler[df_isler['Bakiye_Durumu'] == 'Aktarıldı']['Tutar_TL'], errors='coerce').sum() if not df_isler.empty else 0
             bugun_gun = datetime.now().day
             if bugun_gun == 0: bugun_gun = 1
             ai_tahmin = (toplam_gelir / bugun_gun) * 30
@@ -1849,7 +1849,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 son_14_gun = datetime.now() - timedelta(days=14)
                 df_trend = df_trend[df_trend['Tarih_Formatli'] >= son_14_gun]
                 
-                gunluk_ciro = df_trend.groupby(df_trend['Tarih_Formatli'].dt.strftime('%Y-%m-%d'))['Tutar_TL'].sum().reset_index()
+                gunluk_ciro = df_trend[df_trend['Bakiye_Durumu'] == 'Aktarıldı'].groupby(df_trend['Tarih_Formatli'].dt.strftime('%Y-%m-%d'))['Tutar_TL'].sum().reset_index()
                 
                 if not gunluk_ciro.empty:
                     fig_line = px.area(gunluk_ciro, x="Tarih_Formatli", y="Tutar_TL", markers=True, color_discrete_sequence=["#10B981"])
@@ -2105,7 +2105,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             st.markdown("### 🌟 Klinik Sadakat (Loyalty) Analizi")
             st.info("Laboratuvara en çok kazandıran klinikleri tespit edin ve onları VIP statüsüne yükselterek ödüllendirin.")
             
-            df_is_f = pd.read_sql("SELECT Klinik_Unvani, Tutar_TL FROM isler", conn)
+            df_is_f = pd.read_sql("SELECT Klinik_Unvani, Tutar_TL FROM isler WHERE Bakiye_Durumu='Aktarıldı'", conn)
             if not df_is_f.empty:
                 klinik_ciro = df_is_f.groupby("Klinik_Unvani")["Tutar_TL"].sum().reset_index()
                 # CRM sadece Aktif klinikleri baz alsın
@@ -5731,7 +5731,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             
                 euro_kuru = guncel_euro_kuru_getir()
                 try:
-                    df_is_f = pd.read_sql("SELECT Klinik_Unvani, Is_Turu, Tutar_TL FROM isler", conn)
+                    df_is_f = pd.read_sql("SELECT Klinik_Unvani, Is_Turu, Tutar_TL FROM isler WHERE Bakiye_Durumu='Aktarıldı'", conn)
                     if not df_is_f.empty:
                         df_is_f['Tutar_TL'] = pd.to_numeric(df_is_f['Tutar_TL'], errors='coerce')
                         toplam_gelir = df_is_f['Tutar_TL'].sum()
@@ -5809,7 +5809,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 try:
                     toplam_alacak = c.execute("SELECT sum(Bakiye) FROM cariler WHERE Bakiye > 0").fetchone()[0] or 0
                     bu_ay_tahsilat = c.execute(f"SELECT sum(Tutar) FROM tahsilatlar WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
-                    bu_ay_fatura = c.execute(f"SELECT sum(Tutar_TL) FROM isler WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
+                    bu_ay_fatura = c.execute(f"SELECT sum(Tutar_TL) FROM isler WHERE Bakiye_Durumu='Aktarıldı' AND Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
                     bu_ay_gider = c.execute(f"SELECT sum(Tutar) FROM giderler WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
                 except: toplam_alacak, bu_ay_tahsilat, bu_ay_fatura, bu_ay_gider = 0, 0, 0, 0
                 
