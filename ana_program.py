@@ -1763,55 +1763,6 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True, key='geri_'+sayfa):
             st.session_state.aktif_sayfa = menu[0]
             st.rerun()
-        banner_olustur("🏢", "Laboratuvar Kurumsal Bilgi", "Laboratuvarımıza ait resmi kurumsal bilgiler, vergi, ödeme ve iletişim detayları.")
-        
-        lab_adi = ayar_getir("Lab_Ad", "OMG Smile Sistem")
-        lab_unvan = ayar_getir("Lab_Unvan", "Belirtilmemiş")
-        lab_kurulus = ayar_getir("Lab_Kurulus_Tarihi", "Bilinmiyor")
-        lab_sorumlu = ayar_getir("Lab_Sorumlu_Kisi", "Belirtilmemiş")
-        lab_vergi_no = ayar_getir("Lab_Vergi_No", "Belirtilmemiş")
-        lab_vergi_dairesi = ayar_getir("Lab_Vergi_Dairesi", "Belirtilmemiş")
-        lab_iban = ayar_getir("Lab_IBAN", "TR00 0000 0000 0000 0000 0000 00")
-        lab_kep = ayar_getir("Lab_Kep", "Belirtilmemiş")
-        lab_telefon = ayar_getir("Lab_Telefon", "Belirtilmemiş")
-        lab_email = ayar_getir("Lab_Email", "Belirtilmemiş")
-        lab_web = ayar_getir("Lab_Web", "Belirtilmemiş")
-        lab_adres = ayar_getir("Lab_Adres", "Belirtilmemiş")
-        
-        st.markdown(f"""
-        <div class='glass-card' style='padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 20px;'>
-            <h1 style='color: #4CAF50; font-size: 2.5em; margin-bottom: 10px;'>{lab_adi}</h1>
-            <h4 style='color: #E5E9F0; font-weight: normal; margin-top: -5px; margin-bottom: 20px;'>{lab_unvan}</h4>
-            <hr style='border-top: 2px solid rgba(255,255,255,0.1); margin: 20px 0;'>
-            <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; text-align: left;'>
-                <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px;'>
-                    <h3 style='color: #88C0D0; margin-bottom: 15px;'><i class='fas fa-info-circle'></i> Genel Bilgiler</h3>
-                    <p><b>🏢 Kuruluş Tarihi:</b> <span style='color:#E5E9F0;'>{lab_kurulus}</span></p>
-                    <p><b>👨‍💼 Sorumlu Kişi:</b> <span style='color:#E5E9F0;'>{lab_sorumlu}</span></p>
-                    <p><b>🌐 Web Sitesi:</b> <span style='color:#88C0D0;'>{lab_web}</span></p>
-                </div>
-                <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px;'>
-                    <h3 style='color: #A3BE8C; margin-bottom: 15px;'><i class='fas fa-file-invoice-dollar'></i> Finans & Vergi</h3>
-                    <p><b>💳 IBAN:</b> <span style='color:#EBCB8B; font-family: monospace; font-size: 1.1em;'>{lab_iban}</span></p>
-                    <p><b>🏛️ Vergi Dairesi:</b> <span style='color:#E5E9F0;'>{lab_vergi_dairesi}</span></p>
-                    <p><b>📑 Vergi No:</b> <span style='color:#E5E9F0;'>{lab_vergi_no}</span></p>
-                </div>
-                <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px;'>
-                    <h3 style='color: #EBCB8B; margin-bottom: 15px;'><i class='fas fa-address-book'></i> İletişim Bilgileri</h3>
-                    <p><b>📞 Telefon:</b> <span style='color:#E5E9F0;'>{lab_telefon}</span></p>
-                    <p><b>✉️ E-Mail:</b> <span style='color:#E5E9F0;'>{lab_email}</span></p>
-                    <p><b>🔏 KEP Adresi:</b> <span style='color:#E5E9F0;'>{lab_kep}</span></p>
-                    <p><b>📍 Adres:</b> <span style='color:#E5E9F0;'>{lab_adres}</span></p>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("<style>div[data-testid='stVerticalBlock'] > div:has(button) { margin-top: 10px; }</style>", unsafe_allow_html=True)
-        c_bos, c_geri, c_bos2 = st.columns([1, 2, 1])
-        if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True, key='geri_'+sayfa):
-            st.session_state.aktif_sayfa = menu[0]
-            st.rerun()
     elif sayfa == "🧾 Detaylı Ekstre" and rol == "Klinik":
         banner_olustur("🧾", "Detaylı Hesap Ekstresi", "Borç ve ödeme geçmişinizi takip edin.")
         _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (kullanici_adi,)).fetchone()[0] or 0.0
@@ -1952,29 +1903,44 @@ if rol in ["Klinik", "Klinik_Asistan"]:
 elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 
     if sayfa == "🏢 Kurumsal Bilgi":
-        banner_olustur("🏢", "Laboratuvar Kurumsal Bilgi", "Laboratuvarımıza ait resmi kurumsal bilgiler, ödeme ve iletişim detayları.")
+        banner_olustur("🏢", "Laboratuvar Kurumsal Bilgi", "Laboratuvarımıza ait resmi kurumsal bilgiler, vergi, ödeme ve iletişim detayları.")
         
         lab_adi = ayar_getir("Lab_Ad", "OMG Smile Sistem")
+        lab_unvan = ayar_getir("Lab_Unvan", "Belirtilmemiş")
         lab_kurulus = ayar_getir("Lab_Kurulus_Tarihi", "Bilinmiyor")
-        lab_iban = ayar_getir("Lab_IBAN", "TR00 0000 0000 0000 0000 0000 00")
         lab_sorumlu = ayar_getir("Lab_Sorumlu_Kisi", "Belirtilmemiş")
+        lab_vergi_no = ayar_getir("Lab_Vergi_No", "Belirtilmemiş")
+        lab_vergi_dairesi = ayar_getir("Lab_Vergi_Dairesi", "Belirtilmemiş")
+        lab_iban = ayar_getir("Lab_IBAN", "TR00 0000 0000 0000 0000 0000 00")
+        lab_kep = ayar_getir("Lab_Kep", "Belirtilmemiş")
         lab_telefon = ayar_getir("Lab_Telefon", "Belirtilmemiş")
+        lab_email = ayar_getir("Lab_Email", "Belirtilmemiş")
+        lab_web = ayar_getir("Lab_Web", "Belirtilmemiş")
         lab_adres = ayar_getir("Lab_Adres", "Belirtilmemiş")
         
         st.markdown(f"""
         <div class='glass-card' style='padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 20px;'>
             <h1 style='color: #4CAF50; font-size: 2.5em; margin-bottom: 10px;'>{lab_adi}</h1>
+            <h4 style='color: #E5E9F0; font-weight: normal; margin-top: -5px; margin-bottom: 20px;'>{lab_unvan}</h4>
             <hr style='border-top: 2px solid rgba(255,255,255,0.1); margin: 20px 0;'>
-            <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; text-align: left;'>
+            <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; text-align: left;'>
                 <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px;'>
                     <h3 style='color: #88C0D0; margin-bottom: 15px;'><i class='fas fa-info-circle'></i> Genel Bilgiler</h3>
                     <p><b>🏢 Kuruluş Tarihi:</b> <span style='color:#E5E9F0;'>{lab_kurulus}</span></p>
                     <p><b>👨‍💼 Sorumlu Kişi:</b> <span style='color:#E5E9F0;'>{lab_sorumlu}</span></p>
+                    <p><b>🌐 Web Sitesi:</b> <span style='color:#88C0D0;'>{lab_web}</span></p>
                 </div>
                 <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px;'>
-                    <h3 style='color: #A3BE8C; margin-bottom: 15px;'><i class='fas fa-money-check-alt'></i> Finans & İletişim</h3>
-                    <p><b>💳 IBAN (Cari Hesap):</b> <span style='color:#EBCB8B; font-family: monospace; font-size: 1.1em;'>{lab_iban}</span></p>
+                    <h3 style='color: #A3BE8C; margin-bottom: 15px;'><i class='fas fa-file-invoice-dollar'></i> Finans & Vergi</h3>
+                    <p><b>💳 IBAN:</b> <span style='color:#EBCB8B; font-family: monospace; font-size: 1.1em;'>{lab_iban}</span></p>
+                    <p><b>🏛️ Vergi Dairesi:</b> <span style='color:#E5E9F0;'>{lab_vergi_dairesi}</span></p>
+                    <p><b>📑 Vergi No:</b> <span style='color:#E5E9F0;'>{lab_vergi_no}</span></p>
+                </div>
+                <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px;'>
+                    <h3 style='color: #EBCB8B; margin-bottom: 15px;'><i class='fas fa-address-book'></i> İletişim Bilgileri</h3>
                     <p><b>📞 Telefon:</b> <span style='color:#E5E9F0;'>{lab_telefon}</span></p>
+                    <p><b>✉️ E-Mail:</b> <span style='color:#E5E9F0;'>{lab_email}</span></p>
+                    <p><b>🔏 KEP Adresi:</b> <span style='color:#E5E9F0;'>{lab_kep}</span></p>
                     <p><b>📍 Adres:</b> <span style='color:#E5E9F0;'>{lab_adres}</span></p>
                 </div>
             </div>
@@ -1983,7 +1949,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         
         st.markdown("<style>div[data-testid='stVerticalBlock'] > div:has(button) { margin-top: 10px; }</style>", unsafe_allow_html=True)
         c_bos, c_geri, c_bos2 = st.columns([1, 2, 1])
-        if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True):
+        if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True, key='geri_'+sayfa):
             st.session_state.aktif_sayfa = menu[0]
             st.rerun()
     elif sayfa == "🏠 Komuta Merkezi":
