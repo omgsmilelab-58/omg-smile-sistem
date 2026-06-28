@@ -5093,9 +5093,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     t_aciklama = f"Fatura: {fat_raw[2]} - {t_aciklama}"
                             
                             c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (tah_tarih_str, t_klinik, t_turu, t_tutar, t_aciklama))
-                            kdv_o = float(ayar_getir("KDV_Orani", "20"))
-                            t_tutar_kdvsiz = t_tutar / (1.0 + (kdv_o / 100.0))
-                            c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani = ?", (t_tutar_kdvsiz, t_klinik))
+                            c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani = ?", (float(t_tutar), t_klinik))
                             conn.commit()
                             st.success("✅ Tahsilat işlendi, cari bakiye güncellendi!")
                             st.rerun()
@@ -5118,9 +5116,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     tah_tur = tah[2]
                                     tah_aciklama = tah[4]
                                     
-                                    kdv_o = float(ayar_getir("KDV_Orani", "20"))
-                                    t_tutar_kdvsiz = tah_tutar / (1.0 + (kdv_o / 100.0))
-                                    c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani = ?", (t_tutar_kdvsiz, t_klinik))
+                                    c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani = ?", (float(tah_tutar), t_klinik))
                                     
                                     fat_tah_rec = c.execute("SELECT id, Fatura_ID FROM fatura_tahsilatlar WHERE Klinik_Unvani=? AND Tarih=? AND Tutar=? AND Odeme_Turu=?", (t_klinik, tah_tarih, tah_tutar, tah_tur)).fetchone()
                                     if fat_tah_rec:
@@ -5332,7 +5328,36 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 df_prev_borc  = df_prev_borc.rename(columns={"tarih":"Tarih","islem":"Islem","borc":"Borc","alacak":"Alacak"})
                                 df_prev_alacak = df_prev_alacak.rename(columns={"tarih":"Tarih","islem":"Islem","borc":"Borc","alacak":"Alacak"})
 
-                                df_prev = pd.concat([df_prev_borc, df_prev_alacak]).sort_values(by="Tarih").reset_index(drop=True)
+                                # DEVREDEN BAKIYE HESAPLAMA (Geriye donuk tam dogruluk icin)
+                                try:
+                                    guncel_bakiye_row = c.execute("SELECT Bakiye FROM cariler WHERE Klinik_Unvani=?", (e_klinik,)).fetchone()
+                                    guncel_bakiye = float(guncel_bakiye_row[0]) if guncel_bakiye_row else 0.0
+                                    
+                                    gelecek_borc_row = c.execute(f"SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Tutar_TL > 0 AND Tarih > '{bit_str}'").fetchone()
+                                    gelecek_borc = float(gelecek_borc_row[0] or 0.0) if gelecek_borc_row else 0.0
+                                    
+                                    gelecek_alacak_row = c.execute(f"SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani='{e_klinik}' AND Tarih > '{bit_str}'").fetchone()
+                                    gelecek_alacak = float(gelecek_alacak_row[0] or 0.0) if gelecek_alacak_row else 0.0
+                                    
+                                    hedef_bakiye_bitis = guncel_bakiye - gelecek_borc + gelecek_alacak
+                                    
+                                    donem_borc = float(df_prev_borc['Borc'].sum()) if not df_prev_borc.empty else 0.0
+                                    donem_alacak = float(df_prev_alacak['Alacak'].sum()) if not df_prev_alacak.empty else 0.0
+                                    donem_net_degisim = donem_borc - donem_alacak
+                                    
+                                    devreden_bakiye = hedef_bakiye_bitis - donem_net_degisim
+                                    
+                                    import pandas as pd
+                                    devreden_df = pd.DataFrame([{
+                                        "Tarih": bas_str,
+                                        "Islem": "Devreden Bakiye",
+                                        "Borc": devreden_bakiye if devreden_bakiye > 0 else 0.0,
+                                        "Alacak": abs(devreden_bakiye) if devreden_bakiye < 0 else 0.0
+                                    }])
+                                    df_prev = pd.concat([devreden_df, df_prev_borc, df_prev_alacak]).sort_values(by="Tarih").reset_index(drop=True)
+                                except Exception as e:
+                                    # Fallback
+                                    df_prev = pd.concat([df_prev_borc, df_prev_alacak]).sort_values(by="Tarih").reset_index(drop=True)
                                 borc_col  = "Borc"  if "Borc"  in df_prev.columns else "borc"
                                 alacak_col = "Alacak" if "Alacak" in df_prev.columns else "alacak"
                                 tarih_col  = "Tarih"  if "Tarih"  in df_prev.columns else "tarih"
