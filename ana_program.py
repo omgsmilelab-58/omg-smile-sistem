@@ -1758,11 +1758,6 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("<style>div[data-testid='stVerticalBlock'] > div:has(button) { margin-top: 10px; }</style>", unsafe_allow_html=True)
-        c_bos, c_geri, c_bos2 = st.columns([1, 2, 1])
-        if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True, key='geri_'+sayfa):
-            st.session_state.aktif_sayfa = menu[0]
-            st.rerun()
     elif sayfa == "🧾 Detaylı Ekstre" and rol == "Klinik":
         banner_olustur("🧾", "Detaylı Hesap Ekstresi", "Borç ve ödeme geçmişinizi takip edin.")
         _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (kullanici_adi,)).fetchone()[0] or 0.0
@@ -1947,11 +1942,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("<style>div[data-testid='stVerticalBlock'] > div:has(button) { margin-top: 10px; }</style>", unsafe_allow_html=True)
-        c_bos, c_geri, c_bos2 = st.columns([1, 2, 1])
-        if c_geri.button("⬅️ Ana Menüye Dön", type="secondary", use_container_width=True, key='geri_'+sayfa):
-            st.session_state.aktif_sayfa = menu[0]
-            st.rerun()
     elif sayfa == "🏠 Komuta Merkezi":
         st.markdown("<h1 class='neon-text-blue' style='margin-top:-20px; margin-bottom:10px;'>KOMUTA MERKEZİ</h1>", unsafe_allow_html=True)
             
