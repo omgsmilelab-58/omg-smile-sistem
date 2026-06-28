@@ -622,15 +622,15 @@ def hasta_karti_goster(hasta_adi, klinik_unvani):
         c2.metric("Tamamlanan", tamamlanan)
         c3.metric("Devam Eden", devam_eden)
         
-        if st.session_state.get("kullanici_rolu") not in ["Klinik", "Klinik_Asistan"]:
 
-            st.markdown("#### 📜 Yapılan İşlemler (Reçeteler)")
-            if 'adet' in h_isler.columns: h_isler = h_isler.rename(columns={'adet': 'Adet'})
-            if 'sinter_sarfiyati' in h_isler.columns: h_isler = h_isler.rename(columns={'sinter_sarfiyati': 'Sinter_Sarfiyati'})
-            if 'harcanan_malzeme' in h_isler.columns: h_isler = h_isler.rename(columns={'harcanan_malzeme': 'Harcanan_Malzeme'})
-            h_isler_goster = h_isler.rename(columns={"Tarih": "TARİH", "Is_Turu": "İŞİN TÜRÜ", "Adet": "ADET", "Asama": "AŞAMA", "Aciklama": "AÇIKLAMA"})
-            st.dataframe(h_isler_goster[["TARİH", "İŞİN TÜRÜ", "ADET", "AŞAMA", "AÇIKLAMA"]], hide_index=True, use_container_width=True)
+        st.markdown("#### 📜 Yapılan İşlemler (Reçeteler)")
+        if 'adet' in h_isler.columns: h_isler = h_isler.rename(columns={'adet': 'Adet'})
+        if 'sinter_sarfiyati' in h_isler.columns: h_isler = h_isler.rename(columns={'sinter_sarfiyati': 'Sinter_Sarfiyati'})
+        if 'harcanan_malzeme' in h_isler.columns: h_isler = h_isler.rename(columns={'harcanan_malzeme': 'Harcanan_Malzeme'})
+        h_isler_goster = h_isler.rename(columns={"Tarih": "TARİH", "Is_Turu": "İŞİN TÜRÜ", "Adet": "ADET", "Asama": "AŞAMA", "Aciklama": "AÇIKLAMA"})
+        st.dataframe(h_isler_goster[["TARİH", "İŞİN TÜRÜ", "ADET", "AŞAMA", "AÇIKLAMA"]], hide_index=True, use_container_width=True)
         
+        if st.session_state.get("kullanici_rolu") not in ["Klinik", "Klinik_Asistan"]:
             st.markdown("#### 💎 Kullanılan Malzemeler ve Fırınlar")
             malzemeler = []
             import json
