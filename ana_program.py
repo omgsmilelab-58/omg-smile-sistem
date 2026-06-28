@@ -622,51 +622,53 @@ def hasta_karti_goster(hasta_adi, klinik_unvani):
         c2.metric("Tamamlanan", tamamlanan)
         c3.metric("Devam Eden", devam_eden)
         
-        st.markdown("#### 📜 Yapılan İşlemler (Reçeteler)")
-        if 'adet' in h_isler.columns: h_isler = h_isler.rename(columns={'adet': 'Adet'})
-        if 'sinter_sarfiyati' in h_isler.columns: h_isler = h_isler.rename(columns={'sinter_sarfiyati': 'Sinter_Sarfiyati'})
-        if 'harcanan_malzeme' in h_isler.columns: h_isler = h_isler.rename(columns={'harcanan_malzeme': 'Harcanan_Malzeme'})
-        h_isler_goster = h_isler.rename(columns={"Tarih": "TARİH", "Is_Turu": "İŞİN TÜRÜ", "Adet": "ADET", "Asama": "AŞAMA", "Aciklama": "AÇIKLAMA"})
-        st.dataframe(h_isler_goster[["TARİH", "İŞİN TÜRÜ", "ADET", "AŞAMA", "AÇIKLAMA"]], hide_index=True, use_container_width=True)
+            if st.session_state.get("kullanici_rolu") not in ["Klinik", "Klinik_Asistan"]:
+
+            st.markdown("#### 📜 Yapılan İşlemler (Reçeteler)")
+            if 'adet' in h_isler.columns: h_isler = h_isler.rename(columns={'adet': 'Adet'})
+            if 'sinter_sarfiyati' in h_isler.columns: h_isler = h_isler.rename(columns={'sinter_sarfiyati': 'Sinter_Sarfiyati'})
+            if 'harcanan_malzeme' in h_isler.columns: h_isler = h_isler.rename(columns={'harcanan_malzeme': 'Harcanan_Malzeme'})
+            h_isler_goster = h_isler.rename(columns={"Tarih": "TARİH", "Is_Turu": "İŞİN TÜRÜ", "Adet": "ADET", "Asama": "AŞAMA", "Aciklama": "AÇIKLAMA"})
+            st.dataframe(h_isler_goster[["TARİH", "İŞİN TÜRÜ", "ADET", "AŞAMA", "AÇIKLAMA"]], hide_index=True, use_container_width=True)
         
-        st.markdown("#### 💎 Kullanılan Malzemeler ve Fırınlar")
-        malzemeler = []
-        import json
-        for _, r in h_isler.iterrows():
-            satir_bilgi = []
-            if pd.notna(r['Harcanan_Malzeme']) and str(r['Harcanan_Malzeme']).strip() != "-" and str(r['Harcanan_Malzeme']).strip() != "":
-                satir_bilgi.append(f"**CAM:** {r['Harcanan_Malzeme']}")
+            st.markdown("#### 💎 Kullanılan Malzemeler ve Fırınlar")
+            malzemeler = []
+            import json
+            for _, r in h_isler.iterrows():
+                satir_bilgi = []
+                if pd.notna(r['Harcanan_Malzeme']) and str(r['Harcanan_Malzeme']).strip() != "-" and str(r['Harcanan_Malzeme']).strip() != "":
+                    satir_bilgi.append(f"**CAM:** {r['Harcanan_Malzeme']}")
             
-            s_sarf = r['Sinter_Sarfiyati']
-            if pd.notna(s_sarf) and str(s_sarf).strip() != "-" and str(s_sarf).strip() != "" and str(s_sarf).startswith("{"):
-                try:
-                    s_data = json.loads(s_sarf)
-                    s_metin = ""
-                    if s_data.get("f1") and s_data["f1"] != "-- Seçiniz --" and s_data.get("s1", 0) > 0:
-                        s_metin += f"Fırın 1: {s_data['f1']} ({s_data['s1']} Dk)"
-                    if s_data.get("f2") and s_data["f2"] != "-- Seçiniz --" and s_data.get("s2", 0) > 0:
-                        if s_metin: s_metin += " | "
-                        s_metin += f"Fırın 2: {s_data['f2']} ({s_data['s2']} Dk)"
-                    if s_metin:
-                        satir_bilgi.append(f"**Sinter:** {s_metin}")
-                except: pass
+                s_sarf = r['Sinter_Sarfiyati']
+                if pd.notna(s_sarf) and str(s_sarf).strip() != "-" and str(s_sarf).strip() != "" and str(s_sarf).startswith("{"):
+                    try:
+                        s_data = json.loads(s_sarf)
+                        s_metin = ""
+                        if s_data.get("f1") and s_data["f1"] != "-- Seçiniz --" and s_data.get("s1", 0) > 0:
+                            s_metin += f"Fırın 1: {s_data['f1']} ({s_data['s1']} Dk)"
+                        if s_data.get("f2") and s_data["f2"] != "-- Seçiniz --" and s_data.get("s2", 0) > 0:
+                            if s_metin: s_metin += " | "
+                            s_metin += f"Fırın 2: {s_data['f2']} ({s_data['s2']} Dk)"
+                        if s_metin:
+                            satir_bilgi.append(f"**Sinter:** {s_metin}")
+                    except: pass
                 
-            if satir_bilgi:
-                malzemeler.append(f"**{r['Is_Turu']} ({r['Tarih']})** 👉 " + " | ".join(satir_bilgi))
+                if satir_bilgi:
+                    malzemeler.append(f"**{r['Is_Turu']} ({r['Tarih']})** 👉 " + " | ".join(satir_bilgi))
         
-        if malzemeler:
-            for m in malzemeler:
-                st.markdown(f"- {m}")
-        else:
-            st.info("Bu hastaya ait özel malzeme veya fırın sarfiyatı kaydedilmemiş.")
+            if malzemeler:
+                for m in malzemeler:
+                    st.markdown(f"- {m}")
+            else:
+                st.info("Bu hastaya ait özel malzeme veya fırın sarfiyatı kaydedilmemiş.")
             
-        st.markdown("#### 👨‍🔧 İlgili Teknisyen(ler)")
-        teknisyenler = h_isler['Sorumlu_Personel'].unique()
-        t_list = [t for t in teknisyenler if t and str(t).strip() != "-"]
-        if t_list:
-            st.markdown(", ".join(t_list))
-        else:
-            st.caption("Henüz teknisyen atanmamış.")
+            st.markdown("#### 👨‍🔧 İlgili Teknisyen(ler)")
+            teknisyenler = h_isler['Sorumlu_Personel'].unique()
+            t_list = [t for t in teknisyenler if t and str(t).strip() != "-"]
+            if t_list:
+                st.markdown(", ".join(t_list))
+            else:
+                st.caption("Henüz teknisyen atanmamış.")
             
     else:
         st.warning("Bu hastaya ait detaylı veri bulunamadı.")
