@@ -5500,6 +5500,19 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 filtre_klinik_fat = st.selectbox("Kliniğe Göre Filtrele", ["Tümü"] + klinikler, key="fat_filtre")
 
                 try:
+                    c.execute("ALTER TABLE faturalar ADD COLUMN KDV_Orani REAL DEFAULT 0")
+                    conn.commit()
+                except Exception:
+                    # Hata verirse zaten eklenmiştir, devam et
+                    conn.rollback()
+                
+                try:
+                    c.execute("ALTER TABLE faturalar ADD COLUMN Ara_Toplam REAL DEFAULT 0")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+
+                try:
                     q_fat = "SELECT id, Fatura_No, Fatura_Tarihi, Klinik_Unvani, Toplam_Tutar, Odenen_Tutar, Kalan_Tutar, Ara_Toplam, KDV_Orani, Durum FROM faturalar"
                     if filtre_klinik_fat != "Tümü":
                         df_faturalar = pd.read_sql(f"{q_fat} WHERE Klinik_Unvani='{filtre_klinik_fat}' ORDER BY id DESC", conn)
