@@ -5513,12 +5513,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     conn.rollback()
 
                 try:
-                    q_fat = "SELECT id, Fatura_No, Fatura_Tarihi, Klinik_Unvani, Toplam_Tutar, Odenen_Tutar, Kalan_Tutar, Ara_Toplam, KDV_Orani, Durum FROM faturalar"
+                    q_fat = "SELECT id, Fatura_No, Fatura_Tarihi, Klinik_Unvani, Ekstre_ID, Toplam_Tutar, Odenen_Tutar, Kalan_Tutar, Ara_Toplam, KDV_Orani, Durum FROM faturalar"
                     if filtre_klinik_fat != "Tümü":
                         df_faturalar = pd.read_sql(f"{q_fat} WHERE Klinik_Unvani='{filtre_klinik_fat}' ORDER BY id DESC", conn)
                     else:
                         df_faturalar = pd.read_sql(f"{q_fat} ORDER BY id DESC", conn)
-                    col_map_fat = {"id": "id", "fatura_no": "Fatura_No", "fatura_tarihi": "Fatura_Tarihi", "klinik_unvani": "Klinik_Unvani", "toplam_tutar": "Toplam_Tutar", "odenen_tutar": "Odenen_Tutar", "kalan_tutar": "Kalan_Tutar", "ara_toplam": "Ara_Toplam", "kdv_orani": "KDV_Orani", "durum": "Durum"}
+                    col_map_fat = {"id": "id", "fatura_no": "Fatura_No", "fatura_tarihi": "Fatura_Tarihi", "klinik_unvani": "Klinik_Unvani", "ekstre_id": "Ekstre_ID", "toplam_tutar": "Toplam_Tutar", "odenen_tutar": "Odenen_Tutar", "kalan_tutar": "Kalan_Tutar", "ara_toplam": "Ara_Toplam", "kdv_orani": "KDV_Orani", "durum": "Durum"}
                     df_faturalar = df_faturalar.rename(columns=col_map_fat)
 
                     if not df_faturalar.empty:
@@ -5560,10 +5560,47 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                         d_fno = duz_col1.text_input("Fatura No", value=str(fat_row["Fatura_No"]), key=f"d_fno_{fat_row['id']}")
                                         d_ftar = duz_col2.text_input("Fatura Tarihi", value=str(fat_row["Fatura_Tarihi"]), key=f"d_ftar_{fat_row['id']}")
                                         g_ara = float(fat_row.get('Ara_Toplam') or 0)
-                                        if g_ara == 0: g_ara = float(fat_row['Toplam_Tutar'])
+
                                         g_kdv = int(float(fat_row.get('KDV_Orani') or 0))
+
+                                        
+
+                                        if g_ara == 0:
+
+                                            try:
+
+                                                ekstre_tutar = c.execute("SELECT Tutar_TL FROM hesap_ekstreleri WHERE id=?", (int(fat_row['Ekstre_ID']),)).fetchone()
+
+                                                if ekstre_tutar and float(ekstre_tutar[0]) > 0:
+
+                                                    orijinal_tutar = float(ekstre_tutar[0])
+
+                                                    toplam_tutar = float(fat_row['Toplam_Tutar'])
+
+                                                    oran = round(((toplam_tutar / orijinal_tutar) - 1) * 100)
+
+                                                    if oran in [0, 1, 10, 20]:
+
+                                                        g_ara = orijinal_tutar
+
+                                                        g_kdv = oran
+
+                                            except Exception:
+
+                                                pass
+
+                                            if g_ara == 0:
+
+                                                g_ara = float(fat_row['Toplam_Tutar'])
+
+                                        
+
                                         kdv_index = [0, 1, 10, 20].index(g_kdv) if g_kdv in [0, 1, 10, 20] else 0
-                                        d_ara_tutar = duz_col3.number_input("Ara Toplam (KDV Hariç)", value=g_ara, step=100.0, key=f"d_tutar_{fat_row['id']}")
+
+                                        
+
+                                        d_ara_tutar = duz_col3.number_input("Ara Toplam (KDV Hariç)", value=float(g_ara), step=100.0, key=f"d_tutar_{fat_row['id']}")
+
                                         d_kdv = duz_col4.selectbox("KDV Oranı (%)", [0, 1, 10, 20], index=kdv_index, key=f"d_kdv_{fat_row['id']}")
                                         
                                         d_hesaplanan_kdv = d_ara_tutar * (d_kdv / 100.0)
