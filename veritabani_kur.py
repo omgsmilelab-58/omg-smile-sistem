@@ -168,7 +168,7 @@ def omg_erp_db_kur():
            (id SERIAL PRIMARY KEY, Fatura_No TEXT, Fatura_Tarihi TEXT,
             Klinik_Unvani TEXT, Ekstre_ID INTEGER,
             Toplam_Tutar REAL DEFAULT 0, Odenen_Tutar REAL DEFAULT 0,
-            Kalan_Tutar REAL DEFAULT 0, Ara_Toplam REAL DEFAULT 0, KDV_Orani REAL DEFAULT 0,
+            Kalan_Tutar REAL DEFAULT 0,
             Durum TEXT DEFAULT 'Beklemede',
             PDF_Verisi BYTEA, Dosya_Adi TEXT, Aciklama TEXT DEFAULT '')''',
 
