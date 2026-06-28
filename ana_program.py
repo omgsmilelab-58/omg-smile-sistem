@@ -1586,15 +1586,15 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         
         st.subheader("🔍 Aktif ve Tamamlanan Siparişleriniz")
         if not df_isler.empty:
-        df_isler = df_isler.sort_values(by="Tarih", ascending=False).reset_index(drop=True)
-        goster_cols = ["Tarih", "Hasta_Kodu", "Hasta_Adi", "Is_Turu", "Asama"]
-        mevcut_cols = [c for c in goster_cols if c in df_isler.columns]
-        df_goster = df_isler[mevcut_cols].copy()
-        df_goster = df_goster.rename(columns={"Tarih": "TARİH", "Hasta_Kodu": "HASTA KODU", "Hasta_Adi": "HASTA ADI", "Is_Turu": "İŞLEM TÜRÜ", "Asama": "AŞAMA"})
-        secili_klinik_is = st.dataframe(df_goster, hide_index=True, use_container_width=True, on_select="rerun", selection_mode="single-row")
-        if secili_klinik_is.selection.rows:
-        s_idx = secili_klinik_is.selection.rows[0]
-        s_hasta = df_isler.iloc[s_idx]["Hasta_Adi"]
+            df_isler = df_isler.sort_values(by="Tarih", ascending=False).reset_index(drop=True)
+            goster_cols = ["Tarih", "Hasta_Kodu", "Hasta_Adi", "Is_Turu", "Asama"]
+            mevcut_cols = [c for c in goster_cols if c in df_isler.columns]
+            df_goster = df_isler[mevcut_cols].copy()
+            df_goster = df_goster.rename(columns={"Tarih": "TARİH", "Hasta_Kodu": "HASTA KODU", "Hasta_Adi": "HASTA ADI", "Is_Turu": "İŞLEM TÜRÜ", "Asama": "AŞAMA"})
+            secili_klinik_is = st.dataframe(df_goster, hide_index=True, use_container_width=True, on_select="rerun", selection_mode="single-row")
+            if secili_klinik_is.selection.rows:
+                s_idx = secili_klinik_is.selection.rows[0]
+                s_hasta = df_isler.iloc[s_idx]["Hasta_Adi"]
                 st.markdown("---")
                 hasta_karti_goster(s_hasta, ana_klinik)
                 st.markdown("---")
