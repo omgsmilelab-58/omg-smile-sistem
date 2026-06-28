@@ -1861,7 +1861,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             """, unsafe_allow_html=True)
             
         if st.session_state.w_ciro:
-            toplam_gelir = pd.to_numeric(df_isler[df_isler['Bakiye_Durumu'] == 'Aktarıldı']['Tutar_TL'], errors='coerce').sum() if not df_isler.empty else 0
+            if not df_isler.empty and 'Bakiye_Durumu' in df_isler.columns:
+                toplam_gelir = pd.to_numeric(df_isler[df_isler['Bakiye_Durumu'] == 'Aktarıldı']['Tutar_TL'], errors='coerce').sum()
+            else:
+                toplam_gelir = pd.to_numeric(df_isler['Tutar_TL'], errors='coerce').sum() if not df_isler.empty else 0
             bugun_gun = datetime.now().day
             if bugun_gun == 0: bugun_gun = 1
             ai_tahmin = (toplam_gelir / bugun_gun) * 30
