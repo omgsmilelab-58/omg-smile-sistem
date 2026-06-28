@@ -5470,10 +5470,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 dosya_fat = f"Fatura_{fatura_no_input}_{fat_klinik}.pdf"
                                 c.execute(
                                     "INSERT INTO faturalar (Fatura_No, Fatura_Tarihi, Klinik_Unvani, Ekstre_ID, "
-                                    "Toplam_Tutar, Odenen_Tutar, Kalan_Tutar, Durum, PDF_Verisi, Dosya_Adi, Aciklama) "
-                                    "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                                    "Toplam_Tutar, Odenen_Tutar, Kalan_Tutar, Ara_Toplam, KDV_Orani, Durum, PDF_Verisi, Dosya_Adi, Aciklama) "
+                                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                                     (fatura_no_input, fatura_tarihi_input, fat_klinik, ekstre_id_f,
-                                     float(genel_toplam_hesap), 0.0, float(genel_toplam_hesap),
+                                     float(genel_toplam_hesap), 0.0, float(genel_toplam_hesap), float(fatura_tutar_input), float(fatura_kdv_input),
                                      "Beklemede", fatura_pdf, dosya_fat, fatura_aciklama))
                                 fatura_id_yeni = c.execute("SELECT id FROM faturalar ORDER BY id DESC LIMIT 1").fetchone()[0]
                                 c.execute("UPDATE hesap_ekstreleri SET Durum=?, Fatura_ID=? WHERE id=?", ("Faturalanmış", fatura_id_yeni, ekstre_id_f))
@@ -5500,12 +5500,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 filtre_klinik_fat = st.selectbox("Kliniğe Göre Filtrele", ["Tümü"] + klinikler, key="fat_filtre")
 
                 try:
-                    q_fat = "SELECT id, Fatura_No, Fatura_Tarihi, Klinik_Unvani, Toplam_Tutar, Odenen_Tutar, Kalan_Tutar, Durum FROM faturalar"
+                    q_fat = "SELECT id, Fatura_No, Fatura_Tarihi, Klinik_Unvani, Toplam_Tutar, Odenen_Tutar, Kalan_Tutar, Ara_Toplam, KDV_Orani, Durum FROM faturalar"
                     if filtre_klinik_fat != "Tümü":
                         df_faturalar = pd.read_sql(f"{q_fat} WHERE Klinik_Unvani='{filtre_klinik_fat}' ORDER BY id DESC", conn)
                     else:
                         df_faturalar = pd.read_sql(f"{q_fat} ORDER BY id DESC", conn)
-                    col_map_fat = {"id": "id", "fatura_no": "Fatura_No", "fatura_tarihi": "Fatura_Tarihi", "klinik_unvani": "Klinik_Unvani", "toplam_tutar": "Toplam_Tutar", "odenen_tutar": "Odenen_Tutar", "kalan_tutar": "Kalan_Tutar", "durum": "Durum"}
+                    col_map_fat = {"id": "id", "fatura_no": "Fatura_No", "fatura_tarihi": "Fatura_Tarihi", "klinik_unvani": "Klinik_Unvani", "toplam_tutar": "Toplam_Tutar", "odenen_tutar": "Odenen_Tutar", "kalan_tutar": "Kalan_Tutar", "ara_toplam": "Ara_Toplam", "kdv_orani": "KDV_Orani", "durum": "Durum"}
                     df_faturalar = df_faturalar.rename(columns=col_map_fat)
 
                     if not df_faturalar.empty:
@@ -5546,8 +5546,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                         duz_col1, duz_col2, duz_col3, duz_col4 = st.columns([2, 2, 2, 1])
                                         d_fno = duz_col1.text_input("Fatura No", value=str(fat_row["Fatura_No"]), key=f"d_fno_{fat_row['id']}")
                                         d_ftar = duz_col2.text_input("Fatura Tarihi", value=str(fat_row["Fatura_Tarihi"]), key=f"d_ftar_{fat_row['id']}")
-                                        d_ara_tutar = duz_col3.number_input("Ara Toplam (KDV Hariç)", value=float(fat_row['Toplam_Tutar']), step=100.0, key=f"d_tutar_{fat_row['id']}")
-                                        d_kdv = duz_col4.selectbox("KDV Oranı (%)", [0, 1, 10, 20], index=0, key=f"d_kdv_{fat_row['id']}")
+                                        g_ara = float(fat_row.get('Ara_Toplam') or 0)
+                                        if g_ara == 0: g_ara = float(fat_row['Toplam_Tutar'])
+                                        g_kdv = int(float(fat_row.get('KDV_Orani') or 0))
+                                        kdv_index = [0, 1, 10, 20].index(g_kdv) if g_kdv in [0, 1, 10, 20] else 0
+                                        d_ara_tutar = duz_col3.number_input("Ara Toplam (KDV Hariç)", value=g_ara, step=100.0, key=f"d_tutar_{fat_row['id']}")
+                                        d_kdv = duz_col4.selectbox("KDV Oranı (%)", [0, 1, 10, 20], index=kdv_index, key=f"d_kdv_{fat_row['id']}")
                                         
                                         d_hesaplanan_kdv = d_ara_tutar * (d_kdv / 100.0)
                                         d_genel_toplam = d_ara_tutar + d_hesaplanan_kdv
@@ -5558,8 +5562,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                             y_kalan = d_genel_toplam - y_odenen
                                             y_durum = "Ödendi" if y_kalan <= 0 else "Kısmi Ödendi" if y_odenen > 0 else "Beklemede"
                                             
-                                            c.execute("UPDATE faturalar SET Fatura_No=?, Fatura_Tarihi=?, Toplam_Tutar=?, Kalan_Tutar=?, Durum=? WHERE id=?", 
-                                                      (d_fno, d_ftar, float(d_genel_toplam), float(y_kalan), y_durum, int(fat_row["id"])))
+                                            c.execute("UPDATE faturalar SET Fatura_No=?, Fatura_Tarihi=?, Toplam_Tutar=?, Kalan_Tutar=?, Ara_Toplam=?, KDV_Orani=?, Durum=? WHERE id=?", 
+                                                      (d_fno, d_ftar, float(d_genel_toplam), float(y_kalan), float(d_ara_tutar), float(d_kdv), y_durum, int(fat_row["id"])))
                                             conn.commit()
                                             st.success("Fatura başarıyla güncellendi!")
                                             st.rerun()
