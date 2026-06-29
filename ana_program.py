@@ -660,7 +660,7 @@ def hasta_karti_goster(hasta_adi, klinik_unvani):
                 r_sarf = r.get('Recine_Sarfiyati')
                 if pd.notna(r_sarf) and str(r_sarf).strip() != "-" and str(r_sarf).strip() != "" and str(r_sarf).startswith("{"):
                     try:
-                        r_data = json.loads(r_sarf)
+                        r_data = r_sarf if isinstance(r_sarf, dict) else json.loads(r_sarf)
                         r_metin = ""
                         yazici = r_data.get("yazici")
                         recine = r_data.get("recine")
@@ -4760,6 +4760,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         essiz_kodlar = df_arsiv['stok_kodu'].unique()
                         
                         stok_malzeme_map = {}
+                        stok_kategori_map = {}
                         if len(essiz_kodlar) > 0:
                             kod_list = "', '".join([str(k) for k in essiz_kodlar])
                             try:
@@ -4768,10 +4769,15 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 for r in rows:
                                     if r[1]:
                                         stok_malzeme_map[r[0]] = r[1]
+                                    if len(r) > 2 and r[2]:
+                                        stok_kategori_map[r[0]] = r[2]
                             except:
                                 pass
                                 
-                        def kategori_belirle(urun_adi, isler_serisi, urun_malzeme):
+                        def kategori_belirle(urun_adi, isler_serisi, urun_malzeme, urun_kategori=""):
+                            u_kat = str(urun_kategori).lower()
+                            if 'reçine' in u_kat or 'recine' in u_kat:
+                                return 'REÇİNE'
                             u_adi = str(urun_adi).lower()
                             u_malz = str(urun_malzeme).lower()
                             isler = isler_serisi.astype(str).str.lower()
@@ -4825,7 +4831,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 pasif_nedeni = f"{arsiv_kayitlari.iloc[0]['islem_turu']} - {arsiv_kayitlari.iloc[0]['aciklama']}"
                                 
                             urun_malzeme = stok_malzeme_map.get(kod, "")
-                            kategori = kategori_belirle(urun_adi, df_urun['yapilan_is'], urun_malzeme)
+                            urun_kategori = stok_kategori_map.get(kod, "")
+                            kategori = kategori_belirle(urun_adi, df_urun['yapilan_is'], urun_malzeme, urun_kategori)
                             liste_verileri.append({
                                 "Stok Kodu": kod,
                                 "Ürün Adı": urun_adi,
