@@ -584,7 +584,11 @@ except Exception as e:
 
 @st.dialog("🧑‍⚕️ Hasta Kartı", width="large")
 def hasta_karti_goster(hasta_adi, klinik_unvani):
-    h_isler = pd.read_sql("SELECT id, Tarih, Is_Turu, Adet, Asama, Aciklama, Harcanan_Malzeme, Sinter_Sarfiyati, Sorumlu_Personel, Tutar_TL FROM isler WHERE Hasta_Adi=? AND Klinik_Unvani=? ORDER BY Tarih ASC", conn, params=(hasta_adi, klinik_unvani))
+    h_isler = pd.read_sql("SELECT id, Tarih, Hasta_Kodu, Is_Turu, Adet, Asama, Aciklama, Harcanan_Malzeme, Sinter_Sarfiyati, Sorumlu_Personel, Tutar_TL FROM isler WHERE Hasta_Adi=? AND Klinik_Unvani=? ORDER BY Tarih ASC", conn, params=(hasta_adi, klinik_unvani))
+    hasta_kodu_metni = '-'
+    if not h_isler.empty and 'Hasta_Kodu' in h_isler.columns:
+        kodlar = [k for k in h_isler['Hasta_Kodu'].dropna().unique() if k and str(k).strip() != '-']
+        if kodlar: hasta_kodu_metni = ' / '.join(kodlar)
     
     # Fiyat ve Fatura hesaplama
     toplam_fiyat = float(h_isler['Tutar_TL'].sum()) if not h_isler.empty and 'Tutar_TL' in h_isler.columns else 0.0
@@ -602,7 +606,7 @@ def hasta_karti_goster(hasta_adi, klinik_unvani):
     
     fatura_metni = ", ".join(fatura_nolari) if fatura_nolari else "Fatura Kesilmemiş"
     
-    st.markdown(f"## 🧑‍⚕️ {hasta_adi}")
+    st.markdown(f"## 🧑‍⚕️ {hasta_adi} | Kodu: {hasta_kodu_metni}")
     hk1, hk2, hk3 = st.columns(3)
     hk1.markdown(f"**🏥 Klinik:** {klinik_unvani}")
     if st.session_state.get('kullanici_rolu') in ['Yönetici', 'Admin']:
@@ -2441,24 +2445,24 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 
                 fat_sorgu = "(SELECT COUNT(*) FROM hesap_ekstreleri e INNER JOIN faturalar f ON f.Ekstre_ID = e.id WHERE e.Klinik_Unvani = isler.Klinik_Unvani AND isler.Tarih >= e.Baslangic_Tarihi AND isler.Tarih <= e.Bitis_Tarihi) as Faturali_Mi"
                 if arsiv_klinik == "Tümü":
-                    df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Barkod, Hasta_Adi, Klinik_Unvani, {fat_sorgu} FROM isler WHERE Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(bas_tar, bit_tar))
+                    df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Hasta_Kodu, Hasta_Adi, Klinik_Unvani, {fat_sorgu} FROM isler WHERE Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(bas_tar, bit_tar))
                 else:
-                    df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Barkod, Hasta_Adi, Klinik_Unvani, {fat_sorgu} FROM isler WHERE Klinik_Unvani=? AND Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(arsiv_klinik, bas_tar, bit_tar))
+                    df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Hasta_Kodu, Hasta_Adi, Klinik_Unvani, {fat_sorgu} FROM isler WHERE Klinik_Unvani=? AND Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(arsiv_klinik, bas_tar, bit_tar))
                 
                 if not df_arsiv_isler.empty:
                     df_arsiv_isler['Faturali_Mi'] = df_arsiv_isler.get('Faturali_Mi', df_arsiv_isler.get('faturali_mi', 0)).fillna(0).astype(int)
                     df_grouped = df_arsiv_isler.groupby(['Hasta_Adi', 'Klinik_Unvani'], as_index=False).agg(
                         id=('id', 'first'),
                         Teslim_Tarihi=('Teslim_Tarihi', 'max'),
-                        Barkod=('Barkod', 'first'),
+                        Hasta_Kodu=('Hasta_Kodu', 'first'),
                         Faturali_Mi=('Faturali_Mi', 'sum'),
                         Toplam_Is=('id', 'count')
                     ).sort_values(by='id', ascending=False).reset_index(drop=True)
                     
                     df_grouped['S.NO'] = [f"🔴 {idx+1}" if f > 0 else f"🟢 {idx+1}" for idx, f in enumerate(df_grouped['Faturali_Mi'])]
-                    df_goster_ar = df_grouped[['S.NO', 'Teslim_Tarihi', 'Barkod', 'Hasta_Adi', 'Klinik_Unvani', 'Toplam_Is']].rename(columns={
+                    df_goster_ar = df_grouped[['S.NO', 'Teslim_Tarihi', 'Hasta_Kodu', 'Hasta_Adi', 'Klinik_Unvani', 'Toplam_Is']].rename(columns={
                         "Teslim_Tarihi": "SON İŞLEM",
-                        "Barkod": "HASTA NO",
+                        "Hasta_Kodu": "HASTA KODU",
                         "Hasta_Adi": "HASTA ADI",
                         "Klinik_Unvani": "KLİNİK",
                         "Toplam_Is": "İŞ SAYISI"
