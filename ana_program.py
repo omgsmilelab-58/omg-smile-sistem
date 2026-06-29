@@ -3139,11 +3139,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             kod, adi, marka, renk = row
                             r_list.append(f"{kod} | {adi}/{marka}/{renk}")
                             
-                        if len(r_list) == 1: # if none found, fallback
-                            r_list_raw = c.execute("SELECT Urun_Kodu, Urun_Adi, Marka, Renk FROM stok WHERE Urun_Adi LIKE '%Reçine%' AND Durum='Aktif'").fetchall()
-                            for row in r_list_raw:
-                                kod, adi, marka, renk = row
-                                r_list.append(f"{kod} | {adi}/{marka}/{renk}")
+                        # Fallback kaldırıldı: Sadece 'Reçine' kategorisi olanlar listelenecek.
                         
                         mevcut_recine_row = c.execute("SELECT Recine_Sarfiyati FROM isler WHERE id=?", (s_rowid,)).fetchone()
                         mevcut_recine = mevcut_recine_row[0] if mevcut_recine_row and mevcut_recine_row[0] != "-" else ""
