@@ -657,6 +657,24 @@ def hasta_karti_goster(hasta_adi, klinik_unvani):
                             satir_bilgi.append(f"**Sinter:** {s_metin}")
                     except: pass
                 
+                r_sarf = r.get('Recine_Sarfiyati')
+                if pd.notna(r_sarf) and str(r_sarf).strip() != "-" and str(r_sarf).strip() != "" and str(r_sarf).startswith("{"):
+                    try:
+                        r_data = json.loads(r_sarf)
+                        r_metin = ""
+                        yazici = r_data.get("yazici")
+                        recine = r_data.get("recine")
+                        if recine and recine != "-- Seçiniz --":
+                            if " | " in recine:
+                                recine = recine.split(" | ")[1]
+                            r_metin += f"Reçine: {recine} ({r_data.get('tuketim_gr', 0):g} gr)"
+                        if yazici and yazici != "-- Seçiniz --":
+                            if r_metin: r_metin += " | "
+                            r_metin += f"Yazıcı: {yazici} ({r_data.get('sure', 0)} Dk)"
+                        if r_metin:
+                            satir_bilgi.append(f"**Reçine & 3D:** {r_metin}")
+                    except: pass
+                
                 if satir_bilgi:
                     malzemeler.append(f"**{r['Is_Turu']} ({r['Tarih']})** 👉 " + " | ".join(satir_bilgi))
         
