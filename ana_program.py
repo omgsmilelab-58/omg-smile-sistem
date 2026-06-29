@@ -2459,18 +2459,18 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         Toplam_Is=('id', 'count')
                     ).sort_values(by='id', ascending=False).reset_index(drop=True)
                     
+                    df_grouped.insert(0, 'S.NO', range(1, len(df_grouped) + 1))
                     df_grouped['DURUM'] = ['🔴' if f > 0 else '🟢' for f in df_grouped['Faturali_Mi']]
-                    df_goster_ar = df_grouped[['DURUM', 'Teslim_Tarihi', 'Hasta_Kodu', 'Hasta_Adi', 'Klinik_Unvani', 'Toplam_Is']].rename(columns={
+                    df_goster_ar = df_grouped[['S.NO', 'DURUM', 'Teslim_Tarihi', 'Hasta_Kodu', 'Hasta_Adi', 'Klinik_Unvani', 'Toplam_Is']].rename(columns={
                         "Teslim_Tarihi": "SON İŞLEM",
                         "Hasta_Kodu": "HASTA KODU",
                         "Hasta_Adi": "HASTA ADI",
                         "Klinik_Unvani": "KLİNİK",
                         "Toplam_Is": "İŞ SAYISI"
                     })
-                    df_goster_ar.index = range(1, len(df_goster_ar) + 1)
                     
                     st.caption("💡 İpucu: Hastanın geçmişini, fatura durumunu ve kullanılan malzemeleri görmek için tablodan satırına tıklayın.")
-                    event_ar = st.dataframe(df_goster_ar,  use_container_width=True, on_select="rerun", selection_mode="single-row", key="arsiv_tablosu")
+                    event_ar = st.dataframe(df_goster_ar,  hide_index=True, use_container_width=True, on_select="rerun", selection_mode="single-row", key="arsiv_tablosu")
                     
                     if event_ar and len(event_ar.selection.rows) > 0:
                         sec_idx_ar = event_ar.selection.rows[0]
@@ -2703,8 +2703,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         if c_name == "sorumlu_personel": correct = "Sorumlu_Personel"
                         df_isler = df_isler.rename(columns={c_name: correct})
                 
-                df_goster = df_isler[["Barkod", "Tarih", "Teslim_Tarihi", "Klinik_Unvani", "Hasta_Adi", "Hasta_Kodu", "Is_Turu", "Renk", "Adet", "Asama", "Sorumlu_Personel"]].copy()
-                df_goster.index = range(1, len(df_goster) + 1)
+                df_isler.insert(0, 'S.NO', range(1, len(df_isler) + 1))
+                df_goster = df_isler[["S.NO", "Barkod", "Tarih", "Teslim_Tarihi", "Klinik_Unvani", "Hasta_Adi", "Hasta_Kodu", "Is_Turu", "Renk", "Adet", "Asama", "Sorumlu_Personel"]].copy()
                 df_goster = df_goster.rename(columns={
                     "Barkod": "BARKOD NO",
                     "Tarih": "İŞ TARİHİ",
@@ -2719,7 +2719,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     "Sorumlu_Personel": "SORUMLU PERSONEL"
                 })
                 st.caption("💡 İpucu: Hastanın geçmişini ve kullanılan malzemeleri görmek için tablodan satırına tıklayın.")
-                event = st.dataframe(df_goster,  use_container_width=True, on_select="rerun", selection_mode="single-row", key="uretim_tablosu")
+                event = st.dataframe(df_goster,  hide_index=True, use_container_width=True, on_select="rerun", selection_mode="single-row", key="uretim_tablosu")
                 
                 if event and len(event.selection.rows) > 0:
                     secili_idx = event.selection.rows[0]
@@ -5152,14 +5152,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     df_fiyat = df_fiyat.set_index("id")
                     
                     # İstenen sıra: S.NO - TARİH - KLİNİK - HASTA ADI - İŞLEM TÜRÜ - ADET - B.FİYAT - T.FİYAT - BAKİYE DURUMU
-                    df_fiyat = df_fiyat[["TESLİM TARİHİ", "KLİNİK", "HASTA ADI", "HASTA KODU", "İŞLEM TÜRÜ", "ADET", "FATURA TARİHİ", "İSKONTO", "B.FİYAT", "T.FİYAT", "BAKİYE DURUMU", "ESKİ_TUTAR_TL"]]
-                    df_fiyat.index = range(1, len(df_fiyat) + 1)
+                    df_fiyat.insert(0, 'S.NO', range(1, len(df_fiyat) + 1))
+                    df_fiyat = df_fiyat[["S.NO", "TESLİM TARİHİ", "KLİNİK", "HASTA ADI", "HASTA KODU", "İŞLEM TÜRÜ", "ADET", "FATURA TARİHİ", "İSKONTO", "B.FİYAT", "T.FİYAT", "BAKİYE DURUMU", "ESKİ_TUTAR_TL"]]
                     
                     st.caption("💡 İpucu: İşlemler (fatura tarihi, fiyat, iskonto) alanını açmak için tablodan bir satır seçiniz.")
                     
                     event_fiyat = st.dataframe(
                         df_fiyat.drop(columns=["ESKİ_TUTAR_TL"]), # Gizlemek için
-                        use_container_width=True,
+                        hide_index=True, use_container_width=True,
                         on_select="rerun",
                         selection_mode="single-row",
                         key="fiyat_tablo"
@@ -5373,8 +5373,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 "tutar_tl": "TUTAR(TL)"
                             })
                             
-                            df_isler_cb = df_isler_cb[["HASTA KODU", "HASTA ADI", "İŞLEM TÜRÜ", "ADET", "İSKONTO", "B. FİYAT", "TUTAR(TL)"]]
-                            df_isler_cb.index = range(1, len(df_isler_cb) + 1)
+                            df_isler_cb.insert(0, 'S.NO', range(1, len(df_isler_cb) + 1))
+                            df_isler_cb = df_isler_cb[["S.NO", "HASTA KODU", "HASTA ADI", "İŞLEM TÜRÜ", "ADET", "İSKONTO", "B. FİYAT", "TUTAR(TL)"]]
                     except Exception as e_cb:
                         st.error(f"Veriler yüklenemedi: {e_cb}")
                         df_isler_cb = pd.DataFrame()
@@ -5409,7 +5409,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.markdown("##### 📋 Fiyat Listesine İşlenen Hizmetler")
                     
                     if not df_isler_cb.empty:
-                        st.dataframe(df_isler_cb,  use_container_width=True)
+                        st.dataframe(df_isler_cb,  hide_index=True, use_container_width=True)
                     else:
                         st.info("Bu klinik için fiyat listesine işlenmiş hizmet bulunmuyor.")
 
