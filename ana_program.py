@@ -667,7 +667,7 @@ def hasta_karti_goster(hasta_adi, klinik_unvani):
                         if recine and recine != "-- Seçiniz --":
                             if " | " in recine:
                                 recine = recine.split(" | ")[1]
-                            r_metin += f"Reçine: {recine} ({r_data.get('tuketim_gr', 0):g} gr)"
+                            r_metin += f"Reçine: {recine} ({r_data.get('tuketim_gr', 0)} gr)"
                         if yazici and yazici != "-- Seçiniz --":
                             if r_metin: r_metin += " | "
                             r_metin += f"Yazıcı: {yazici} ({r_data.get('sure', 0)} Dk)"
@@ -4729,6 +4729,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             CASE 
                                 WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = u.malzeme_kodu AND c.Durum IN ('Yarım', 'Aktif')) THEN 'Aktif'
                                 WHEN EXISTS (SELECT 1 FROM aktif_frezler f WHERE f.frez_kod = u.malzeme_kodu AND f.durum = 'Aktif') THEN 'Aktif'
+                                WHEN EXISTS (SELECT 1 FROM stok s WHERE s.Urun_Kodu = u.malzeme_kodu AND s.Durum = 'Aktif') THEN 'Aktif'
                                 ELSE 'Pasif'
                             END,
                             COALESCE(i.Is_Turu, '-') as yapilan_is
