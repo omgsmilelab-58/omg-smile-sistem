@@ -2429,7 +2429,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 </style>
         """, unsafe_allow_html=True)
 
-        tab_takip, tab_arsiv, tab_manuel_is, tab_cam = st.tabs(["🚀 Üretim Takibi & Güncelleme", "🗄️ İş Arşivi", "➕ Yeni Manuel İş Kaydı (Laboratuvar)", "💿 CAM Envanteri (Blok & Frez)"])
+        tab_manuel_is, tab_takip, tab_cam, tab_arsiv = st.tabs(["➕ Yeni Manuel İş Kaydı (Laboratuvar)", "🚀 Üretim Takibi & Güncelleme", "💿 CAM Envanteri (Blok & Frez)", "🗄️ İş Arşivi"])
         
         with tab_arsiv:
             st.markdown("### 🗄️ İş Arşivi")
