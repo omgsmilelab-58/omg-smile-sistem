@@ -3227,7 +3227,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 r_adi = r_val.split(" | ")[1].split("/")[0].strip() if " | " in r_val else r_val
                                 c.execute("UPDATE stok SET Mevcut_Miktar = GREATEST(0, Mevcut_Miktar - ?) WHERE Urun_Kodu=?", (yeni_tuketim_gr, r_kod))
                                 is_adi_veri = is_verisi[6] if len(is_verisi) > 6 else "-"
-                                c.execute("INSERT INTO uretim_loglari (is_id, is_adi, tarih, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, dakika) VALUES (?,?,?,?,?,?,?,?)", (s_rowid, is_adi_veri, datetime.now().strftime("%Y-%m-%d %H:%M"), "Reçine", r_kod, r_adi, m_val, s_val))
+                                c.execute("INSERT INTO uretim_loglari (is_id, is_adi, tarih, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, dakika) VALUES (?,?,?,?,?,?,?,?)", (s_rowid, is_adi_veri, datetime.now().strftime("%Y-%m-%d %H:%M"), "Reçine", r_kod, r_adi, yeni_tuketim_gr, s_val))
                                 
                             conn.commit()
                             st.success("Reçine Sarfiyatı başarıyla işlendi!")
@@ -4867,19 +4867,42 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 "Kategori": kategori
                             })
 
-                        # Reçine miktar bilgisini de liste_verileri'ne ekle
-                        recine_miktar_map = {}
+                        # Reçine miktar: isler tablosundaki Recine_Sarfiyati JSON'undan tuketim_gr okunuyor
+                        # Bu hem eski kayıtlar hem de yeni kayıtlar için doğru değeri verir.
+                        # Hesaplama: Model Biri = Adet * Model_başı_gr | Üye Birimi = Adet * Üye_başı_gr
+                        recine_miktar_map = {}   # {malzeme_kodu: toplam_gr}
+                        recine_adet_map   = {}   # {malzeme_kodu: toplam_adet}
+                        recine_birim_map  = {}   # {malzeme_kodu: birim_basi_gr (ort)}
                         try:
                             import json as _json
-                            # uretim_loglari'nda Reçine olan kayıtları bul, miktar_veya_uye = gr
-                            df_recine_log = df_arsiv[df_arsiv['islem_turu'] == 'Üretim (Reçine)'].copy()
-                            df_recine_log['miktar_veya_uye'] = pd.to_numeric(df_recine_log['miktar_veya_uye'], errors='coerce').fillna(0)
-                            recine_miktar_map = df_recine_log.groupby('stok_kodu')['miktar_veya_uye'].sum().to_dict()
+                            recine_is_rows = c.execute(
+                                "SELECT u.malzeme_kodu, i.Recine_Sarfiyati "
+                                "FROM uretim_loglari u "
+                                "JOIN isler i ON u.is_id = i.id "
+                                "WHERE u.malzeme_turu = 'Re\u00e7ine'"
+                            ).fetchall()
+                            for r_kod_j, r_sarf_j in recine_is_rows:
+                                if not r_sarf_j:
+                                    continue
+                                try:
+                                    data = r_sarf_j if isinstance(r_sarf_j, dict) else _json.loads(str(r_sarf_j))
+                                    tuketim_gr = float(data.get('tuketim_gr', 0))
+                                    miktar     = float(data.get('miktar', 0))
+                                    recine_miktar_map[r_kod_j] = recine_miktar_map.get(r_kod_j, 0.0) + tuketim_gr
+                                    recine_adet_map[r_kod_j]   = recine_adet_map.get(r_kod_j, 0.0)   + miktar
+                                except:
+                                    pass
                         except:
                             pass
+                        # Adet başı gr = toplam_gr / toplam_adet
+                        recine_adet_basi_gr = {
+                            k: round(recine_miktar_map[k] / recine_adet_map[k], 3)
+                            for k in recine_miktar_map
+                            if recine_adet_map.get(k, 0) > 0
+                        }
 
                         for lv in liste_verileri:
-                            lv['Kullanılan Miktar (gr)'] = recine_miktar_map.get(lv['Stok Kodu'], 0)
+                            lv['Kullanılan Miktar (gr)'] = round(recine_miktar_map.get(lv['Stok Kodu'], 0.0), 2)
 
                         df_liste_full = pd.DataFrame(liste_verileri, columns=["Stok Kodu", "Ürün Adı", "Toplam Üretilen", "Çalışma (Dk)", "Durum", "Pasif Nedeni", "İlk İşlem", "Kategori", "Kullanılan Miktar (gr)"])
                         kategori_map = dict(zip(df_liste_full["Stok Kodu"], df_liste_full["Kategori"]))
@@ -4919,35 +4942,42 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     m2.metric("Blok Başı Ortalama Verim", f"{ort_blok_verimi} Üye")
                                 
                                 elif kategori_adi == "REÇİNE":
-                                    df_recine_uretim = df_arsiv_alt[df_arsiv_alt['islem_turu'] == 'Üretim (Reçine)'].copy()
-                                    df_recine_uretim['miktar_gr'] = pd.to_numeric(df_recine_uretim['miktar_veya_uye'], errors='coerce').fillna(0)
-
-                                    toplam_gr = df_recine_uretim['miktar_gr'].sum()
-                                    toplam_model = len(df_recine_uretim)
-                                    toplam_malzeme = df_recine_uretim['stok_kodu'].nunique()
-                                    ort_gr_model = round(toplam_gr / toplam_model, 1) if toplam_model > 0 else 0
+                                    # toplam_gr ve adet hesaplamak için onceden hazirladigimiz map'leri kullan
+                                    toplam_gr      = sum(recine_miktar_map.values())
+                                    toplam_kayit   = sum(1 for v in recine_adet_map.values() if v > 0)
+                                    toplam_tur     = len([k for k in recine_miktar_map if recine_miktar_map[k] > 0])
+                                    toplam_adet    = sum(recine_adet_map.values())
+                                    ort_adet_basi  = round(toplam_gr / toplam_adet, 2) if toplam_adet > 0 else 0
 
                                     r1, r2, r3, r4 = st.columns(4)
-                                    r1.metric("🟢 Toplam Kullanım", f"{toplam_gr:,.1f} gr")
-                                    r2.metric("📦 Kayıt Sayısı", f"{toplam_model}")
-                                    r3.metric("🧪 Farklı Reçine Türü", f"{toplam_malzeme}")
-                                    r4.metric("⚖️ Kayıt Başı Ort.", f"{ort_gr_model} gr")
+                                    r1.metric("🟢 Toplam Kullanım", f"{toplam_gr:,.2f} gr")
+                                    r2.metric("📦 Toplam Adet", f"{int(toplam_adet)}")
+                                    r3.metric("🧪 Farklı Reçine Türü", f"{toplam_tur}")
+                                    r4.metric("⚖️ Adet Başı Ort.", f"{ort_adet_basi} gr")
 
-                                    if not df_recine_uretim.empty:
+                                    if recine_miktar_map:
                                         st.markdown("###### 🧪 Reçine Türlerine Göre Tüketim")
-                                        df_recine_grup = df_recine_uretim.groupby('urun_adi').agg(
-                                            Toplam_gr=('miktar_gr', 'sum'),
-                                            Kullanim_Sayisi=('stok_kodu', 'count')
-                                        ).reset_index()
-                                        df_recine_grup['Adet_Basi_gr'] = (df_recine_grup['Toplam_gr'] / df_recine_grup['Kullanim_Sayisi']).round(1)
-                                        df_recine_grup.columns = ['Reçine Adı', 'Toplam Tüketim (gr)', 'Kullanım Sayısı', 'Adet Başı Ort. (gr)']
-                                        r_cols = st.columns(min(4, max(1, len(df_recine_grup))))
-                                        for ri, rr in df_recine_grup.iterrows():
-                                            r_cols[ri % len(r_cols)].metric(
-                                                rr['Reçine Adı'],
-                                                f"{rr['Adet Başı Ort. (gr)']} gr/adet",
-                                                f"Toplam: {rr['Toplam Tüketim (gr)']:,.1f} gr"
-                                            )
+                                        # Her reçine kodu için adini bul
+                                        recine_tur_satirlar = []
+                                        for r_kod_d, r_toplam_gr in recine_miktar_map.items():
+                                            r_adet   = recine_adet_map.get(r_kod_d, 0)
+                                            r_ab_gr  = recine_adet_basi_gr.get(r_kod_d, 0)
+                                            # isim: stok_malzeme_map yoksa df_arsiv'den bul
+                                            r_adi_d  = df_arsiv_alt[df_arsiv_alt['stok_kodu'] == r_kod_d]['urun_adi'].iloc[0] if not df_arsiv_alt[df_arsiv_alt['stok_kodu'] == r_kod_d].empty else r_kod_d
+                                            recine_tur_satirlar.append({
+                                                'Reçine Adı':         r_adi_d,
+                                                'Toplam Tüketim (gr)': round(r_toplam_gr, 2),
+                                                'Toplam Adet':          int(r_adet),
+                                                'Adet Başı Ort. (gr)':  r_ab_gr
+                                            })
+                                        if recine_tur_satirlar:
+                                            r_cols_n = st.columns(min(4, max(1, len(recine_tur_satirlar))))
+                                            for ri, rrow in enumerate(recine_tur_satirlar):
+                                                r_cols_n[ri % len(r_cols_n)].metric(
+                                                    rrow['Reçine Adı'],
+                                                    f"{rrow['Adet Başı Ort. (gr)']} gr/adet",
+                                                    f"Toplam: {rrow['Toplam Tüketim (gr)']:,.2f} gr | {rrow['Toplam Adet']} adet"
+                                                )
                                     else:
                                         st.caption("Henüz reçine üretim verisi yok.")
                                 
