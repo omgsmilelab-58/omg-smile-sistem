@@ -2446,13 +2446,23 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Barkod, Hasta_Adi, Klinik_Unvani, {fat_sorgu} FROM isler WHERE Klinik_Unvani=? AND Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(arsiv_klinik, bas_tar, bit_tar))
                 
                 if not df_arsiv_isler.empty:
-                    df_arsiv_isler['id_gosterim'] = df_arsiv_isler.apply(lambda r: f"🟢 {r['id']}" if r.get('Faturali_Mi', r.get('faturali_mi', 1)) == 0 else f"🔴 {r['id']}", axis=1)
-                    df_goster_ar = df_arsiv_isler[['id_gosterim', 'Teslim_Tarihi', 'Barkod', 'Hasta_Adi', 'Klinik_Unvani']].rename(columns={
+                    df_arsiv_isler['Faturali_Mi'] = df_arsiv_isler.get('Faturali_Mi', df_arsiv_isler.get('faturali_mi', 0)).fillna(0).astype(int)
+                    df_grouped = df_arsiv_isler.groupby(['Hasta_Adi', 'Klinik_Unvani'], as_index=False).agg(
+                        id=('id', 'first'),
+                        Teslim_Tarihi=('Teslim_Tarihi', 'max'),
+                        Barkod=('Barkod', 'first'),
+                        Faturali_Mi=('Faturali_Mi', 'sum'),
+                        Toplam_Is=('id', 'count')
+                    ).sort_values(by='id', ascending=False).reset_index(drop=True)
+                    
+                    df_grouped['id_gosterim'] = df_grouped.apply(lambda r: f"🔴 {r['id']}" if r['Faturali_Mi'] > 0 else f"🟢 {r['id']}", axis=1)
+                    df_goster_ar = df_grouped[['id_gosterim', 'Teslim_Tarihi', 'Barkod', 'Hasta_Adi', 'Klinik_Unvani', 'Toplam_Is']].rename(columns={
                         "id_gosterim": "SIRA NO",
-                        "Teslim_Tarihi": "TESLİM TARİHİ",
+                        "Teslim_Tarihi": "SON İŞLEM",
                         "Barkod": "HASTA NO",
                         "Hasta_Adi": "HASTA ADI",
-                        "Klinik_Unvani": "KLİNİK"
+                        "Klinik_Unvani": "KLİNİK",
+                        "Toplam_Is": "İŞ SAYISI"
                     })
                     
                     st.caption("💡 İpucu: Hastanın geçmişini, fatura durumunu ve kullanılan malzemeleri görmek için tablodan satırına tıklayın.")
@@ -2460,8 +2470,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     
                     if event_ar and len(event_ar.selection.rows) > 0:
                         sec_idx_ar = event_ar.selection.rows[0]
-                        s_hasta_ar = df_arsiv_isler.iloc[sec_idx_ar]["Hasta_Adi"]
-                        s_klinik_ar = df_arsiv_isler.iloc[sec_idx_ar]["Klinik_Unvani"]
+                        s_hasta_ar = df_grouped.iloc[sec_idx_ar]["Hasta_Adi"]
+                        s_klinik_ar = df_grouped.iloc[sec_idx_ar]["Klinik_Unvani"]
                         
                         if st.session_state.get("son_acilan_hasta_arsiv") != f"{s_hasta_ar}_{s_klinik_ar}":
                             st.session_state.son_acilan_hasta_arsiv = f"{s_hasta_ar}_{s_klinik_ar}"
