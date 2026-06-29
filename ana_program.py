@@ -4241,6 +4241,13 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         bir = c1.selectbox("Miktar Birimi", ["Adet", "Gram", "Litre", "Kutu"], index=["Adet", "Gram", "Litre", "Kutu"].index(d_birim) if d_birim in ["Adet", "Gram", "Litre", "Kutu"] else 0, key=f"bir_{sec_kod_display}")
                         sinir = c2.number_input("Kritik Sınır", value=d_sinir, key=f"sinir_{sec_kod_display}")
                         marka = c3.text_input("Marka", value=d_marka, key=f"marka_{sec_kod_display}")
+                    elif kat == "Reçine":
+                        malzeme = c3.text_input("Malzeme", value=d_malzeme, key=f"malz_{sec_kod_display}")
+                        fiy = c1.number_input("Alış Fiyatı", value=d_fiyat, key=f"fiy_{sec_kod_display}")
+                        para_birimi = c2.selectbox("Para Birimi", ["TL", "Euro"], index=0 if d_para_birimi=="TL" else 1, key=f"pb_{sec_kod_display}")
+                        bir = c3.selectbox("Miktar Birimi", ["Adet", "Gram", "Litre", "Kutu"], index=["Adet", "Gram", "Litre", "Kutu"].index(d_birim) if d_birim in ["Adet", "Gram", "Litre", "Kutu"] else 0, key=f"bir_{sec_kod_display}")
+                        sinir = c1.number_input("Kritik Sınır", value=d_sinir, key=f"sinir_{sec_kod_display}")
+                        marka = c2.text_input("Marka", value=d_marka, key=f"marka_{sec_kod_display}")
                     elif kat == "Frez":
                         marka = c3.text_input("Marka", value=d_marka, key=f"marka_{sec_kod_display}")
                         malzeme = c1.text_input("Tipi", value=d_malzeme, key=f"tipi_{sec_kod_display}")
@@ -4510,7 +4517,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
                             df_goster = df_goster[mevcut_kolonlar]
                         elif kat_adi == "Reçine":
-                            istenen_sira = ["Ürün Kodu", "Ürün Adı", "Marka", "Renk", "Kritik Sınır", "Mevcut Miktar"]
+                            istenen_sira = ["Ürün Kodu", "Ürün Adı", "Marka", "Renk", "Malzeme", "Kritik Sınır", "Mevcut Miktar"]
                             mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
                             df_goster = df_goster[mevcut_kolonlar]
                         
