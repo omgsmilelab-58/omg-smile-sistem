@@ -3132,12 +3132,18 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             y_list_raw = c.execute("SELECT Cihaz_Adi FROM cihazlar WHERE Durum='Aktif'").fetchall()
                             y_list = ["-- Seçiniz --"] + [f[0] for f in y_list_raw]
                             
-                        # UPDATE: STOK_KATEGORILER'den 'Reçine' olanları getir
-                        r_list_raw = c.execute("SELECT Urun_Adi FROM stok WHERE Kategori='Reçine' AND Durum='Aktif'").fetchall()
-                        r_list = ["-- Seçiniz --"] + [f[0] for f in r_list_raw]
+                        # UPDATE: STOK_KATEGORILER'den 'Reçine' olanları getir ve ÜRÜN ADI/MARKA/RENK olarak göster
+                        r_list_raw = c.execute("SELECT Urun_Kodu, Urun_Adi, Marka, Renk FROM stok WHERE Kategori='Reçine' AND Durum='Aktif'").fetchall()
+                        r_list = ["-- Seçiniz --"]
+                        for row in r_list_raw:
+                            kod, adi, marka, renk = row
+                            r_list.append(f"{kod} | {adi}/{marka}/{renk}")
+                            
                         if len(r_list) == 1: # if none found, fallback
-                            r_list_raw = c.execute("SELECT Urun_Adi FROM stok WHERE Urun_Adi LIKE '%Reçine%' AND Durum='Aktif'").fetchall()
-                            r_list = ["-- Seçiniz --"] + [f[0] for f in r_list_raw]
+                            r_list_raw = c.execute("SELECT Urun_Kodu, Urun_Adi, Marka, Renk FROM stok WHERE Urun_Adi LIKE '%Reçine%' AND Durum='Aktif'").fetchall()
+                            for row in r_list_raw:
+                                kod, adi, marka, renk = row
+                                r_list.append(f"{kod} | {adi}/{marka}/{renk}")
                         
                         mevcut_recine_row = c.execute("SELECT Recine_Sarfiyati FROM isler WHERE id=?", (s_rowid,)).fetchone()
                         mevcut_recine = mevcut_recine_row[0] if mevcut_recine_row and mevcut_recine_row[0] != "-" else ""
@@ -3166,7 +3172,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         y_val = r_col1.selectbox("3D Yazıcı Seçimi", y_list, index=idx_y, key=f"t6_y_{s_rowid}")
                         
                         idx_r = r_list.index(eski_r) if eski_r in r_list else 0
-                        r_val = r_col2.selectbox("Reçine Seçimi", r_list, index=idx_r, key=f"t6_r_{s_rowid}")
+                        r_val = r_col2.selectbox("Reçine Seçimi (Ürün/Marka/Renk)", r_list, index=idx_r, key=f"t6_r_{s_rowid}")
                         
                         st.markdown("##### Sarfiyat Parametreleri")
                         p_col1, p_col2 = st.columns(2)
@@ -3193,13 +3199,21 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 if eski_y != "-- Seçiniz --" and eski_s > 0:
                                     c.execute("UPDATE cihazlar SET Calisma_Saati = GREATEST(0, Calisma_Saati - ?) WHERE Cihaz_Adi=?", (eski_s / 60.0, eski_y))
                                 if eski_r != "-- Seçiniz --" and eski_tuketim_gr > 0:
-                                    c.execute("UPDATE stok SET Mevcut_Miktar = Mevcut_Miktar + ? WHERE Urun_Adi=?", (eski_tuketim_gr, eski_r))
+                                    if " | " in eski_r:
+                                        e_kod = eski_r.split(" | ")[0].strip()
+                                        c.execute("UPDATE stok SET Mevcut_Miktar = Mevcut_Miktar + ? WHERE Urun_Kodu=?", (eski_tuketim_gr, e_kod))
+                                    else:
+                                        c.execute("UPDATE stok SET Mevcut_Miktar = Mevcut_Miktar + ? WHERE Urun_Adi=?", (eski_tuketim_gr, eski_r))
                                     
                             # Yeni değerleri ekle/düş
                             if y_val != "-- Seçiniz --" and s_val > 0:
                                 c.execute("UPDATE cihazlar SET Calisma_Saati = Calisma_Saati + ? WHERE Cihaz_Adi=?", (s_val / 60.0, y_val))
                             if r_val != "-- Seçiniz --" and yeni_tuketim_gr > 0:
-                                c.execute("UPDATE stok SET Mevcut_Miktar = GREATEST(0, Mevcut_Miktar - ?) WHERE Urun_Adi=?", (yeni_tuketim_gr, r_val))
+                                if " | " in r_val:
+                                    y_kod = r_val.split(" | ")[0].strip()
+                                    c.execute("UPDATE stok SET Mevcut_Miktar = GREATEST(0, Mevcut_Miktar - ?) WHERE Urun_Kodu=?", (yeni_tuketim_gr, y_kod))
+                                else:
+                                    c.execute("UPDATE stok SET Mevcut_Miktar = GREATEST(0, Mevcut_Miktar - ?) WHERE Urun_Adi=?", (yeni_tuketim_gr, r_val))
                                 
                             conn.commit()
                             st.success("Reçine Sarfiyatı başarıyla işlendi!")
