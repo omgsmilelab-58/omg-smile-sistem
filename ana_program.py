@@ -4757,6 +4757,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             u_malz = str(urun_malzeme).lower()
                             isler = isler_serisi.astype(str).str.lower()
                             
+                            if 'reçine' in u_malz or 'recine' in u_malz:
+                                return 'REÇİNE'
                             if 'pmma' in u_malz:
                                 return 'PMMA'
                             if 'zirkon' in u_malz or 'zircon' in u_malz:
@@ -4766,6 +4768,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 
                             if 'frez' in u_adi:
                                 return 'FREZ'
+                            if 'reçine' in u_adi or 'recine' in u_adi:
+                                return 'REÇİNE'
                             if 'pmma' in u_adi:
                                 return 'PMMA'
                             if 'zirkon' in u_adi or 'zircon' in u_adi:
@@ -4775,6 +4779,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 
                             if isler.str.contains('zirkon|zircon').any():
                                 return 'ZİRKONYUM'
+                            if isler.str.contains('reçine|recine').any():
+                                return 'REÇİNE'
                             if isler.str.contains('pmma').any():
                                 return 'PMMA'
                             if isler.str.contains('titan').any():
@@ -4821,7 +4827,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             elif val == "Pasif": return 'color: #f87171; font-weight:bold;'
                             return ''
 
-                        kategoriler = ["ZİRKONYUM", "PMMA", "TİTANYUM", "FREZ", "DİĞER"]
+                        kategoriler = ["ZİRKONYUM", "PMMA", "TİTANYUM", "FREZ", "REÇİNE", "DİĞER"]
                         sekmeler = st.tabs(kategoriler)
                         
                         for i, kategori_adi in enumerate(kategoriler):
