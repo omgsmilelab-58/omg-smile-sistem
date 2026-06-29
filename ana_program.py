@@ -695,6 +695,8 @@ try: c.execute("ALTER TABLE isler ADD COLUMN Adet INTEGER DEFAULT 1")
 except: pass
 try: c.execute("ALTER TABLE isler ADD COLUMN Sinter_Sarfiyati TEXT DEFAULT '-'")
 except: pass
+try: c.execute("ALTER TABLE isler ADD COLUMN Recine_Sarfiyati TEXT DEFAULT '-'")
+except: pass
 try: c.execute("ALTER TABLE isler ADD COLUMN Fatura_Tarihi TEXT DEFAULT '-'")
 except: pass
 try: c.execute("ALTER TABLE isler ADD COLUMN Iskonto REAL DEFAULT 0.0")
@@ -2740,7 +2742,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     s_barkod = df_isler.iloc[secilen_index]["Barkod"]
                     is_verisi = c.execute("SELECT Asama, Sorumlu_Personel, Lot_Numarasi, Sertifika_No, Klinik_Unvani, Hasta_Adi, Is_Turu, Tarih, Teslim_Tarihi, Renk, Adet, Tutar_TL, Aciklama, Harcanan_Malzeme FROM isler WHERE id=?",(s_rowid,)).fetchone()
                     
-                    t1, t_bilgi, t2, t3, t4, t5 = st.tabs(["🔄 Aşama Güncelle", "✏️ Bilgileri Güncelle", "📸 Medya & Arşiv", "📜 Garanti", "⚙️ CAM Sarfiyatı", "🔥 Sinter Sarfiyatı"])
+                    t1, t_bilgi, t2, t3, t4, t5, t6 = st.tabs(["🔄 Aşama Güncelle", "✏️ Bilgileri Güncelle", "📸 Medya & Arşiv", "📜 Garanti", "⚙️ CAM Sarfiyatı", "🔥 Sinter Sarfiyatı", "💧 Reçine Sarfiyatı"])
                     
                     with t1:
                         col_a, col_b = st.columns(2)
@@ -3120,6 +3122,70 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             st.success("Sinter Sarfiyatı başarıyla işlendi!")
                             st.rerun()
 
+                    with t6:
+                        st.markdown("#### 💧 Reçine Sarfiyatı Kaydı")
+                        st.caption("İşin geçtiği 3D yazıcıyı ve reçine detaylarını seçiniz.")
+                        
+                        y_list_raw = c.execute("SELECT Cihaz_Adi FROM cihazlar WHERE Kategori='3D Yazıcı' AND Durum='Aktif'").fetchall()
+                        y_list = ["-- Seçiniz --"] + [f[0] for f in y_list_raw]
+                        if len(y_list) == 1:
+                            y_list_raw = c.execute("SELECT Cihaz_Adi FROM cihazlar WHERE Durum='Aktif'").fetchall()
+                            y_list = ["-- Seçiniz --"] + [f[0] for f in y_list_raw]
+                            
+                        r_list_raw = c.execute("SELECT Urun_Adi FROM stok WHERE Urun_Adi LIKE '%Reçine%' AND Durum='Aktif'").fetchall()
+                        r_list = ["-- Seçiniz --"] + [f[0] for f in r_list_raw]
+                        if len(r_list) == 1: # if none found, allow general list
+                            r_list_raw = c.execute("SELECT Urun_Adi FROM stok WHERE Durum='Aktif'").fetchall()
+                            r_list = ["-- Seçiniz --"] + [f[0] for f in r_list_raw]
+                        
+                        mevcut_recine_row = c.execute("SELECT Recine_Sarfiyati FROM isler WHERE id=?", (s_rowid,)).fetchone()
+                        mevcut_recine = mevcut_recine_row[0] if mevcut_recine_row and mevcut_recine_row[0] != "-" else ""
+                        
+                        eski_y = "-- Seçiniz --"
+                        eski_r = "-- Seçiniz --"
+                        eski_s = 0
+                        eski_m = 0.0
+                        eski_b = "Model"
+                        
+                        import json
+                        if mevcut_recine and mevcut_recine.startswith("{"):
+                            try:
+                                r_data = json.loads(mevcut_recine)
+                                eski_y = r_data.get("yazici", "-- Seçiniz --")
+                                eski_r = r_data.get("recine", "-- Seçiniz --")
+                                eski_s = r_data.get("sure", 0)
+                                eski_m = float(r_data.get("miktar", 0.0))
+                                eski_b = r_data.get("birim", "Model")
+                            except: pass
+                        
+                        r_col1, r_col2 = st.columns(2)
+                        idx_y = y_list.index(eski_y) if eski_y in y_list else 0
+                        y_val = r_col1.selectbox("3D Yazıcı Seçimi", y_list, index=idx_y, key=f"t6_y_{s_rowid}")
+                        
+                        idx_r = r_list.index(eski_r) if eski_r in r_list else 0
+                        r_val = r_col2.selectbox("Reçine Seçimi", r_list, index=idx_r, key=f"t6_r_{s_rowid}")
+                        
+                        r_col3, r_col4, r_col5 = st.columns(3)
+                        s_val = r_col3.number_input("Üretim Süresi (Dk)", min_value=0, value=int(eski_s), key=f"t6_s_{s_rowid}")
+                        m_val = r_col4.number_input("Miktar", min_value=0.0, value=float(eski_m), step=1.0, key=f"t6_m_{s_rowid}")
+                        
+                        b_list = ["Model", "Üye"]
+                        idx_b = b_list.index(eski_b) if eski_b in b_list else 0
+                        b_val = r_col5.selectbox("Birim", b_list, index=idx_b, key=f"t6_b_{s_rowid}")
+                        
+                        btn_txt_r = "💧 Reçine Sarfiyatını Güncelle" if mevcut_recine else "💧 Reçine Sarfiyatını Kaydet"
+                        if st.button(btn_txt_r, type="primary", key=f"btn_rec_{s_rowid}"):
+                            yeni_recine_json = json.dumps({"yazici": y_val, "recine": r_val, "sure": s_val, "miktar": m_val, "birim": b_val})
+                            c.execute("UPDATE isler SET Recine_Sarfiyati=? WHERE id=?", (yeni_recine_json, s_rowid))
+                            if mevcut_recine:
+                                if eski_y != "-- Seçiniz --" and eski_s > 0:
+                                    c.execute("UPDATE cihazlar SET Calisma_Saati = GREATEST(0, Calisma_Saati - ?) WHERE Cihaz_Adi=?", (eski_s / 60.0, eski_y))
+                            if y_val != "-- Seçiniz --" and s_val > 0:
+                                c.execute("UPDATE cihazlar SET Calisma_Saati = Calisma_Saati + ? WHERE Cihaz_Adi=?", (s_val / 60.0, y_val))
+                            conn.commit()
+                            st.success("Reçine Sarfiyatı başarıyla işlendi!")
+                            st.rerun()
+                            st.rerun()
         with tab_cam:
             # 🚨 SİGORTA VE YENİ SÜTUN (İSİM) EKLENTİSİ 🚨
             c.execute('''CREATE TABLE IF NOT EXISTS aktif_frezler (
