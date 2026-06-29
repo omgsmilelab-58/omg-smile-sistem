@@ -5881,6 +5881,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 except:
                                     ar3.caption("PDF yok")
 
+                                if not fat_id_ar:
+                                    if ar3.button("🗑️ Geri Çek", key=f"ar_geri_{ar_row['id']}", use_container_width=True, help="Ekstreyi iptal edip siler. Böylece hatalı ekstreyi düzenlemek için yeniden oluşturabilirsiniz."):
+                                        try:
+                                            c.execute("DELETE FROM hesap_ekstreleri WHERE id=?", (int(ar_row['id']),))
+                                            conn.commit()
+                                            st.success("Ekstre başarıyla iptal edildi!")
+                                            st.rerun()
+                                        except Exception as e_del:
+                                            st.error(f"Silinemedi: {e_del}")
+
                                 # Bağlı fatura varsa onu da göster
                                 if fat_id_ar:
                                     try:
