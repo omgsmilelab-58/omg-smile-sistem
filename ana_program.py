@@ -2455,9 +2455,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         Toplam_Is=('id', 'count')
                     ).sort_values(by='id', ascending=False).reset_index(drop=True)
                     
-                    df_grouped['id_gosterim'] = df_grouped.apply(lambda r: f"🔴 {r['id']}" if r['Faturali_Mi'] > 0 else f"🟢 {r['id']}", axis=1)
-                    df_goster_ar = df_grouped[['id_gosterim', 'Teslim_Tarihi', 'Barkod', 'Hasta_Adi', 'Klinik_Unvani', 'Toplam_Is']].rename(columns={
-                        "id_gosterim": "SIRA NO",
+                    df_grouped['S.NO'] = [f"🔴 {idx+1}" if f > 0 else f"🟢 {idx+1}" for idx, f in enumerate(df_grouped['Faturali_Mi'])]
+                    df_goster_ar = df_grouped[['S.NO', 'Teslim_Tarihi', 'Barkod', 'Hasta_Adi', 'Klinik_Unvani', 'Toplam_Is']].rename(columns={
                         "Teslim_Tarihi": "SON İŞLEM",
                         "Barkod": "HASTA NO",
                         "Hasta_Adi": "HASTA ADI",
@@ -2684,7 +2683,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             # İşleri tarihe göre sırala (En yeniler üstte)
             df_isler = df_isler.sort_values(by=["Tarih", "id"], ascending=[False, False]).reset_index(drop=True)
             # Sıra No Sütunu Ekle
-            df_isler.insert(0, 'SIRA NO', range(1, len(df_isler) + 1))
+            df_isler.insert(0, 'S.NO', range(1, len(df_isler) + 1))
             st.subheader("📋 Reçeteler ve Üretim Takibi")
             
 
@@ -2700,9 +2699,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         if c_name == "sorumlu_personel": correct = "Sorumlu_Personel"
                         df_isler = df_isler.rename(columns={c_name: correct})
                 
-                df_goster = df_isler[["SIRA NO", "Barkod", "Tarih", "Teslim_Tarihi", "Klinik_Unvani", "Hasta_Adi", "Hasta_Kodu", "Is_Turu", "Renk", "Adet", "Asama", "Sorumlu_Personel"]].copy()
+                df_goster = df_isler[["S.NO", "Barkod", "Tarih", "Teslim_Tarihi", "Klinik_Unvani", "Hasta_Adi", "Hasta_Kodu", "Is_Turu", "Renk", "Adet", "Asama", "Sorumlu_Personel"]].copy()
                 df_goster = df_goster.rename(columns={
-                    "SIRA NO": "SIRA NO",
+                    "S.NO": "S.NO",
                     "Barkod": "BARKOD NO",
                     "Tarih": "İŞ TARİHİ",
                     "Teslim_Tarihi": "TESLİM TARİHİ",
@@ -5110,7 +5109,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     else:
                         df_fiyat["ADET"] = 1
                     
-                    df_fiyat["SIRA NO"] = range(1, len(df_fiyat) + 1)
+                    df_fiyat["S.NO"] = range(1, len(df_fiyat) + 1)
                     df_fiyat["Tutar_TL"] = pd.to_numeric(df_fiyat["Tutar_TL"], errors='coerce').fillna(0.0)
                     df_fiyat["ESKİ_TUTAR_TL"] = df_fiyat["Tutar_TL"]
                     
@@ -5149,8 +5148,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     
                     df_fiyat = df_fiyat.set_index("id")
                     
-                    # İstenen sıra: SIRA NO - TARİH - KLİNİK - HASTA ADI - İŞLEM TÜRÜ - ADET - B.FİYAT - T.FİYAT - BAKİYE DURUMU
-                    df_fiyat = df_fiyat[["SIRA NO", "TESLİM TARİHİ", "KLİNİK", "HASTA ADI", "HASTA KODU", "İŞLEM TÜRÜ", "ADET", "FATURA TARİHİ", "İSKONTO", "B.FİYAT", "T.FİYAT", "BAKİYE DURUMU", "ESKİ_TUTAR_TL"]]
+                    # İstenen sıra: S.NO - TARİH - KLİNİK - HASTA ADI - İŞLEM TÜRÜ - ADET - B.FİYAT - T.FİYAT - BAKİYE DURUMU
+                    df_fiyat = df_fiyat[["S.NO", "TESLİM TARİHİ", "KLİNİK", "HASTA ADI", "HASTA KODU", "İŞLEM TÜRÜ", "ADET", "FATURA TARİHİ", "İSKONTO", "B.FİYAT", "T.FİYAT", "BAKİYE DURUMU", "ESKİ_TUTAR_TL"]]
                     
                     st.caption("💡 İpucu: İşlemler (fatura tarihi, fiyat, iskonto) alanını açmak için tablodan bir satır seçiniz.")
                     
@@ -5338,7 +5337,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         toplam_tahsilat = toplam_tahsilat_kdvli / carpan_t
                         net_bakiye = toplam_isler - toplam_tahsilat
                         
-                        # SIRA NO-HASTA KODU-HASTA ADI-İŞLEM TÜRÜ-ADET-İSKONTO-B. FİYAT-TUTAR(TL)
+                        # S.NO-HASTA KODU-HASTA ADI-İŞLEM TÜRÜ-ADET-İSKONTO-B. FİYAT-TUTAR(TL)
                         df_isler_cb = pd.read_sql(
                             f"SELECT i.id, i.Hasta_Kodu, i.Hasta_Adi, i.Is_Turu, i.Adet, i.Iskonto, i.Tutar_TL "
                             f"FROM isler i WHERE i.Klinik_Unvani='{cb_klinik}' AND i.Bakiye_Durumu='Aktarıldı' "
@@ -5348,7 +5347,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         df_isler_cb.columns = [c.lower() for c in df_isler_cb.columns]
                         
                         if not df_isler_cb.empty:
-                            df_isler_cb["SIRA NO"] = range(1, len(df_isler_cb) + 1)
+                            df_isler_cb["S.NO"] = range(1, len(df_isler_cb) + 1)
                             
                             df_isler_cb["iskonto"] = pd.to_numeric(df_isler_cb["iskonto"], errors='coerce').fillna(0.0)
                             df_isler_cb["adet"] = pd.to_numeric(df_isler_cb["adet"], errors='coerce').fillna(1.0)
@@ -5372,7 +5371,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 "tutar_tl": "TUTAR(TL)"
                             })
                             
-                            df_isler_cb = df_isler_cb[["SIRA NO", "HASTA KODU", "HASTA ADI", "İŞLEM TÜRÜ", "ADET", "İSKONTO", "B. FİYAT", "TUTAR(TL)"]]
+                            df_isler_cb = df_isler_cb[["S.NO", "HASTA KODU", "HASTA ADI", "İŞLEM TÜRÜ", "ADET", "İSKONTO", "B. FİYAT", "TUTAR(TL)"]]
                     except Exception as e_cb:
                         st.error(f"Veriler yüklenemedi: {e_cb}")
                         df_isler_cb = pd.DataFrame()
