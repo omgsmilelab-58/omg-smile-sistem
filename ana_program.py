@@ -562,7 +562,7 @@ st.markdown("""
 
 GOREVLER = ["Genel Müdür", "Laboratuvar Müdürü", "Sekreterya", "CAD/CAM Uzmanı", "Teknisyen", "Alçı & Model Teknisyeni", "Döküm Teknisyeni", "Tesviye Teknisyeni", "Seramist", "Akrilik & İskelet Teknisyeni", "Teknik Ekip", "Lojistik / Kurye"]    
 KATEGORILER = ["ZİRKONYUM/ FULL SERAMİK RESTARASYONLAR", "LAZER SİNTERLEME", "FULL SERAMİK RESTARASYONLAR", "İSKELET DÖKÜM PROTEZLER", "CAD/CAM MILLING", "HAREKETLİ PROTEZLER", "TAMİR PROTEZLER", "ORTODONTİK APAREYLER", "ÖZEL İŞLEMLER"]
-STOK_KATEGORILER = ["Blok", "Frez", "Metal Tozu", "Porselen", "Sarf Malzeme"]
+STOK_KATEGORILER = ["Blok", "Frez", "Metal Tozu", "Porselen", "Reçine", "Sarf Malzeme"]
 
 BAKIM_RECELERI = {
     "redon gtr": ["Spindle İçi Havayla Temizlendi", "ATC Yuvaları Kontrol Edildi", "Su Tankı ve Filtre Değişimi", "Pens Lityum Gres İle Yağlandı"],
