@@ -4510,7 +4510,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
                             df_goster = df_goster[mevcut_kolonlar]
                         elif kat_adi == "Reçine":
-                            istenen_sira = ["Ürün Kodu", "Ürün Adı", "Marka", "Kritik Sınır", "Mevcut Miktar"]
+                            istenen_sira = ["Ürün Kodu", "Ürün Adı", "Marka", "Renk", "Kritik Sınır", "Mevcut Miktar"]
                             mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
                             df_goster = df_goster[mevcut_kolonlar]
                         
