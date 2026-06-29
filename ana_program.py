@@ -4710,6 +4710,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             CASE 
                                 WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = m.Urun_Kodu AND c.Durum IN ('Yarım', 'Aktif')) THEN 'Aktif'
                                 WHEN EXISTS (SELECT 1 FROM aktif_frezler f WHERE f.frez_kod = m.Urun_Kodu AND f.durum = 'Aktif') THEN 'Aktif'
+                                WHEN EXISTS (SELECT 1 FROM stok s WHERE s.Urun_Kodu = m.Urun_Kodu AND s.Durum = 'Aktif') THEN 'Aktif'
                                 ELSE 'Pasif'
                             END,
                             '-' as yapilan_is
@@ -4764,24 +4765,42 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         if len(essiz_kodlar) > 0:
                             kod_list = "', '".join([str(k) for k in essiz_kodlar])
                             try:
-                                q = f"SELECT Urun_Kodu, Malzeme FROM stok WHERE Urun_Kodu IN ('{kod_list}') AND Malzeme IS NOT NULL AND Malzeme != '-'"
+                                q = f"SELECT Urun_Kodu, COALESCE(Malzeme, ''), COALESCE(Kategori, '') FROM stok WHERE Urun_Kodu IN ('{kod_list}')"
                                 rows = c.execute(q).fetchall()
                                 for r in rows:
                                     if r[1]:
                                         stok_malzeme_map[r[0]] = r[1]
-                                    if len(r) > 2 and r[2]:
+                                    if r[2]:
                                         stok_kategori_map[r[0]] = r[2]
                             except:
                                 pass
                                 
-                        def kategori_belirle(urun_adi, isler_serisi, urun_malzeme, urun_kategori=""):
+                        def kategori_belirle(urun_adi, isler_serisi, urun_malzeme, urun_kategori="", islem_turu_serisi=None):
+                            # 1. ÖNCELİK: Stok tablosundaki Kategori bilgisi (en güvenilir)
                             u_kat = str(urun_kategori).lower()
                             if 'reçine' in u_kat or 'recine' in u_kat:
                                 return 'REÇİNE'
-                            u_adi = str(urun_adi).lower()
+                            if 'pmma' in u_kat:
+                                return 'PMMA'
+                            if 'zirkon' in u_kat or 'zircon' in u_kat:
+                                return 'ZİRKONYUM'
+                            if 'titan' in u_kat:
+                                return 'TİTANYUM'
+                            if 'frez' in u_kat:
+                                return 'FREZ'
+
+                            # 2. ÖNCELİK: uretim_loglari'ndaki malzeme_turu (Reçine kayıtları için)
+                            if islem_turu_serisi is not None:
+                                islem_serisi_lower = islem_turu_serisi.astype(str).str.lower()
+                                if islem_serisi_lower.str.contains('reçine|recine').any():
+                                    return 'REÇİNE'
+                                if islem_serisi_lower.str.contains('frez').any():
+                                    return 'FREZ'
+                                if islem_serisi_lower.str.contains('blok').any():
+                                    pass  # Blok üretimini ürün adı ile daha iyi belirleyebiliriz
+
+                            # 3. ÖNCELİK: Malzeme alanı
                             u_malz = str(urun_malzeme).lower()
-                            isler = isler_serisi.astype(str).str.lower()
-                            
                             if 'reçine' in u_malz or 'recine' in u_malz:
                                 return 'REÇİNE'
                             if 'pmma' in u_malz:
@@ -4790,10 +4809,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 return 'ZİRKONYUM'
                             if 'titan' in u_malz:
                                 return 'TİTANYUM'
-                                
+
+                            # 4. ÖNCELİK: Ürün adı
+                            u_adi = str(urun_adi).lower()
                             if 'frez' in u_adi:
                                 return 'FREZ'
-                            if 'reçine' in u_adi or 'recine' in u_adi:
+                            if 'reçine' in u_adi or 'recine' in u_adi or 'geçici reçine' in u_adi or 'model reçine' in u_adi:
                                 return 'REÇİNE'
                             if 'pmma' in u_adi:
                                 return 'PMMA'
@@ -4801,7 +4822,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 return 'ZİRKONYUM'
                             if 'titan' in u_adi:
                                 return 'TİTANYUM'
-                                
+
+                            # 5. ÖNCELİK: İş türü (yapılan iş)
+                            isler = isler_serisi.astype(str).str.lower()
                             if isler.str.contains('zirkon|zircon').any():
                                 return 'ZİRKONYUM'
                             if isler.str.contains('reçine|recine').any():
@@ -4810,7 +4833,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 return 'PMMA'
                             if isler.str.contains('titan').any():
                                 return 'TİTANYUM'
-                                
+
                             return 'DİĞER'
 
                         for kod in essiz_kodlar:
@@ -4832,7 +4855,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 
                             urun_malzeme = stok_malzeme_map.get(kod, "")
                             urun_kategori = stok_kategori_map.get(kod, "")
-                            kategori = kategori_belirle(urun_adi, df_urun['yapilan_is'], urun_malzeme, urun_kategori)
+                            kategori = kategori_belirle(urun_adi, df_urun['yapilan_is'], urun_malzeme, urun_kategori, df_urun['islem_turu'])
                             liste_verileri.append({
                                 "Stok Kodu": kod,
                                 "Ürün Adı": urun_adi,
