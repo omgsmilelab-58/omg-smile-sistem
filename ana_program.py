@@ -4480,6 +4480,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             istenen_sira = ["Ürün Kodu", "Ürün Adı", "Marka", "Tip", "Adet"]
                             mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
                             df_goster = df_goster[mevcut_kolonlar]
+                        elif kat_adi == "Reçine":
+                            istenen_sira = ["Ürün Kodu", "Ürün Adı", "Marka", "Kritik Sınır", "Mevcut Miktar"]
+                            mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
+                            df_goster = df_goster[mevcut_kolonlar]
                         
                         # 🚨 ZARİF MAT GÜMÜŞ ZIRH 🚨
                         def satir_renk(row):
