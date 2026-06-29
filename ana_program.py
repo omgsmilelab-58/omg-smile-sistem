@@ -584,7 +584,7 @@ except Exception as e:
 
 @st.dialog("🧑‍⚕️ Hasta Kartı", width="large")
 def hasta_karti_goster(hasta_adi, klinik_unvani):
-    h_isler = pd.read_sql("SELECT id, Tarih, Hasta_Kodu, Is_Turu, Adet, Asama, Aciklama, Harcanan_Malzeme, Sinter_Sarfiyati, Sorumlu_Personel, Tutar_TL FROM isler WHERE Hasta_Adi=? AND Klinik_Unvani=? ORDER BY Tarih ASC", conn, params=(hasta_adi, klinik_unvani))
+    h_isler = pd.read_sql("SELECT id, Tarih, Hasta_Kodu, Is_Turu, Adet, Asama, Aciklama, Harcanan_Malzeme, Sinter_Sarfiyati, Recine_Sarfiyati, Sorumlu_Personel, Tutar_TL FROM isler WHERE Hasta_Adi=? AND Klinik_Unvani=? ORDER BY Tarih ASC", conn, params=(hasta_adi, klinik_unvani))
     hasta_kodu_metni = '-'
     if not h_isler.empty and 'Hasta_Kodu' in h_isler.columns:
         kodlar = [k for k in h_isler['Hasta_Kodu'].dropna().unique() if k and str(k).strip() != '-']
@@ -3132,15 +3132,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             y_list_raw = c.execute("SELECT Cihaz_Adi FROM cihazlar WHERE Durum='Aktif'").fetchall()
                             y_list = ["-- Seçiniz --"] + [f[0] for f in y_list_raw]
                             
-                        # UPDATE: STOK_KATEGORILER'den 'Reçine' olanları getir ve ÜRÜN ADI/MARKA/RENK olarak göster
                         r_list_raw = c.execute("SELECT Urun_Kodu, Urun_Adi, Marka, Renk FROM stok WHERE Kategori='Reçine' AND Durum='Aktif'").fetchall()
                         r_list = ["-- Seçiniz --"]
                         for row in r_list_raw:
                             kod, adi, marka, renk = row
                             r_list.append(f"{kod} | {adi}/{marka}/{renk}")
                             
-                        # Fallback kaldırıldı: Sadece 'Reçine' kategorisi olanlar listelenecek.
-                        
                         mevcut_recine_row = c.execute("SELECT Recine_Sarfiyati FROM isler WHERE id=?", (s_rowid,)).fetchone()
                         mevcut_recine = mevcut_recine_row[0] if mevcut_recine_row and mevcut_recine_row[0] != "-" else ""
                         
@@ -3150,6 +3147,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         eski_m = 0.0
                         eski_b = "Model"
                         eski_tuketim_gr = 0.0
+                        eski_model_gr = 8.0
+                        eski_uye_gr = 2.0
                         
                         import json
                         if mevcut_recine and mevcut_recine.startswith("{"):
@@ -3161,6 +3160,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 eski_m = float(r_data.get("miktar", 0.0))
                                 eski_b = r_data.get("birim", "Model")
                                 eski_tuketim_gr = float(r_data.get("tuketim_gr", 0.0))
+                                eski_model_gr = float(r_data.get("model_gr", 8.0))
+                                eski_uye_gr = float(r_data.get("uye_gr", 2.0))
                             except: pass
                         
                         r_col1, r_col2 = st.columns(2)
@@ -3172,8 +3173,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         
                         st.markdown("##### Sarfiyat Parametreleri")
                         p_col1, p_col2 = st.columns(2)
-                        model_tuketim = p_col1.number_input("Model Başına (gr)", min_value=0.0, value=8.0, step=0.1, key=f"t6_mgr_{s_rowid}")
-                        uye_tuketim = p_col2.number_input("Üye Başına (gr)", min_value=0.0, value=2.0, step=0.1, key=f"t6_ugr_{s_rowid}")
+                        model_tuketim = p_col1.number_input("Model Başına (gr)", min_value=0.0, value=eski_model_gr, step=0.1, key=f"t6_mgr_{s_rowid}")
+                        uye_tuketim = p_col2.number_input("Üye Başına (gr)", min_value=0.0, value=eski_uye_gr, step=0.1, key=f"t6_ugr_{s_rowid}")
                         
                         st.markdown("##### Kayıt")
                         r_col3, r_col4, r_col5 = st.columns(3)
@@ -3187,11 +3188,11 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         btn_txt_r = "💧 Reçine Sarfiyatını Güncelle" if mevcut_recine else "💧 Reçine Sarfiyatını Kaydet"
                         if st.button(btn_txt_r, type="primary", key=f"btn_rec_{s_rowid}"):
                             yeni_tuketim_gr = float(m_val * model_tuketim) if b_val == "Model" else float(m_val * uye_tuketim)
-                            yeni_recine_json = json.dumps({"yazici": y_val, "recine": r_val, "sure": s_val, "miktar": m_val, "birim": b_val, "tuketim_gr": yeni_tuketim_gr})
+                            yeni_recine_json = json.dumps({"yazici": y_val, "recine": r_val, "sure": s_val, "miktar": m_val, "birim": b_val, "tuketim_gr": yeni_tuketim_gr, "model_gr": model_tuketim, "uye_gr": uye_tuketim})
                             c.execute("UPDATE isler SET Recine_Sarfiyati=? WHERE id=?", (yeni_recine_json, s_rowid))
                             
                             if mevcut_recine:
-                                # Eski değerleri iade et
+                                c.execute("DELETE FROM uretim_loglari WHERE is_id=? AND malzeme_turu='Reçine'", (s_rowid,))
                                 if eski_y != "-- Seçiniz --" and eski_s > 0:
                                     c.execute("UPDATE cihazlar SET Calisma_Saati = GREATEST(0, Calisma_Saati - ?) WHERE Cihaz_Adi=?", (eski_s / 60.0, eski_y))
                                 if eski_r != "-- Seçiniz --" and eski_tuketim_gr > 0:
@@ -3201,15 +3202,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     else:
                                         c.execute("UPDATE stok SET Mevcut_Miktar = Mevcut_Miktar + ? WHERE Urun_Adi=?", (eski_tuketim_gr, eski_r))
                                     
-                            # Yeni değerleri ekle/düş
                             if y_val != "-- Seçiniz --" and s_val > 0:
                                 c.execute("UPDATE cihazlar SET Calisma_Saati = Calisma_Saati + ? WHERE Cihaz_Adi=?", (s_val / 60.0, y_val))
                             if r_val != "-- Seçiniz --" and yeni_tuketim_gr > 0:
-                                if " | " in r_val:
-                                    y_kod = r_val.split(" | ")[0].strip()
-                                    c.execute("UPDATE stok SET Mevcut_Miktar = GREATEST(0, Mevcut_Miktar - ?) WHERE Urun_Kodu=?", (yeni_tuketim_gr, y_kod))
-                                else:
-                                    c.execute("UPDATE stok SET Mevcut_Miktar = GREATEST(0, Mevcut_Miktar - ?) WHERE Urun_Adi=?", (yeni_tuketim_gr, r_val))
+                                r_kod = r_val.split(" | ")[0].strip() if " | " in r_val else r_val
+                                r_adi = r_val.split(" | ")[1].split("/")[0].strip() if " | " in r_val else r_val
+                                c.execute("UPDATE stok SET Mevcut_Miktar = GREATEST(0, Mevcut_Miktar - ?) WHERE Urun_Kodu=?", (yeni_tuketim_gr, r_kod))
+                                is_adi_veri = is_verisi[6] if len(is_verisi) > 6 else "-"
+                                c.execute("INSERT INTO uretim_loglari (is_id, is_adi, tarih, malzeme_turu, malzeme_kodu, malzeme_adi, uye_sayisi, dakika) VALUES (?,?,?,?,?,?,?,?)", (s_rowid, is_adi_veri, datetime.now().strftime("%Y-%m-%d %H:%M"), "Reçine", r_kod, r_adi, m_val, s_val))
                                 
                             conn.commit()
                             st.success("Reçine Sarfiyatı başarıyla işlendi!")
