@@ -635,7 +635,7 @@ def hasta_karti_goster(hasta_adi, klinik_unvani):
         st.dataframe(h_isler_goster[["TARİH", "İŞİN TÜRÜ", "ADET", "AŞAMA", "AÇIKLAMA"]], hide_index=True, use_container_width=True)
         
         if st.session_state.get("kullanici_rolu") not in ["Klinik", "Klinik_Asistan"]:
-            st.markdown("#### 💎 Kullanılan Malzemeler ve Fırınlar")
+            st.markdown("#### 💎 Kullanılan Malzemeler")
             malzemeler = []
             import json
             for _, r in h_isler.iterrows():
@@ -4867,7 +4867,21 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 "Kategori": kategori
                             })
 
-                        df_liste_full = pd.DataFrame(liste_verileri, columns=["Stok Kodu", "Ürün Adı", "Toplam Üretilen", "Çalışma (Dk)", "Durum", "Pasif Nedeni", "İlk İşlem", "Kategori"])
+                        # Reçine miktar bilgisini de liste_verileri'ne ekle
+                        recine_miktar_map = {}
+                        try:
+                            import json as _json
+                            # uretim_loglari'nda Reçine olan kayıtları bul, miktar_veya_uye = gr
+                            df_recine_log = df_arsiv[df_arsiv['islem_turu'] == 'Üretim (Reçine)'].copy()
+                            df_recine_log['miktar_veya_uye'] = pd.to_numeric(df_recine_log['miktar_veya_uye'], errors='coerce').fillna(0)
+                            recine_miktar_map = df_recine_log.groupby('stok_kodu')['miktar_veya_uye'].sum().to_dict()
+                        except:
+                            pass
+
+                        for lv in liste_verileri:
+                            lv['Kullanılan Miktar (gr)'] = recine_miktar_map.get(lv['Stok Kodu'], 0)
+
+                        df_liste_full = pd.DataFrame(liste_verileri, columns=["Stok Kodu", "Ürün Adı", "Toplam Üretilen", "Çalışma (Dk)", "Durum", "Pasif Nedeni", "İlk İşlem", "Kategori", "Kullanılan Miktar (gr)"])
                         kategori_map = dict(zip(df_liste_full["Stok Kodu"], df_liste_full["Kategori"]))
                         df_arsiv['Kategori'] = df_arsiv['stok_kodu'].map(kategori_map)
 
@@ -4882,7 +4896,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         for i, kategori_adi in enumerate(kategoriler):
                             with sekmeler[i]:
                                 df_arsiv_alt = df_arsiv[df_arsiv['Kategori'] == kategori_adi]
-                                df_liste_alt = df_liste_full[df_liste_full['Kategori'] == kategori_adi].drop(columns=['Kategori'])
+                                if kategori_adi == "REÇİNE":
+                                    df_liste_alt = df_liste_full[df_liste_full['Kategori'] == kategori_adi].drop(columns=['Kategori'])
+                                else:
+                                    df_liste_alt = df_liste_full[df_liste_full['Kategori'] == kategori_adi].drop(columns=['Kategori', 'Kullanılan Miktar (gr)'])
                                 
                                 if df_arsiv_alt.empty:
                                     st.info(f"{kategori_adi} kategorisinde malzeme bulunmamaktadır.")
@@ -4901,22 +4918,38 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     m1.metric("Toplam Üretilen Üye (Blok)", f"{int(toplam_blok_uye)}")
                                     m2.metric("Blok Başı Ortalama Verim", f"{ort_blok_verimi} Üye")
                                 
-                                elif kategori_adi == "FREZ":
-                                    df_frez_uretim = df_arsiv_alt[df_arsiv_alt['islem_turu'] == 'Üretim (Frez)']
-                                    
-                                    st.markdown("###### ⏱️ Frez Çeşitlerine Göre Performans")
-                                    if not df_frez_uretim.empty:
-                                        df_frez_grup = df_frez_uretim.groupby('urun_adi').agg(
-                                            Toplam_Dk=('harcanan_dk', 'sum'),
-                                            Frez_Sayisi=('stok_kodu', 'nunique')
+                                elif kategori_adi == "REÇİNE":
+                                    df_recine_uretim = df_arsiv_alt[df_arsiv_alt['islem_turu'] == 'Üretim (Reçine)'].copy()
+                                    df_recine_uretim['miktar_gr'] = pd.to_numeric(df_recine_uretim['miktar_veya_uye'], errors='coerce').fillna(0)
+
+                                    toplam_gr = df_recine_uretim['miktar_gr'].sum()
+                                    toplam_model = len(df_recine_uretim)
+                                    toplam_malzeme = df_recine_uretim['stok_kodu'].nunique()
+                                    ort_gr_model = round(toplam_gr / toplam_model, 1) if toplam_model > 0 else 0
+
+                                    r1, r2, r3, r4 = st.columns(4)
+                                    r1.metric("🟢 Toplam Kullanım", f"{toplam_gr:,.1f} gr")
+                                    r2.metric("📦 Kayıt Sayısı", f"{toplam_model}")
+                                    r3.metric("🧪 Farklı Reçine Türü", f"{toplam_malzeme}")
+                                    r4.metric("⚖️ Kayıt Başı Ort.", f"{ort_gr_model} gr")
+
+                                    if not df_recine_uretim.empty:
+                                        st.markdown("###### 🧪 Reçine Türlerine Göre Tüketim")
+                                        df_recine_grup = df_recine_uretim.groupby('urun_adi').agg(
+                                            Toplam_gr=('miktar_gr', 'sum'),
+                                            Kullanim_Sayisi=('stok_kodu', 'count')
                                         ).reset_index()
-                                        df_frez_grup['Ortalama_Dk'] = (df_frez_grup['Toplam_Dk'] / df_frez_grup['Frez_Sayisi']).round(1)
-                                        
-                                        f_cols = st.columns(max(1, len(df_frez_grup)))
-                                        for idx, r in df_frez_grup.iterrows():
-                                            f_cols[idx % len(f_cols)].metric(r['urun_adi'], f"{r['Ortalama_Dk']} Dk/Frez", f"Toplam: {r['Frez_Sayisi']} Adet")
+                                        df_recine_grup['Adet_Basi_gr'] = (df_recine_grup['Toplam_gr'] / df_recine_grup['Kullanim_Sayisi']).round(1)
+                                        df_recine_grup.columns = ['Reçine Adı', 'Toplam Tüketim (gr)', 'Kullanım Sayısı', 'Adet Başı Ort. (gr)']
+                                        r_cols = st.columns(min(4, max(1, len(df_recine_grup))))
+                                        for ri, rr in df_recine_grup.iterrows():
+                                            r_cols[ri % len(r_cols)].metric(
+                                                rr['Reçine Adı'],
+                                                f"{rr['Adet Başı Ort. (gr)']} gr/adet",
+                                                f"Toplam: {rr['Toplam Tüketim (gr)']:,.1f} gr"
+                                            )
                                     else:
-                                        st.caption("Henüz frez üretim verisi yok.")
+                                        st.caption("Henüz reçine üretim verisi yok.")
                                 
                                 st.markdown("---")
                                 st.markdown("##### 🗂️ Tüm Malzemeler (Özet Liste)")
