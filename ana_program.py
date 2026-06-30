@@ -1379,8 +1379,8 @@ if "aktif_sayfa" not in st.session_state: st.session_state.aktif_sayfa = "🎯 K
 if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi", "🏢 Kurumsal Bilgi"]
 elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik", "🏢 Kurumsal Bilgi"]
 elif rol == "Teknisyen": menu = ["⚙️ İş Akışı", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "📱 Teknisyen Terminali", "📦 Stok Yönetimi", "🏭 Tedarikçi Yönetimi", "🔧 Makine Parkuru ve Bakımı"]
-elif rol == "Klinik": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🧾 Detaylı Ekstre", "🏢 Kurumsal Bilgi"]
-elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🏢 Kurumsal Bilgi"]
+elif rol == "Klinik": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🧾 Detaylı Ekstre", "📅 Doktor Takvimi", "🏢 Kurumsal Bilgi"]
+elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "📅 Doktor Takvimi", "🏢 Kurumsal Bilgi"]
 elif rol == "Kurye": menu = ["🛵 Kurye Mobil Terminali", "📺 Lobi / TV Ekranı"]
 elif rol == "Kiosk": menu = ["📺 Lobi / TV Ekranı"]
 
@@ -1623,6 +1623,42 @@ if rol in ["Klinik", "Klinik_Asistan"]:
                 hasta_karti_goster(s_hasta, ana_klinik)
                 st.markdown("---")
         else: st.info("Henüz bir iş göndermediniz.")
+
+    elif sayfa == "📅 Doktor Takvimi":
+        TAKVIM_URL = "https://b37f61aad4a8381e-104-28-154-250.serveousercontent.com"
+        st.markdown("""
+        <div class="glass-card" style="text-align:center; margin-bottom:18px; border-color:rgba(99,102,241,0.5);">
+            <h2 style="color:#818cf8; margin:0;">📅 Doktor Takvimi</h2>
+            <p style="color:#c7d2fe; margin-top:6px; font-size:14px; letter-spacing:2px;">RANDEVU VE PROGRAM YÖNETİMİ</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Dışarıda aç butonu
+        btn_col, spacer = st.columns([1, 3])
+        btn_col.link_button(
+            "🔗 Takvimi Yeni Sekmede Aç",
+            TAKVIM_URL,
+            use_container_width=True,
+            type="primary"
+        )
+
+        # iframe gömme
+        st.markdown(
+            f"""
+            <div style="border-radius:14px; overflow:hidden; border:1.5px solid rgba(99,102,241,0.4); 
+                        box-shadow: 0 0 30px rgba(99,102,241,0.15); margin-top:10px;">
+                <iframe
+                    src="{TAKVIM_URL}/login"
+                    width="100%"
+                    height="820"
+                    frameborder="0"
+                    allow="fullscreen"
+                    style="border:none; display:block; background:#0f172a;"
+                ></iframe>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     elif sayfa == "📤 Yeni Sipariş (Reçete)":
         
