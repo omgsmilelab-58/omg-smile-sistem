@@ -5705,9 +5705,28 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         df_ch_alacak['belge_no'] = 'TAH-' + df_ch_alacak['id'].astype(str)
                         df_ch_alacak['aciklama'] = df_ch_alacak['odeme_turu'].astype(str) + ' Tahsilatı (' + df_ch_alacak['aciklama'].astype(str) + ')'
                         df_ch_alacak['borc'] = 0.0
+                        
+                        try:
+                            df_ft_ch = pd.read_sql(f"SELECT ft.Tarih, ft.Tutar, ft.Odeme_Turu, f.KDV_Orani FROM fatura_tahsilatlar ft JOIN faturalar f ON ft.Fatura_ID = f.id WHERE ft.Klinik_Unvani='{ch_klinik}'", conn)
+                            if not df_ft_ch.empty:
+                                df_ft_ch.columns = [c.lower() for c in df_ft_ch.columns]
+                                df_ch_alacak = pd.merge(df_ch_alacak, df_ft_ch, left_on=['tarih', 'alacak', 'odeme_turu'], right_on=['tarih', 'tutar', 'odeme_turu'], how='left')
+                            else:
+                                df_ch_alacak['kdv_orani'] = None
+                        except:
+                            df_ch_alacak['kdv_orani'] = None
+
                         kdv_orani_h = float(ayar_getir("KDV_Orani", "20"))
-                        carpan_h = 1.0 + (kdv_orani_h / 100.0)
-                        df_ch_alacak['alacak'] = df_ch_alacak['alacak'] / carpan_h
+                        def get_ch_alacak_net(row):
+                            if pd.notna(row.get('kdv_orani')):
+                                return row['alacak'] / (1.0 + float(row['kdv_orani']) / 100.0)
+                            else:
+                                return row['alacak'] / (1.0 + kdv_orani_h / 100.0)
+                        
+                        df_ch_alacak['alacak'] = df_ch_alacak.apply(get_ch_alacak_net, axis=1)
+                        if 'kdv_orani' in df_ch_alacak.columns: df_ch_alacak = df_ch_alacak.drop(columns=['kdv_orani'])
+                        if 'tutar' in df_ch_alacak.columns: df_ch_alacak = df_ch_alacak.drop(columns=['tutar'])
+
                         df_list.append(df_ch_alacak[['tarih', 'belge_no', 'aciklama', 'borc', 'alacak']])
                         
                     if df_list:
@@ -5760,7 +5779,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     f"FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') "
                                     f"AND Tarih >= '{bas_str}' AND Tarih <= '{bit_str}'", conn)
                                 df_prev_alacak = pd.read_sql(
-                                    f"SELECT Tarih, Odeme_Turu || ' Odemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak "
+                                    f"SELECT Tarih, Odeme_Turu, Tutar, Odeme_Turu || ' Odemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak "
                                     f"FROM tahsilatlar WHERE Klinik_Unvani='{e_klinik}' "
                                     f"AND Tarih >= '{bas_str}' AND Tarih <= '{bit_str}'", conn)
 
@@ -5773,18 +5792,48 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 # DEVREDEN BAKIYE HESAPLAMA (İleriye dönük tam doğruluk ve KDV hariç tahsilat)
                                 try:
                                     kdv_orani_h = float(ayar_getir("KDV_Orani", "20"))
-                                    carpan_h = 1.0 + (kdv_orani_h / 100.0)
-
-                                    # Tahsilatları KDV hariç tutara çevir
-                                    df_prev_alacak['Alacak'] = df_prev_alacak['Alacak'] / carpan_h
                                     
+                                    # KDV oranlarını bulmak için fatura_tahsilatlar
+                                    try:
+                                        df_ft_prev = pd.read_sql(f"SELECT ft.Tarih, ft.Tutar, ft.Odeme_Turu, f.KDV_Orani FROM fatura_tahsilatlar ft JOIN faturalar f ON ft.Fatura_ID = f.id WHERE ft.Klinik_Unvani='{e_klinik}'", conn)
+                                        if not df_ft_prev.empty and not df_prev_alacak.empty:
+                                            df_prev_alacak = pd.merge(df_prev_alacak, df_ft_prev, on=['Tarih', 'Tutar', 'Odeme_Turu'], how='left')
+                                        else:
+                                            df_prev_alacak['KDV_Orani'] = None
+                                    except:
+                                        df_prev_alacak['KDV_Orani'] = None
+                                        df_ft_prev = pd.DataFrame()
+                                        
+                                    def apply_kdv_prev(row, val_col):
+                                        if pd.notna(row.get('KDV_Orani')):
+                                            return row[val_col] / (1.0 + float(row['KDV_Orani']) / 100.0)
+                                        else:
+                                            return row[val_col] / (1.0 + kdv_orani_h / 100.0)
+                                            
+                                    if not df_prev_alacak.empty:
+                                        df_prev_alacak['Alacak'] = df_prev_alacak.apply(lambda r: apply_kdv_prev(r, 'Alacak'), axis=1)
+                                        if 'KDV_Orani' in df_prev_alacak.columns: df_prev_alacak = df_prev_alacak.drop(columns=['KDV_Orani'])
+                                        if 'Tutar' in df_prev_alacak.columns: df_prev_alacak = df_prev_alacak.drop(columns=['Tutar'])
+                                        if 'Odeme_Turu' in df_prev_alacak.columns: df_prev_alacak = df_prev_alacak.drop(columns=['Odeme_Turu'])
+
                                     # Devreden bakiyeyi baştan hesapla (Geçmiş Borç - Geçmiş Alacak)
                                     past_borc_row = c.execute(f"SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') AND Tarih < '{bas_str}'").fetchone()
                                     past_borc = float(past_borc_row[0] or 0.0) if past_borc_row else 0.0
                                     
-                                    past_alacak_row = c.execute(f"SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani='{e_klinik}' AND Tarih < '{bas_str}'").fetchone()
-                                    past_alacak_raw = float(past_alacak_row[0] or 0.0) if past_alacak_row else 0.0
-                                    past_alacak = past_alacak_raw / carpan_h
+                                    try:
+                                        df_past_alacak = pd.read_sql(f"SELECT Tarih, Odeme_Turu, Tutar FROM tahsilatlar WHERE Klinik_Unvani='{e_klinik}' AND Tarih < '{bas_str}'", conn)
+                                        if not df_past_alacak.empty:
+                                            if not df_ft_prev.empty:
+                                                df_past_alacak = pd.merge(df_past_alacak, df_ft_prev, on=['Tarih', 'Tutar', 'Odeme_Turu'], how='left')
+                                            else:
+                                                df_past_alacak['KDV_Orani'] = None
+                                            past_alacak = df_past_alacak.apply(lambda r: apply_kdv_prev(r, 'Tutar'), axis=1).sum()
+                                        else:
+                                            past_alacak = 0.0
+                                    except:
+                                        past_alacak_row = c.execute(f"SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani='{e_klinik}' AND Tarih < '{bas_str}'").fetchone()
+                                        past_alacak_raw = float(past_alacak_row[0] or 0.0) if past_alacak_row else 0.0
+                                        past_alacak = past_alacak_raw / (1.0 + kdv_orani_h / 100.0)
                                     
                                     devreden_bakiye = past_borc - past_alacak
                                     
