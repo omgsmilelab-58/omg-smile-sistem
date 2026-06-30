@@ -1473,7 +1473,7 @@ kategoriler = {
     ],
     "🤝 2. Müşteri & İletişim (CRM)": [
         "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
-        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali"
+        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "📅 Doktor Takvimi"
     ],
     "💰 3. Finans & Tedarik": [
         "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
