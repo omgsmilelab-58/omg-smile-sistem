@@ -1637,7 +1637,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         btn_col, spacer = st.columns([1, 3])
         btn_col.link_button(
             "🔗 Takvimi Yeni Sekmede Aç",
-            TAKVIM_URL,
+            f"{TAKVIM_URL}/login",
             use_container_width=True,
             type="primary"
         )
