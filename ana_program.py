@@ -1653,6 +1653,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
                     height="820"
                     frameborder="0"
                     allow="fullscreen"
+                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation-by-user-activation"
                     style="border:none; display:block; background:#0f172a;"
                 ></iframe>
             </div>
