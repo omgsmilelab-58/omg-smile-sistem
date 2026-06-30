@@ -1625,7 +1625,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         else: st.info("Henüz bir iş göndermediniz.")
 
     elif sayfa == "📅 Doktor Takvimi":
-        TAKVIM_URL = "https://b37f61aad4a8381e-104-28-154-250.serveousercontent.com"
+        TAKVIM_URL = "https://3f240962e9f3e342-104-28-154-250.serveousercontent.com"
         st.markdown("""
         <div class="glass-card" style="text-align:center; margin-bottom:18px; border-color:rgba(99,102,241,0.5);">
             <h2 style="color:#818cf8; margin:0;">📅 Doktor Takvimi</h2>
