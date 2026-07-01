@@ -631,6 +631,7 @@ def hasta_karti_goster(hasta_adi, klinik_unvani):
         if 'adet' in h_isler.columns: h_isler = h_isler.rename(columns={'adet': 'Adet'})
         if 'sinter_sarfiyati' in h_isler.columns: h_isler = h_isler.rename(columns={'sinter_sarfiyati': 'Sinter_Sarfiyati'})
         if 'harcanan_malzeme' in h_isler.columns: h_isler = h_isler.rename(columns={'harcanan_malzeme': 'Harcanan_Malzeme'})
+        if 'recine_sarfiyati' in h_isler.columns: h_isler = h_isler.rename(columns={'recine_sarfiyati': 'Recine_Sarfiyati'})
         h_isler_goster = h_isler.rename(columns={"Tarih": "TARİH", "Is_Turu": "İŞİN TÜRÜ", "Adet": "ADET", "Asama": "AŞAMA", "Aciklama": "AÇIKLAMA"})
         st.dataframe(h_isler_goster[["TARİH", "İŞİN TÜRÜ", "ADET", "AŞAMA", "AÇIKLAMA"]], hide_index=True, use_container_width=True)
         
@@ -657,23 +658,43 @@ def hasta_karti_goster(hasta_adi, klinik_unvani):
                             satir_bilgi.append(f"**Sinter:** {s_metin}")
                     except: pass
                 
-                r_sarf = r.get('Recine_Sarfiyati')
-                if pd.notna(r_sarf) and str(r_sarf).strip() != "-" and str(r_sarf).strip() != "" and str(r_sarf).startswith("{"):
+                # Reçine Sarfiyatı - güvenli erişim
+                r_sarf = None
+                try:
+                    r_sarf = r['Recine_Sarfiyati']
+                except (KeyError, IndexError):
                     try:
-                        r_data = r_sarf if isinstance(r_sarf, dict) else json.loads(r_sarf)
-                        r_metin = ""
-                        yazici = r_data.get("yazici")
-                        recine = r_data.get("recine")
-                        if recine and recine != "-- Seçiniz --":
-                            if " | " in recine:
-                                recine = recine.split(" | ")[1]
-                            r_metin += f"Reçine: {recine} ({r_data.get('tuketim_gr', 0)} gr)"
-                        if yazici and yazici != "-- Seçiniz --":
-                            if r_metin: r_metin += " | "
-                            r_metin += f"Yazıcı: {yazici} ({r_data.get('sure', 0)} Dk)"
-                        if r_metin:
-                            satir_bilgi.append(f"**Reçine & 3D:** {r_metin}")
-                    except: pass
+                        r_sarf = r['recine_sarfiyati']
+                    except:
+                        pass
+                
+                if r_sarf is not None and str(r_sarf).strip() not in ["-", "", "None", "nan"] and str(r_sarf).strip().startswith("{"):
+                    try:
+                        r_data = {}
+                        if isinstance(r_sarf, dict):
+                            r_data = r_sarf
+                        else:
+                            try:
+                                r_data = json.loads(str(r_sarf))
+                            except:
+                                import ast
+                                r_data = ast.literal_eval(str(r_sarf))
+                                
+                        if isinstance(r_data, dict):
+                            r_metin = ""
+                            yazici = r_data.get("yazici")
+                            recine = r_data.get("recine")
+                            if recine and recine != "-- Seçiniz --":
+                                if " | " in recine:
+                                    recine = recine.split(" | ")[1]
+                                r_metin += f"Reçine: {recine} ({r_data.get('tuketim_gr', 0)} gr)"
+                            if yazici and yazici != "-- Seçiniz --":
+                                if r_metin: r_metin += " | "
+                                r_metin += f"Yazıcı: {yazici} ({r_data.get('sure', 0)} Dk)"
+                            if r_metin:
+                                satir_bilgi.append(f"**Reçine & 3D:** {r_metin}")
+                    except Exception as e:
+                        pass
                 
                 if satir_bilgi:
                     malzemeler.append(f"**{r['Is_Turu']} ({r['Tarih']})** 👉 " + " | ".join(satir_bilgi))
@@ -722,6 +743,8 @@ except: pass
 try: c.execute("ALTER TABLE isler ADD COLUMN Hasta_Kodu TEXT DEFAULT '-'")
 except: pass
 try: c.execute("ALTER TABLE isler ADD COLUMN Bakiye_Durumu TEXT DEFAULT 'Bekliyor'")
+except: pass
+try: c.execute("ALTER TABLE isler ADD COLUMN KDV_Orani REAL DEFAULT 0")
 except: pass
 c.execute('''CREATE TABLE IF NOT EXISTS stok (id SERIAL PRIMARY KEY, Urun_Kodu TEXT, Urun_Adi TEXT, Kategori TEXT, Mevcut_Miktar REAL, Birim TEXT, Kritik_Sinir REAL, Satis_Fiyati REAL, Durum TEXT DEFAULT 'Aktif', Renk TEXT DEFAULT '-', Guncelleme_Tarihi TEXT DEFAULT '-', Marka TEXT DEFAULT '-')''')
 c.execute('''CREATE TABLE IF NOT EXISTS fiyat_listesi (id SERIAL PRIMARY KEY, Hizmet_Adi TEXT, Kategori TEXT, Fiyat REAL, Para_Birimi TEXT)''')
@@ -949,6 +972,7 @@ tablo_yama_uygula("personeller", "Foto_Yolu", "TEXT DEFAULT '-'")
 tablo_yama_uygula("personeller", "CV_Yolu", "TEXT DEFAULT '-'")
 tablo_yama_uygula("fire_kayitlari", "Kalan_Omur", "TEXT DEFAULT '-'")
 tablo_yama_uygula("fire_kayitlari", "Urun_Adi", "TEXT DEFAULT '-'")
+tablo_yama_uygula("tahsilatlar", "KDV_Orani", "REAL DEFAULT NULL")
 try:
     c.execute("UPDATE fire_kayitlari SET Urun_Adi = (SELECT Urun_Adi FROM stok WHERE stok.Urun_Kodu = fire_kayitlari.Urun_Kodu) WHERE Urun_Adi = '-'")
     conn.commit()
@@ -1591,8 +1615,13 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         else:
             _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (ana_klinik,)).fetchone()[0] or 0.0
             _kdv = float(ayar_getir("KDV_Orani", "20"))
-            _tahs_kdvli = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (ana_klinik,)).fetchone()[0] or 0.0
-            _tahs_net = _tahs_kdvli / (1.0 + (_kdv / 100.0))
+            try:
+                df_tahs_ak = pd.read_sql(f"SELECT Tarih, Odeme_Turu, Tutar FROM tahsilatlar WHERE Klinik_Unvani='{ana_klinik}'", conn)
+                if not df_tahs_ak.empty:
+                    _tahs_net = df_tahs_ak['Tutar'].sum()
+                else: _tahs_net = 0.0
+            except:
+                _tahs_net = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (ana_klinik,)).fetchone()[0] or 0.0
             anlik_bakiye = _toplam_is - _tahs_net
             para_birimi = ayar_getir("Para_Birimi", "TL")
             m1, m2, m3 = st.columns(3)
@@ -1823,8 +1852,13 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         banner_olustur("🧾", "Detaylı Hesap Ekstresi", "Borç ve ödeme geçmişinizi takip edin.")
         _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (kullanici_adi,)).fetchone()[0] or 0.0
         _kdv = float(ayar_getir("KDV_Orani", "20"))
-        _tahs_kdvli = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (kullanici_adi,)).fetchone()[0] or 0.0
-        _tahs_net = _tahs_kdvli / (1.0 + (_kdv / 100.0))
+        try:
+            df_tahs_ak = pd.read_sql(f"SELECT Tarih, Odeme_Turu, Tutar FROM tahsilatlar WHERE Klinik_Unvani='{ana_klinik}'", conn)
+            if not df_tahs_ak.empty:
+                _tahs_net = df_tahs_ak['Tutar'].sum()
+            else: _tahs_net = 0.0
+        except:
+            _tahs_net = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (ana_klinik,)).fetchone()[0] or 0.0
         anlik_bakiye = _toplam_is - _tahs_net
         para_birimi = ayar_getir("Para_Birimi", "TL")
         st.markdown(f"<div class='glass-card' style='text-align:center;'><h2 style='color:#FFFFFF;'>Güncel Borcunuz</h2><h1 class='neon-text-red'>{anlik_bakiye:,.2f} {para_birimi}</h1></div>", unsafe_allow_html=True)
@@ -2041,8 +2075,13 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             # Gerçek zamanlı global bakiye hesaplaması
             _g_toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Bakiye_Durumu='Aktarıldı'").fetchone()[0] or 0.0
             _g_kdv = float(ayar_getir("KDV_Orani", "20"))
-            _g_tahs_kdvli = c.execute("SELECT SUM(Tutar) FROM tahsilatlar").fetchone()[0] or 0.0
-            _g_tahs_net = _g_tahs_kdvli / (1.0 + (_g_kdv / 100.0))
+            try:
+                df_tahs_g = pd.read_sql("SELECT id, Tarih, Tutar, Odeme_Turu, Klinik_Unvani FROM tahsilatlar", conn)
+                if not df_tahs_g.empty:
+                    _g_tahs_net = df_tahs_g['Tutar'].sum()
+                else: _g_tahs_net = 0.0
+            except:
+                _g_tahs_net = c.execute("SELECT SUM(Tutar) FROM tahsilatlar").fetchone()[0] or 0.0
             global_piyasa_alacak = _g_toplam_is - _g_tahs_net
 
             f1, f2, f3, f4 = st.columns(4)
@@ -2137,6 +2176,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.plotly_chart(fig_line, use_container_width=True)
                 else:
                     st.info("Son 14 güne ait gelir verisi bulunmuyor.")
+
 
     elif sayfa == "📅 Görev & Planlama":
         st.markdown("## 📅 Görev & Planlama")
@@ -4749,29 +4789,35 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 WHEN EXISTS (SELECT 1 FROM aktif_frezler f WHERE f.frez_kod = m.Urun_Kodu AND f.durum = 'Aktif') THEN 'Aktif'
                                 WHEN EXISTS (SELECT 1 FROM stok s WHERE s.Urun_Kodu = m.Urun_Kodu AND s.Durum = 'Aktif') THEN 'Aktif'
                                 ELSE 'Pasif'
-                            END,
-                            '-' as yapilan_is
-                        FROM malzeme_arsivi m
-
-                        UNION ALL
+                              END,
+                              '-' as yapilan_is,
+                              0 as is_adet,
+                              '-' as hasta_adi,
+                              NULL as recine_sarfiyati
+                          FROM malzeme_arsivi m
+  
+                          UNION ALL
 
                         SELECT 
                             u.malzeme_kodu,
                             u.malzeme_adi,
                             CAST(u.uye_sayisi AS TEXT),
                             'Üretim (' || u.malzeme_turu || ')',
-                            u.is_adi,
-                            u.tarih,
-                            COALESCE(u.dakika, 0),
-                            'Sistem (Üretim Logu)',
+                            COALESCE(u.is_adi, '-'),
+                              u.tarih,
+                              COALESCE(u.dakika, 0),
+                              'Sistem (Üretim Logu)',
                             CASE 
                                 WHEN EXISTS (SELECT 1 FROM cam_bloklar c WHERE c.Blok_Kodu = u.malzeme_kodu AND c.Durum IN ('Yarım', 'Aktif')) THEN 'Aktif'
                                 WHEN EXISTS (SELECT 1 FROM aktif_frezler f WHERE f.frez_kod = u.malzeme_kodu AND f.durum = 'Aktif') THEN 'Aktif'
                                 WHEN EXISTS (SELECT 1 FROM stok s WHERE s.Urun_Kodu = u.malzeme_kodu AND s.Durum = 'Aktif') THEN 'Aktif'
                                 ELSE 'Pasif'
                             END,
-                            COALESCE(i.Is_Turu, '-') as yapilan_is
-                        FROM uretim_loglari u
+                            COALESCE(i.Is_Turu, '-') as yapilan_is,
+                              COALESCE(i.Adet, 1) as is_adet,
+                              COALESCE(i.Hasta_Adi, '-') as hasta_adi,
+                              i.Recine_Sarfiyati as recine_sarfiyati
+                          FROM uretim_loglari u
                         LEFT JOIN isler i ON u.is_id = i.id
                         
                         ORDER BY 6 DESC
@@ -4781,7 +4827,18 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         st.info("Arşivlenmiş malzeme veya üretim logu bulunmamaktadır.")
                     else:
                         # SQLite / PostgreSQL Alias farklarını yok etmek için kolonları Pandas seviyesinde zorla:
-                        df_arsiv.columns = ["stok_kodu", "urun_adi", "miktar_veya_uye", "islem_turu", "aciklama", "tarih", "harcanan_dk", "sistem_kullanici", "durum", "yapilan_is"]
+                        df_arsiv.columns = ["stok_kodu", "urun_adi", "miktar_veya_uye", "islem_turu", "aciklama", "tarih", "harcanan_dk", "sistem_kullanici", "durum", "yapilan_is", "is_adet", "hasta_adi", "recine_sarfiyati"]
+                        
+                        import json
+                        def parse_recine_adet(row):
+                            if 'Reçine' in str(row['islem_turu']) and pd.notna(row['recine_sarfiyati']):
+                                try:
+                                    j = json.loads(row['recine_sarfiyati'])
+                                    return float(j.get('miktar', row['is_adet']))
+                                except:
+                                    return row['is_adet']
+                            return row['is_adet']
+                        df_arsiv['is_adet'] = df_arsiv.apply(parse_recine_adet, axis=1)
                         
                         st.markdown("<br>", unsafe_allow_html=True)
                         col_ma, _ = st.columns([2, 4])
@@ -4904,34 +4961,29 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 "Kategori": kategori
                             })
 
-                        # Reçine miktar: isler tablosundaki Recine_Sarfiyati JSON'undan tuketim_gr okunuyor
-                        # Bu hem eski kayıtlar hem de yeni kayıtlar için doğru değeri verir.
-                        # Hesaplama: Model Biri = Adet * Model_başı_gr | Üye Birimi = Adet * Üye_başı_gr
+                        # Reçine miktar: uretim_loglari tablosundan doğrudan okunuyor.
+                        # uye_sayisi = kaydedilen tuketim_gr (gram cinsinden tüketim)
+                        # dakika = yazıcı çalışma süresi
+                        # Bu yöntem JOIN + JSON parse yerine daha güvenilir ve çift sayım hatası olmayan bir yöntemdir.
                         recine_miktar_map = {}   # {malzeme_kodu: toplam_gr}
-                        recine_adet_map   = {}   # {malzeme_kodu: toplam_adet}
+                        recine_adet_map   = {}   # {malzeme_kodu: toplam_kayit_sayisi}
                         recine_birim_map  = {}   # {malzeme_kodu: birim_basi_gr (ort)}
                         try:
-                            import json as _json
-                            recine_is_rows = c.execute(
-                                "SELECT u.malzeme_kodu, i.Recine_Sarfiyati "
-                                "FROM uretim_loglari u "
-                                "JOIN isler i ON u.is_id = i.id "
-                                "WHERE u.malzeme_turu = 'Re\u00e7ine'"
+                            recine_log_rows = c.execute(
+                                "SELECT malzeme_kodu, SUM(CAST(uye_sayisi AS REAL)), COUNT(*) "
+                                "FROM uretim_loglari "
+                                "WHERE (malzeme_turu = 'Reçine' OR malzeme_turu = 'Recine' OR malzeme_turu = 'REÇİNE' OR malzeme_turu = 'RECİNE' OR LOWER(malzeme_turu) LIKE '%recine%' OR LOWER(malzeme_turu) LIKE '%re_ine%' OR LOWER(malzeme_turu) LIKE '%reçine%') "
+                                "AND malzeme_kodu IS NOT NULL AND malzeme_kodu != '' "
+                                "GROUP BY malzeme_kodu"
                             ).fetchall()
-                            for r_kod_j, r_sarf_j in recine_is_rows:
-                                if not r_sarf_j:
+                            for r_kod_j, r_toplam_gr, r_kayit in recine_log_rows:
+                                if not r_kod_j:
                                     continue
-                                try:
-                                    data = r_sarf_j if isinstance(r_sarf_j, dict) else _json.loads(str(r_sarf_j))
-                                    tuketim_gr = float(data.get('tuketim_gr', 0))
-                                    miktar     = float(data.get('miktar', 0))
-                                    recine_miktar_map[r_kod_j] = recine_miktar_map.get(r_kod_j, 0.0) + tuketim_gr
-                                    recine_adet_map[r_kod_j]   = recine_adet_map.get(r_kod_j, 0.0)   + miktar
-                                except:
-                                    pass
+                                recine_miktar_map[r_kod_j] = float(r_toplam_gr or 0)
+                                recine_adet_map[r_kod_j]   = int(r_kayit or 0)
                         except:
                             pass
-                        # Adet başı gr = toplam_gr / toplam_adet
+                        # Kayit başı ortalama gr = toplam_gr / toplam_kayit
                         recine_adet_basi_gr = {
                             k: round(recine_miktar_map[k] / recine_adet_map[k], 3)
                             for k in recine_miktar_map
@@ -4939,6 +4991,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         }
 
                         for lv in liste_verileri:
+                            if str(lv.get('Kategori', '')).upper() in ['REÇİNE', 'RECINE', 'RECİNE', 'REÇINE']:
+                                lv['Toplam Üretilen'] = recine_adet_map.get(lv['Stok Kodu'], 0)
                             lv['Kullanılan Miktar (gr)'] = round(recine_miktar_map.get(lv['Stok Kodu'], 0.0), 2)
 
                         df_liste_full = pd.DataFrame(liste_verileri, columns=["Stok Kodu", "Ürün Adı", "Toplam Üretilen", "Çalışma (Dk)", "Durum", "Pasif Nedeni", "İlk İşlem", "Kategori", "Kullanılan Miktar (gr)"])
@@ -5054,7 +5108,11 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                             with t1:
                                                 df_hasta = df_urun_detay[df_urun_detay['islem_turu'].str.contains('Üretim')].copy()
                                                 if not df_hasta.empty:
-                                                    df_hasta_show = df_hasta[['tarih', 'aciklama', 'yapilan_is', 'miktar_veya_uye', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'aciklama': 'Hasta / İş Adı', 'yapilan_is': 'Yapılan İş', 'miktar_veya_uye': 'Miktar/Dk', 'sistem_kullanici': 'Kullanıcı'})
+                                                    if str(kategori_adi).upper() == "REÇİNE":
+                                                        df_hasta['Sarfiyat (Gr)'] = df_hasta['miktar_veya_uye']
+                                                        df_hasta_show = df_hasta[['tarih', 'hasta_adi', 'aciklama', 'yapilan_is', 'is_adet', 'Sarfiyat (Gr)', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'hasta_adi': 'Hasta Adı', 'aciklama': 'İş Adı', 'yapilan_is': 'Yapılan İş', 'is_adet': 'Adet', 'sistem_kullanici': 'Kullanıcı'})
+                                                    else:
+                                                        df_hasta_show = df_hasta[['tarih', 'hasta_adi', 'aciklama', 'yapilan_is', 'miktar_veya_uye', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'hasta_adi': 'Hasta Adı', 'aciklama': 'İş Adı', 'yapilan_is': 'Yapılan İş', 'miktar_veya_uye': 'Miktar/Dk', 'sistem_kullanici': 'Kullanıcı'})
                                                     st.dataframe(df_hasta_show, hide_index=True, use_container_width=True)
                                                 else:
                                                     st.info("Bu malzeme ile henüz bir üretim kaydı bulunmamaktadır.")
@@ -5335,7 +5393,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             if klinikler:
                 f_klinik = st.selectbox("Filtrelenecek Klinik", ["Tümü"] + klinikler, key="fiyat_klinik_secim")
                 
-                query_fiyat = """SELECT id, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Adet, Tutar_TL, Fatura_Tarihi, Iskonto, Bakiye_Durumu FROM isler i WHERE NOT EXISTS (SELECT 1 FROM hesap_ekstreleri h JOIN faturalar f ON h.id = f.Ekstre_ID WHERE i.Klinik_Unvani = h.Klinik_Unvani AND i.Tarih >= h.Baslangic_Tarihi AND i.Tarih <= h.Bitis_Tarihi || ' 23:59:59')"""
+                query_fiyat = """SELECT id, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Adet, Tutar_TL, Fatura_Tarihi, Iskonto, KDV_Orani, Bakiye_Durumu FROM isler i WHERE NOT EXISTS (SELECT 1 FROM hesap_ekstreleri h JOIN faturalar f ON h.id = f.Ekstre_ID WHERE i.Klinik_Unvani = h.Klinik_Unvani AND i.Tarih >= h.Baslangic_Tarihi AND i.Tarih <= h.Bitis_Tarihi || ' 23:59:59')"""
                 if f_klinik != "Tümü":
                     df_fiyat = pd.read_sql(f"{query_fiyat} AND i.Klinik_Unvani='{f_klinik}' ORDER BY i.id DESC LIMIT 200", conn)
                 else:
@@ -5352,6 +5410,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         df_fiyat = df_fiyat.rename(columns={"iskonto": "Iskonto"})
                     if 'bakiye_durumu' in df_fiyat.columns:
                         df_fiyat = df_fiyat.rename(columns={"bakiye_durumu": "Bakiye_Durumu"})
+                    if 'kdv_orani' in df_fiyat.columns:
+                        df_fiyat = df_fiyat.rename(columns={"kdv_orani": "KDV_Orani"})
                         
                     df_fiyat = df_fiyat.rename(columns={
                         "Teslim_Tarihi": "TESLİM TARİHİ",
@@ -5363,11 +5423,15 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         "Adet": "ADET",
                         "Fatura_Tarihi": "FATURA TARİHİ",
                         "Iskonto": "İSKONTO",
-                        "Bakiye_Durumu": "BAKİYE DURUMU"
+                        "Bakiye_Durumu": "BAKİYE DURUMU",
+                        "KDV_Orani": "KDV ORANI"
                     })
                     
                     df_fiyat["FATURA TARİHİ"] = df_fiyat["FATURA TARİHİ"].fillna("-")
                     df_fiyat["İSKONTO"] = pd.to_numeric(df_fiyat["İSKONTO"], errors='coerce').fillna(0.0)
+                    if "KDV ORANI" not in df_fiyat.columns:
+                        df_fiyat["KDV ORANI"] = 0.0
+                    df_fiyat["KDV ORANI"] = pd.to_numeric(df_fiyat["KDV ORANI"], errors='coerce').fillna(0.0)
 
                     if 'ADET' in df_fiyat.columns:
                         df_fiyat["ADET"] = pd.to_numeric(df_fiyat["ADET"], errors='coerce').fillna(1).astype(int)
@@ -5404,6 +5468,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         
                     df_fiyat["B.FİYAT"] = df_fiyat.apply(get_birim_fiyat, axis=1)
                     df_fiyat["T.FİYAT"] = (df_fiyat["B.FİYAT"] * df_fiyat["ADET"]) * (1 - (df_fiyat["İSKONTO"] / 100.0))
+                    df_fiyat["T.FİYAT"] = df_fiyat["T.FİYAT"] * (1 + (df_fiyat["KDV ORANI"] / 100.0))
                     df_fiyat.loc[df_fiyat["T.FİYAT"] < 0, "T.FİYAT"] = 0
                     
                     if "BAKİYE DURUMU" not in df_fiyat.columns:
@@ -5414,7 +5479,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     
                     # İstenen sıra: S.NO - TARİH - KLİNİK - HASTA ADI - İŞLEM TÜRÜ - ADET - B.FİYAT - T.FİYAT - BAKİYE DURUMU
                     df_fiyat.insert(0, 'S.NO', range(1, len(df_fiyat) + 1))
-                    df_fiyat = df_fiyat[["S.NO", "TESLİM TARİHİ", "KLİNİK", "HASTA ADI", "HASTA KODU", "İŞLEM TÜRÜ", "ADET", "FATURA TARİHİ", "İSKONTO", "B.FİYAT", "T.FİYAT", "BAKİYE DURUMU", "ESKİ_TUTAR_TL"]]
+                    df_fiyat = df_fiyat[["S.NO", "TESLİM TARİHİ", "KLİNİK", "HASTA ADI", "HASTA KODU", "İŞLEM TÜRÜ", "ADET", "FATURA TARİHİ", "İSKONTO", "KDV ORANI", "B.FİYAT", "T.FİYAT", "BAKİYE DURUMU", "ESKİ_TUTAR_TL"]]
                     
                     st.caption("💡 İpucu: İşlemler (fatura tarihi, fiyat, iskonto) alanını açmak için tablodan bir satır seçiniz.")
                     
@@ -5432,14 +5497,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         
                         st.markdown(f"### ⚙️ İşlem Güncelle ({secili_kayit['HASTA ADI']} - {secili_kayit['İŞLEM TÜRÜ']})")
                         
-                        col1, col2, col3, col4 = st.columns(4)
+                        col1, col2, col3, col4, col5 = st.columns(5)
                         yeni_fatura = col1.text_input("Fatura Tarihi", value=secili_kayit["FATURA TARİHİ"], key="y_fat")
                         yeni_fiyat = col2.number_input("B.Fiyat (TL)", value=float(secili_kayit["B.FİYAT"]), min_value=0.0, step=10.0, key="y_fiy")
                         yeni_iskonto = col3.number_input("İskonto (%)", value=float(secili_kayit["İSKONTO"]), min_value=0.0, max_value=100.0, step=1.0, key="y_isk")
+                        yeni_kdv = col4.number_input("KDV (%)", value=float(secili_kayit.get("KDV ORANI", 0.0)), min_value=0.0, max_value=100.0, step=1.0, key="y_kdv")
                         
                         yeni_t_fiyat = (yeni_fiyat * secili_kayit["ADET"]) * (1 - (yeni_iskonto / 100.0))
+                        yeni_t_fiyat = yeni_t_fiyat * (1 + (yeni_kdv / 100.0))
                         if yeni_t_fiyat < 0: yeni_t_fiyat = 0
-                        col4.metric("Yeni Toplam Tutar", f"{yeni_t_fiyat:,.2f} TL")
+                        col5.metric("Yeni T.Tutar", f"{yeni_t_fiyat:,.2f} TL")
                         
                         bakiye_durumu = secili_kayit.get("BAKİYE DURUMU", "⏳ Bekliyor")
                         aktarildi_mi = bakiye_durumu == "✅ Aktarıldı"
@@ -5519,11 +5586,13 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         t_tarih = c1.date_input("Tahsilat Tarihi", value=datetime.now(), key="tah_tarih")
                         t_fatura_anahtar = c2.selectbox("İlgili Fatura (Opsiyonel)", list(fatura_secenekleri.keys()), key="tah_fat_sec")
                         t_turu = c3.selectbox("Ödeme Türü", ["Havale / EFT", "Nakit", "Kredi Kartı", "Çek / Senet"], key="tah_tur")
-                        t_tutar = c1.number_input("Alınan Tutar (TL)", min_value=0.0, value=0.0, step=100.0, key="tah_tutar")
+                        t_tutar = c1.number_input("Alınan Tutar (TL) — KDV Dahil", min_value=0.0, value=0.0, step=100.0, key="tah_tutar")
                         t_aciklama = c2.text_input("Açıklama / Dekont No", key="tah_aciklama")
+                        # t_kdv_secim artık kullanılmıyor — brüt mantikta tahsilat tutari olduğu gibi işlenir
                         if st.form_submit_button("Tahsilatı Kaydet ve Bakiyeden Düş", type="primary") and t_tutar > 0:
                             secilen_fat_id = fatura_secenekleri[t_fatura_anahtar]
                             tah_tarih_str = t_tarih.strftime("%Y-%m-%d")
+                            # BRÜT MANTIK: Tahsilat tutarı olduğu gibi bakiyeden düşülür, KDV ayrıca hesaplanmaz.
                             if secilen_fat_id:
                                 fat_raw = c.execute("SELECT Toplam_Tutar, Odenen_Tutar, Fatura_No FROM faturalar WHERE id=?", (secilen_fat_id,)).fetchone()
                                 if fat_raw:
@@ -5534,10 +5603,12 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     c.execute("INSERT INTO fatura_tahsilatlar (Fatura_ID, Tarih, Tutar, Odeme_Turu, Aciklama, Klinik_Unvani) VALUES (?,?,?,?,?,?)", (secilen_fat_id, tah_tarih_str, t_tutar, t_turu, t_aciklama, t_klinik))
                                     t_aciklama = f"Fatura: {fat_raw[2]} - {t_aciklama}"
                             
-                            c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (tah_tarih_str, t_klinik, t_turu, t_tutar, t_aciklama))
-                            c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani = ?", (float(t_tutar), t_klinik))
+                            try: c.execute("INSERT INTO tahsilatlar (Tarih, Klinik_Unvani, Odeme_Turu, Tutar, Aciklama) VALUES (?,?,?,?,?)", (tah_tarih_str, t_klinik, t_turu, t_tutar, t_aciklama))
+                            except Exception as ins_e: st.error(f"Tahsilat kaydedilemedi: {ins_e}")
+                            
+                            # Brüt tutar doğrudan bakiyeden düşülür
+                            c.execute("UPDATE cariler SET Bakiye = Bakiye - ? WHERE Klinik_Unvani = ?", (t_tutar, t_klinik))
                             conn.commit()
-                            st.success("✅ Tahsilat işlendi, cari bakiye güncellendi!")
                             st.rerun()
                     st.markdown("---")
                     st.markdown("##### 📜 Geçmiş Tahsilatlar")
@@ -5556,24 +5627,22 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     tah_tutar = float(tah[3] or 0)
                                     tah_tarih = tah[1]
                                     tah_tur = tah[2]
-                                    tah_aciklama = tah[4]
                                     
-                                    c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani = ?", (float(tah_tutar), t_klinik))
-                                    
+                                    # BRÜT MANTIK: İptal edilen tahsilatın brüt tutarı geri bakiyeye eklenir.
                                     fat_tah_rec = c.execute("SELECT id, Fatura_ID FROM fatura_tahsilatlar WHERE Klinik_Unvani=? AND Tarih=? AND Tutar=? AND Odeme_Turu=?", (t_klinik, tah_tarih, tah_tutar, tah_tur)).fetchone()
                                     if fat_tah_rec:
                                         fat_tah_id = fat_tah_rec[0]
                                         fatura_id = fat_tah_rec[1]
-                                        
                                         fat_raw = c.execute("SELECT Toplam_Tutar, Odenen_Tutar FROM faturalar WHERE id=?", (fatura_id,)).fetchone()
                                         if fat_raw:
-                                            yeni_odenen = float(fat_raw[1] or 0) - tah_tutar
+                                            yeni_odenen = max(0.0, float(fat_raw[1] or 0) - tah_tutar)
                                             yeni_kalan = float(fat_raw[0] or 0) - yeni_odenen
                                             yeni_durum = "Beklemede" if yeni_odenen <= 0 else "Kısmi Ödendi"
-                                            c.execute("UPDATE faturalar SET Odenen_Tutar=?, Kalan_Tutar=?, Durum=? WHERE id=?", (max(0.0, yeni_odenen), max(0.0, yeni_kalan), yeni_durum, fatura_id))
-                                        
+                                            c.execute("UPDATE faturalar SET Odenen_Tutar=?, Kalan_Tutar=?, Durum=? WHERE id=?", (yeni_odenen, max(0.0, yeni_kalan), yeni_durum, fatura_id))
                                         c.execute("DELETE FROM fatura_tahsilatlar WHERE id=?", (fat_tah_id,))
-                                        
+                                    
+                                    # Brüt tutar geri bakiyeye eklenir
+                                    c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani = ?", (tah_tutar, t_klinik))
                                     c.execute("DELETE FROM tahsilatlar WHERE id=?", (tah_id,))
                                     conn.commit()
                                     st.success("✅ Tahsilat iptal edildi ve bakiye geri yüklendi!")
@@ -5590,15 +5659,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 if klinikler:
                     cb_klinik = st.selectbox("Klinik Seçin", klinikler, key="cb_klinik_sec")
 
-                    # Bakiye kartı
-                    # Önce veriyi çekip toplamı buluyoruz
+                    # Bakiye kartı — BRÜT MANTIK: İş tutarı KDV dahil, tahsilat KDV dahil, fark = net bakiye.
                     try:
-                        # Tüm işlerin toplamını bulmak için LIMIT'siz ayrı bir sorgu yapalım ki tam bakiye çıksın
-                        toplam_isler = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (cb_klinik,)).fetchone()[0] or 0.0
-                        kdv_orani_t = float(ayar_getir("KDV_Orani", "20"))
-                        carpan_t = 1.0 + (kdv_orani_t / 100.0)
-                        toplam_tahsilat_kdvli = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (cb_klinik,)).fetchone()[0] or 0.0
-                        toplam_tahsilat = toplam_tahsilat_kdvli / carpan_t
+                        toplam_isler = float(c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (cb_klinik,)).fetchone()[0] or 0.0)
+                        toplam_tahsilat = float(c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (cb_klinik,)).fetchone()[0] or 0.0)
                         net_bakiye = toplam_isler - toplam_tahsilat
                         
                         # S.NO-HASTA KODU-HASTA ADI-İŞLEM TÜRÜ-ADET-İSKONTO-B. FİYAT-TUTAR(TL)
@@ -5658,7 +5722,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 <div style='color: #cbd5e1; font-size: 20px; font-weight: 700;'>{toplam_isler:,.2f} {para_birimi_cb}</div>
                             </div>
                             <div>
-                                <div style='color: #94a3b8; font-size: 13px;'>Ödenen (Net Tahsilat)</div>
+                                <div style='color: #94a3b8; font-size: 13px;'>Ödenen (Toplam Tahsilat)</div>
                                 <div style='color: #22c55e; font-size: 20px; font-weight: 700;'>{toplam_tahsilat:,.2f} {para_birimi_cb}</div>
                             </div>
                         </div>
@@ -5716,14 +5780,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         except:
                             df_ch_alacak['kdv_orani'] = None
 
-                        kdv_orani_h = float(ayar_getir("KDV_Orani", "20"))
-                        def get_ch_alacak_net(row):
-                            if pd.notna(row.get('kdv_orani')):
-                                return row['alacak'] / (1.0 + float(row['kdv_orani']) / 100.0)
-                            else:
-                                return row['alacak'] / (1.0 + kdv_orani_h / 100.0)
-                        
-                        df_ch_alacak['alacak'] = df_ch_alacak.apply(get_ch_alacak_net, axis=1)
+                        # BRÜT MANTIK: Hesap hareketlerinde alacak tutarı olduğu gibi gösterilir, KDV düşürülmez.
                         if 'kdv_orani' in df_ch_alacak.columns: df_ch_alacak = df_ch_alacak.drop(columns=['kdv_orani'])
                         if 'tutar' in df_ch_alacak.columns: df_ch_alacak = df_ch_alacak.drop(columns=['tutar'])
 
@@ -5794,46 +5851,17 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     kdv_orani_h = float(ayar_getir("KDV_Orani", "20"))
                                     
                                     # KDV oranlarını bulmak için fatura_tahsilatlar
-                                    try:
-                                        df_ft_prev = pd.read_sql(f"SELECT ft.Tarih, ft.Tutar, ft.Odeme_Turu, f.KDV_Orani FROM fatura_tahsilatlar ft JOIN faturalar f ON ft.Fatura_ID = f.id WHERE ft.Klinik_Unvani='{e_klinik}'", conn)
-                                        if not df_ft_prev.empty and not df_prev_alacak.empty:
-                                            df_prev_alacak = pd.merge(df_prev_alacak, df_ft_prev, on=['Tarih', 'Tutar', 'Odeme_Turu'], how='left')
-                                        else:
-                                            df_prev_alacak['KDV_Orani'] = None
-                                    except:
-                                        df_prev_alacak['KDV_Orani'] = None
-                                        df_ft_prev = pd.DataFrame()
-                                        
-                                    def apply_kdv_prev(row, val_col):
-                                        if pd.notna(row.get('KDV_Orani')):
-                                            return row[val_col] / (1.0 + float(row['KDV_Orani']) / 100.0)
-                                        else:
-                                            return row[val_col] / (1.0 + kdv_orani_h / 100.0)
-                                            
-                                    if not df_prev_alacak.empty:
-                                        df_prev_alacak['Alacak'] = df_prev_alacak.apply(lambda r: apply_kdv_prev(r, 'Alacak'), axis=1)
-                                        if 'KDV_Orani' in df_prev_alacak.columns: df_prev_alacak = df_prev_alacak.drop(columns=['KDV_Orani'])
-                                        if 'Tutar' in df_prev_alacak.columns: df_prev_alacak = df_prev_alacak.drop(columns=['Tutar'])
-                                        if 'Odeme_Turu' in df_prev_alacak.columns: df_prev_alacak = df_prev_alacak.drop(columns=['Odeme_Turu'])
+                                    
 
                                     # Devreden bakiyeyi baştan hesapla (Geçmiş Borç - Geçmiş Alacak)
                                     past_borc_row = c.execute(f"SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') AND Tarih < '{bas_str}'").fetchone()
                                     past_borc = float(past_borc_row[0] or 0.0) if past_borc_row else 0.0
                                     
                                     try:
-                                        df_past_alacak = pd.read_sql(f"SELECT Tarih, Odeme_Turu, Tutar FROM tahsilatlar WHERE Klinik_Unvani='{e_klinik}' AND Tarih < '{bas_str}'", conn)
-                                        if not df_past_alacak.empty:
-                                            if not df_ft_prev.empty:
-                                                df_past_alacak = pd.merge(df_past_alacak, df_ft_prev, on=['Tarih', 'Tutar', 'Odeme_Turu'], how='left')
-                                            else:
-                                                df_past_alacak['KDV_Orani'] = None
-                                            past_alacak = df_past_alacak.apply(lambda r: apply_kdv_prev(r, 'Tutar'), axis=1).sum()
-                                        else:
-                                            past_alacak = 0.0
-                                    except:
                                         past_alacak_row = c.execute(f"SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani='{e_klinik}' AND Tarih < '{bas_str}'").fetchone()
-                                        past_alacak_raw = float(past_alacak_row[0] or 0.0) if past_alacak_row else 0.0
-                                        past_alacak = past_alacak_raw / (1.0 + kdv_orani_h / 100.0)
+                                        past_alacak = float(past_alacak_row[0] or 0.0) if past_alacak_row else 0.0
+                                    except:
+                                        past_alacak = 0.0
                                     
                                     devreden_bakiye = past_borc - past_alacak
                                     
@@ -7375,6 +7403,39 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             ayar_kaydet("KDV_Orani", yeni_kdv)
                             st.success("KDV ayarları işlendi!")
                             
+                    st.markdown("### ⚠️ Gelişmiş Cari & KDV İşlemleri")
+                    st.markdown("---")
+                    if st.button("🔧 (Sistem) KDV Oranı Kolonunu Ekle (Veritabanı Güncelle)", help="Tahsilatlar tablosuna KDV oranını manuel seçebilmek için gerekli KDV_Orani kolonunu ekler.", type="secondary"):
+                        with st.spinner("Kolon ekleniyor..."):
+                            try:
+                                c.execute("ALTER TABLE tahsilatlar ADD COLUMN KDV_Orani REAL DEFAULT NULL")
+                                conn.commit()
+                                st.success("tahsilatlar tablosuna KDV_Orani eklendi!")
+                            except Exception as e:
+                                st.info(f"tahsilatlar: Zaten var veya Hata: {e}")
+                            try:
+                                c.execute("ALTER TABLE fatura_tahsilatlar ADD COLUMN KDV_Orani REAL DEFAULT NULL")
+                                conn.commit()
+                                st.success("fatura_tahsilatlar tablosuna KDV_Orani eklendi!")
+                            except Exception as e:
+                                st.info(f"fatura_tahsilatlar: Zaten var veya Hata: {e}")
+
+                    if st.button("⚠️ (Yönetici) Tüm Cari Bakiyeleri Senkronize Et", help="Tüm kliniklerin cari bakiyelerini sıfırdan hesaplar: Aktarılmış işlerin toplamı EKSI tahsilatların toplamı (brüt tutarlar, KDV dahil).", type="primary"):
+                        with st.spinner("Cari bakiyeler güncelleniyor, lütfen bekleyin..."):
+                            try:
+                                klinikler_sync = c.execute("SELECT Klinik_Unvani FROM cariler").fetchall()
+                                for (ksync,) in klinikler_sync:
+                                    # BRÜT MANTIK: İş tutarları (KDV dahil) - Tahsilat tutarları (KDV dahil)
+                                    ts_isler = float(c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (ksync,)).fetchone()[0] or 0.0)
+                                    ts_tahs  = float(c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (ksync,)).fetchone()[0] or 0.0)
+                                    net_b = ts_isler - ts_tahs
+                                    c.execute("UPDATE cariler SET Bakiye=? WHERE Klinik_Unvani=?", (net_b, ksync))
+
+                                conn.commit()
+                                st.success("✅ Tüm klinikler için Cari Bakiyeler başarıyla senkronize edildi! (Brüt tutar bazında)")
+                            except Exception as sync_e:
+                                st.error(f"Senkronizasyon hatası: {sync_e}")
+
                 elif secilen_ayar == "🔐 Güvenlik":
                     st.markdown("### 🔐 Güvenlik & Denetim İzi (Log)")
                     st.markdown("---")
