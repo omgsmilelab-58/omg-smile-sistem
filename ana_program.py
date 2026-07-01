@@ -4774,7 +4774,18 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             with alt_sekmeler[-1]:
                 st.markdown("<h4 style='color: #a78bfa;'>📦 Malzeme Arşivi & Performans Dashboard</h4>", unsafe_allow_html=True)
                 try:
-                    df_arsiv = pd.read_sql('''
+                    # Check if 'id' column exists in 'isler' for compatibility
+                    id_col = "id"
+                    try:
+                        c.execute("SELECT id FROM isler LIMIT 1")
+                    except Exception:
+                        try:
+                            conn.rollback()
+                        except:
+                            pass
+                        id_col = "rowid"
+                    
+                    df_arsiv = pd.read_sql(f'''
                         SELECT 
                             Urun_Kodu, 
                             Urun_Adi, 
@@ -4818,7 +4829,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                               COALESCE(i.Hasta_Adi, '-') as hasta_adi,
                               i.Recine_Sarfiyati as recine_sarfiyati
                           FROM uretim_loglari u
-                        LEFT JOIN isler i ON u.is_id = i.id
+                        LEFT JOIN isler i ON u.is_id = i.{id_col}
                         
                         ORDER BY 6 DESC
                     ''', conn)
@@ -5010,7 +5021,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         for i, kategori_adi in enumerate(kategoriler):
                             with sekmeler[i]:
                                 df_arsiv_alt = df_arsiv[df_arsiv['Kategori'] == kategori_adi]
-                                if kategori_adi == "REÇİNE":
+                                kat_norm = str(kategori_adi).upper().replace('İ', 'I').replace('Ç', 'C').replace('Ş', 'S').replace('Ğ', 'G').replace('Ü', 'U').replace('Ö', 'O')
+                                if kat_norm == "RECINE":
                                     df_liste_alt = df_liste_full[df_liste_full['Kategori'] == kategori_adi].drop(columns=['Kategori'])
                                 else:
                                     df_liste_alt = df_liste_full[df_liste_full['Kategori'] == kategori_adi].drop(columns=['Kategori', 'Kullanılan Miktar (gr)'])
@@ -5032,7 +5044,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     m1.metric("Toplam Üretilen Üye (Blok)", f"{int(toplam_blok_uye)}")
                                     m2.metric("Blok Başı Ortalama Verim", f"{ort_blok_verimi} Üye")
                                 
-                                elif kategori_adi == "REÇİNE":
+                                elif kat_norm == "RECINE":
                                     # toplam_gr ve adet hesaplamak için onceden hazirladigimiz map'leri kullan
                                     toplam_gr      = sum(recine_miktar_map.values())
                                     toplam_kayit   = sum(1 for v in recine_adet_map.values() if v > 0)
@@ -5108,7 +5120,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                             with t1:
                                                 df_hasta = df_urun_detay[df_urun_detay['islem_turu'].str.contains('Üretim')].copy()
                                                 if not df_hasta.empty:
-                                                    if str(kategori_adi).upper() == "REÇİNE":
+                                                    kat_norm_detay = str(kategori_adi).upper().replace('İ', 'I').replace('Ç', 'C').replace('Ş', 'S').replace('Ğ', 'G').replace('Ü', 'U').replace('Ö', 'O')
+                                                    if "REC" in kat_norm_detay:
                                                         df_hasta['Sarfiyat (Gr)'] = df_hasta['miktar_veya_uye']
                                                         df_hasta_show = df_hasta[['tarih', 'hasta_adi', 'aciklama', 'yapilan_is', 'is_adet', 'Sarfiyat (Gr)', 'sistem_kullanici']].rename(columns={'tarih': 'Tarih', 'hasta_adi': 'Hasta Adı', 'aciklama': 'İş Adı', 'yapilan_is': 'Yapılan İş', 'is_adet': 'Adet', 'sistem_kullanici': 'Kullanıcı'})
                                                     else:
