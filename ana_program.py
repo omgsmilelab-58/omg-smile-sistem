@@ -5556,10 +5556,10 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             fatura_str = str(yeni_fatura)
                             isk_float = float(yeni_iskonto)
 
-                            if (eski_veritabani_tutar != yeni_t_fiyat) or (eski_fatura != fatura_str) or (eski_iskonto != isk_float) or (float(secili_kayit["B.FİYAT"]) != yeni_fiyat) or btn_yansit:
+                            if (eski_veritabani_tutar != yeni_t_fiyat) or (eski_fatura != fatura_str) or (eski_iskonto != isk_float) or (float(secili_kayit["B.FİYAT"]) != yeni_fiyat) or (float(secili_kayit.get("KDV ORANI", 0.0)) != yeni_kdv) or btn_yansit:
                                 f_klinik_adi = secili_kayit["KLİNİK"]
                                 
-                                c.execute("UPDATE isler SET Tutar_TL=?, Adet=?, Fatura_Tarihi=?, Iskonto=? WHERE id=?", (float(yeni_t_fiyat), int(eski_adet), fatura_str, float(isk_float), int(idx_db)))
+                                c.execute("UPDATE isler SET Tutar_TL=?, Adet=?, Fatura_Tarihi=?, Iskonto=?, KDV_Orani=? WHERE id=?", (float(yeni_t_fiyat), int(eski_adet), fatura_str, float(isk_float), float(yeni_kdv), int(idx_db)))
 
                                 if btn_yansit:
                                     try: c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani=?", (yeni_t_fiyat, f_klinik_adi))
