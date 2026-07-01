@@ -5463,9 +5463,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     def get_birim_fiyat(row):
                         if row["Tutar_TL"] > 0:
                             iskonto_orani = float(row.get("İSKONTO", 0.0))
-                            carpan = 1 - (iskonto_orani / 100.0)
-                            if carpan <= 0: carpan = 1.0
-                            gercek_toplam_tutar = row["Tutar_TL"] / carpan
+                            kdv_orani = float(row.get("KDV ORANI", 0.0))
+                            
+                            isk_carpan = 1 - (iskonto_orani / 100.0)
+                            if isk_carpan <= 0: isk_carpan = 1.0
+                            
+                            kdv_carpan = 1 + (kdv_orani / 100.0)
+                            
+                            gercek_toplam_tutar = row["Tutar_TL"] / (isk_carpan * kdv_carpan)
                             return round(gercek_toplam_tutar / row["ADET"], 2)
                         
                         # Eğer tutar 0 ise fiyat listesinden güncel kurla getir
