@@ -5506,7 +5506,11 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     
                     if event_fiyat and len(event_fiyat.selection.rows) > 0:
                         secili_idx = event_fiyat.selection.rows[0]
-                        secili_kayit = df_fiyat.iloc[secili_idx]
+                        try:
+                            secili_kayit = df_fiyat.iloc[secili_idx]
+                        except IndexError:
+                            st.warning("Seçilen satır bulunamadı. Lütfen filtreleri yenileyip tekrar deneyiniz.")
+                            st.stop()
                         
                         st.markdown(f"### ⚙️ İşlem Güncelle ({secili_kayit['HASTA ADI']} - {secili_kayit['İŞLEM TÜRÜ']})")
                         
