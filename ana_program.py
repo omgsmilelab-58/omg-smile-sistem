@@ -7245,7 +7245,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             "🌍 Dil Seçenekleri"
         ]
         
-        if rol == "Yönetici":
+        if rol in ["Yönetici", "Admin"]:
             ayarlar_menu.append("💎 Üyelik Yönetim Sistemi")
             
         ayarlar_menu.append("ℹ️ Sistem Hakkında")
