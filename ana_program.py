@@ -7308,7 +7308,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         ]
         
         if rol in ["Yönetici", "Admin"]:
-            ayarlar_menu.append("💎 Üyelik Yönetim Sistemi")
+            ayarlar_menu.append("📦 Paket Yönetim Sistemi")
             
         ayarlar_menu.append("ℹ️ Sistem Hakkında")
         
@@ -7678,9 +7678,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.selectbox("Kullanılacak Dili Seçin", ["Türkçe (Aktif)", "English (Yakında)", "Deutsch (Yakında)"])
                     st.info("Çoklu dil desteği global sürüm ile birlikte aktif edilecektir.")
                     
-                elif secilen_ayar == "💎 Üyelik Yönetim Sistemi":
-                    st.markdown("### 💎 Üyelik Yönetim Sistemi")
-                    st.info("Program seviyenizi (Standart, Profesyonel, Business) belirleyin ve her seviyeye özel logolarınızı yükleyin.")
+                elif secilen_ayar == "📦 Paket Yönetim Sistemi":
+                    st.markdown("### 📦 Paket Yönetim Sistemi")
+                    st.info("Kliniklerin kullanacağı paket seviyelerini (Standart, Profesyonel, Business) ve paketlerin özelliklerini yapılandırın.")
                     
                     mevcut_abonelik = ayar_getir("Abonelik_Tipi", "Standart")
                     y_abonelik = st.selectbox("Aktif Üyelik Seviyesi (Sistem Özelliklerini Belirler)", ["Standart", "Profesyonel", "Business"], index=["Standart", "Profesyonel", "Business"].index(mevcut_abonelik))
@@ -7703,8 +7703,32 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         mevcut_bs = ayar_getir("Logo_Business", "-")
                         if mevcut_bs != "-" and os.path.exists(mevcut_bs): st.image(mevcut_bs, width=100)
                         
-                    if st.button("Üyelik Ayarlarını Kaydet", type="primary"):
+                    st.markdown("---")
+                    st.markdown("#### ⚙️ Paket Yetki ve Modül Tanımlamaları")
+                    st.info("Hangi paketin hangi modüllere ve özelliklere erişebileceğini buradan belirleyebilirsiniz.")
+                    
+                    import pandas as pd
+                    import json
+                    yetki_varsayilan = {
+                        "Modül / Özellik": ["Kurye Takip Sistemi", "Finans ve Cari Takibi", "Depo / Stok Yönetimi", "WhatsApp Entegrasyonu", "Lobi ve TV Ekranı", "Bulut Yedekleme"],
+                        "Standart": [False, False, False, False, False, False],
+                        "Profesyonel": [True, True, True, False, False, True],
+                        "Business": [True, True, True, True, True, True]
+                    }
+                    try:
+                        mevcut_yetkiler_json = ayar_getir("Paket_Yetkileri", "")
+                        if mevcut_yetkiler_json:
+                            yetkiler_df = pd.DataFrame(json.loads(mevcut_yetkiler_json))
+                        else:
+                            yetkiler_df = pd.DataFrame(yetki_varsayilan)
+                    except:
+                        yetkiler_df = pd.DataFrame(yetki_varsayilan)
+                        
+                    yeni_yetkiler = st.data_editor(yetkiler_df, use_container_width=True, hide_index=True)
+                        
+                    if st.button("Paket Ayarlarını Kaydet", type="primary"):
                         ayar_kaydet("Abonelik_Tipi", y_abonelik)
+                        ayar_kaydet("Paket_Yetkileri", yeni_yetkiler.to_json(orient="records"))
                         
                         ayar_yolu = "uploads/ayarlar"
                         if not os.path.exists(ayar_yolu): os.makedirs(ayar_yolu)
@@ -7718,7 +7742,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         if l_bs:
                             yolu = storage_utils.dosya_kaydet(ayar_yolu, "logo_business.png", l_bs)
                             ayar_kaydet("Logo_Business", yolu)
-                        st.success("Abonelik ve logolar başarıyla kaydedildi!")
+                        st.success("Paket yetkileri ve logolar başarıyla kaydedildi!")
                         st.rerun()
                     
                 elif secilen_ayar == "ℹ️ Sistem Hakkında":
