@@ -2884,21 +2884,21 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 
                 if event and len(event.selection.rows) > 0:
                     secili_idx = event.selection.rows[0]
-                    s_hasta = df_isler.iloc[secili_idx]["Hasta_Adi"]
-                    s_klinik = df_isler.iloc[secili_idx]["Klinik_Unvani"]
+                    try:
+                        s_hasta = df_isler.iloc[secili_idx]["Hasta_Adi"]
+                        s_klinik = df_isler.iloc[secili_idx]["Klinik_Unvani"]
+                        s_rowid = int(df_isler.iloc[secili_idx]["id"])
+                        s_barkod = df_isler.iloc[secili_idx]["Barkod"]
+                    except IndexError:
+                        st.warning("Seçilen satır tablodan bulunamadı. Lütfen tabloyu yenileyin.")
+                        st.stop()
                     
                     if st.session_state.get("son_acilan_hasta") != f"{s_hasta}_{s_klinik}":
                         st.session_state.son_acilan_hasta = f"{s_hasta}_{s_klinik}"
                         hasta_karti_goster(s_hasta, s_klinik)
-                else:
-                    st.session_state.son_acilan_hasta = None
-
-                st.markdown("---")
-                is_secin = st.selectbox("İşlem Yapılacak Reçeteyi Seçin", ["-- Seçiniz --"] + [f"{r['Barkod']} | {r['Klinik_Unvani']} - {r['Hasta_Adi']} ({r['Is_Turu']})" for _, r in df_isler.iterrows()])
-                if is_secin != "-- Seçiniz --":
-                    secilen_index = [f"{r['Barkod']} | {r['Klinik_Unvani']} - {r['Hasta_Adi']} ({r['Is_Turu']})" for _, r in df_isler.iterrows()].index(is_secin)
-                    s_rowid = int(df_isler.iloc[secilen_index]["id"])
-                    s_barkod = df_isler.iloc[secilen_index]["Barkod"]
+                        
+                    st.markdown("---")
+                    st.success(f"👉 **İşlem Yapılan Reçete:** {s_barkod} | {s_klinik} - {s_hasta}")
                     is_verisi = c.execute("SELECT Asama, Sorumlu_Personel, Lot_Numarasi, Sertifika_No, Klinik_Unvani, Hasta_Adi, Is_Turu, Tarih, Teslim_Tarihi, Renk, Adet, Tutar_TL, Aciklama, Harcanan_Malzeme FROM isler WHERE id=?",(s_rowid,)).fetchone()
                     
                     t1, t_bilgi, t2, t3, t4, t5, t6 = st.tabs(["🔄 Aşama Güncelle", "✏️ Bilgileri Güncelle", "📸 Medya & Arşiv", "📜 Garanti", "⚙️ CAM Sarfiyatı", "🔥 Sinter Sarfiyatı", "💧 Reçine Sarfiyatı"])
