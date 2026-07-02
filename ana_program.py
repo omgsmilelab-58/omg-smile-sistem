@@ -1371,7 +1371,7 @@ if not st.session_state["giris_yapildi"]:
         giris_logo = ayar_getir("Giris_Logosu", "-")
             
         if giris_logo != "-" and os.path.exists(giris_logo):
-            img_c1, img_c2, img_c3 = st.columns([1, 1, 1])
+            img_c1, img_c2, img_c3 = st.columns([1, 2, 1])
             with img_c2:
                 st.image(giris_logo, use_container_width=True)
             st.markdown("<br>", unsafe_allow_html=True)
