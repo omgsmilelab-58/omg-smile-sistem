@@ -1417,6 +1417,54 @@ if not st.session_state["giris_yapildi"]:
                             st.session_state.update({"giris_yapildi": True, "kullanici_adi": kullanici_giris, "kullanici_rolu": "Klinik", "ana_klinik": kullanici_giris})
                             st.rerun()
                         else: st.error("Şifre Hatalı!")
+    
+    st.markdown("""
+        <style>
+        .footer-meta {
+            margin-top: 80px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            font-size: 13px;
+            color: #9ca3af;
+            line-height: 2.0;
+        }
+        .footer-meta a {
+            color: #9ca3af;
+            text-decoration: none;
+            margin: 0 8px;
+            transition: color 0.2s;
+        }
+        .footer-meta a:hover {
+            color: #e5e7eb;
+            text-decoration: underline;
+        }
+        </style>
+        <div class="footer-meta">
+            <div>
+                <a href="#">Türkçe</a>
+                <a href="#">Kurdî (Kurmancî)</a>
+                <a href="#">العربية</a>
+                <a href="#">English (UK)</a>
+                <a href="#">Zaza</a>
+                <a href="#">Deutsch</a>
+                <a href="#">Русский</a>
+            </div>
+            <div style="margin-top: 10px;">
+                <a href="#">Gizlilik İlkesi</a>
+                <a href="#">Gizlilik Merkezi</a>
+                <a href="#">Hakkımızda</a>
+                <a href="#">Geliştiriciler</a>
+                <a href="#">Kariyer Olanakları</a>
+                <a href="#">Çerezler</a>
+                <a href="#">Koşullar</a>
+                <a href="#">Yardım</a>
+            </div>
+            <div style="margin-top: 20px; font-size: 12px; margin-bottom: 20px;">
+                OMG SMILE ERP © 2026
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
     st.stop()
 
 # --- 🚀 MENÜ YÖNLENDİRMESİ VE GÜVENLİ ROTA KONTROLÜ ---
