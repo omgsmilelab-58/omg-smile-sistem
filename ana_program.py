@@ -1368,16 +1368,7 @@ if not st.session_state["giris_yapildi"]:
     st.markdown("<br><br>", unsafe_allow_html=True)
     col_space_left, col_login, col_space_right = st.columns([1, 1.2, 1])
     with col_login:
-        abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
-        logo_standart = ayar_getir("Logo_Standart", "-")
-        logo_profesyonel = ayar_getir("Logo_Profesyonel", "-")
-        logo_business = ayar_getir("Logo_Business", "-")
-        
-        giris_logo = logo_standart
-        if abonelik_tipi == "Profesyonel":
-            giris_logo = logo_profesyonel if logo_profesyonel != "-" else logo_standart
-        elif abonelik_tipi == "Business":
-            giris_logo = logo_business if logo_business != "-" else logo_standart
+        giris_logo = ayar_getir("Giris_Logosu", "-")
             
         if giris_logo != "-" and os.path.exists(giris_logo):
             st.image(giris_logo, use_container_width=True)
@@ -7372,7 +7363,24 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.session_state.w_radar = st.checkbox("Canlı Üretim Radarını Göster", value=st.session_state.w_radar)
                     st.session_state.w_grafikler = st.checkbox("Analitik Grafikleri Göster", value=st.session_state.w_grafikler)
                     st.markdown("---")
-                    st.markdown("#### 🖼️ Arkaplan Teması")
+                    st.markdown("#### 🖼️ Giriş Ekranı Logosu")
+                    st.caption("Sisteme giriş ekranında gösterilecek genel logoyu belirleyin. Yüklenmezse varsayılan metin gösterilir.")
+                    g_logo = st.file_uploader("Giriş Ekranı Logosunu Yükle", type=["png", "jpg", "jpeg"], key="up_giris_logo")
+                    mevcut_g_logo = ayar_getir("Giris_Logosu", "-")
+                    if mevcut_g_logo != "-" and os.path.exists(mevcut_g_logo): 
+                        st.image(mevcut_g_logo, width=150)
+                    
+                    if st.button("Logo Ayarını Kaydet", type="primary"):
+                        if g_logo:
+                            ayar_yolu = "uploads/ayarlar"
+                            if not os.path.exists(ayar_yolu): os.makedirs(ayar_yolu)
+                            yolu = storage_utils.dosya_kaydet(ayar_yolu, "giris_logosu.png", g_logo)
+                            ayar_kaydet("Giris_Logosu", yolu)
+                            st.success("Giriş ekranı logosu güncellendi!")
+                            st.rerun()
+                    
+                    st.markdown("---")
+                    st.markdown("#### 🎨 Arkaplan Teması")
                     st.selectbox("Tema Seçimi (Yakında)", ["Cyberpunk Dark (Aktif)", "Clean Light", "Deep Blue Ocean"])
                     
                 elif secilen_ayar == "💬 İletişim & Şablon":
