@@ -1496,8 +1496,18 @@ if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
     st.stop()
 
 # --- STANDART MENÜ ---
-# --- SİDEBAR (LOGO DESTEKLİ) ---
-logo_yolu = ayar_getir("Kurumsal_Logo", "-")
+# --- SİDEBAR (LOGO DESTEKLİ VE ÜYELİK SEVİYESİ) ---
+abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
+logo_standart = ayar_getir("Logo_Standart", "-")
+logo_profesyonel = ayar_getir("Logo_Profesyonel", "-")
+logo_business = ayar_getir("Logo_Business", "-")
+
+logo_yolu = logo_standart
+if abonelik_tipi == "Profesyonel":
+    logo_yolu = logo_profesyonel if logo_profesyonel != "-" else logo_standart
+elif abonelik_tipi == "Business":
+    logo_yolu = logo_business if logo_business != "-" else logo_standart
+
 if logo_yolu != "-" and os.path.exists(logo_yolu):
     st.sidebar.image(logo_yolu, use_container_width=True)
 else:
@@ -1510,20 +1520,23 @@ kategoriler = {
     "🛠️ 1. Operasyon & Üretim": [
         "🏠 Komuta Merkezi", "📅 Görev & Planlama", "⚙️ İş Akışı", 
         "📱 Teknisyen Terminali", "📺 Lobi / TV Ekranı", "🦷 Klinik Paneli"
-    ],
-    "🤝 2. Müşteri & İletişim (CRM)": [
-        "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
-        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "📅 Doktor Takvimi"
-    ],
-    "💰 3. Finans & Tedarik": [
-        "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
-        "🏭 Tedarikçi Yönetimi", "🧾 Detaylı Ekstre"
-    ],
-    "🏢 4. Altyapı & Yönetim": [
-        "🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", 
-        "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi"
     ]
 }
+
+if abonelik_tipi in ["Profesyonel", "Business"]:
+    kategoriler["🤝 2. Müşteri & İletişim (CRM)"] = [
+        "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
+        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "📅 Doktor Takvimi"
+    ]
+
+kategoriler["💰 3. Finans & Tedarik"] = [
+    "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
+    "🏭 Tedarikçi Yönetimi", "🧾 Detaylı Ekstre"
+]
+kategoriler["🏢 4. Altyapı & Yönetim"] = [
+    "🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", 
+    "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi"
+]
 
 kategori_bulundu = False
 for mods in kategoriler.values():
@@ -7230,7 +7243,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             "💰 Finansal Parametreler", 
             "🔐 Güvenlik", 
             "🌍 Dil Seçenekleri", 
-            "💎 Lisans (PRO)", 
+            "💎 Üyelik & Lisans", 
             "ℹ️ Sistem Hakkında"
         ]
         
@@ -7556,11 +7569,44 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.selectbox("Kullanılacak Dili Seçin", ["Türkçe (Aktif)", "English (Yakında)", "Deutsch (Yakında)"])
                     st.info("Çoklu dil desteği global sürüm ile birlikte aktif edilecektir.")
                     
-                elif secilen_ayar == "💎 Lisans (PRO)":
-                    st.markdown("### 💎 PRO Lisans Yönetimi")
-                    st.info("Sistem şu an Altın Sürüm (Sınırsız) modunda çalışmaktadır. Ticari lisanslama altyapısı bu alana eklenecektir.")
-                    st.text_input("Lisans Anahtarı", disabled=True, placeholder="OMG-PRO-XXXX-XXXX")
-                    st.button("Lisansı Aktifleştir", disabled=True)
+                elif secilen_ayar == "💎 Üyelik & Lisans":
+                    st.markdown("### 💎 Üyelik & Logo Yönetimi")
+                    st.info("Program seviyenizi (Standart, Profesyonel, Business) belirleyin ve her seviyeye özel logolarınızı yükleyin.")
+                    
+                    mevcut_abonelik = ayar_getir("Abonelik_Tipi", "Standart")
+                    y_abonelik = st.selectbox("Aktif Üyelik Seviyesi (Sistem Özelliklerini Belirler)", ["Standart", "Profesyonel", "Business"], index=["Standart", "Profesyonel", "Business"].index(mevcut_abonelik))
+                    
+                    st.markdown("---")
+                    st.markdown("#### 🖼️ Paket Logoları")
+                    st.caption("Farklı abonelik seviyeleri için logolarınızı yükleyin. Sol menüde her zaman aktif pakete ait logo görünür. Profesyonel ve Business için logo yüklemediyseniz Standart logo kullanılır.")
+                    
+                    c_st, c_pr, c_bs = st.columns(3)
+                    with c_st:
+                        l_st = st.file_uploader("Standart Paket Logosu", type=["png", "jpg", "jpeg"], key="up_st")
+                        mevcut_st = ayar_getir("Logo_Standart", "-")
+                        if mevcut_st != "-" and os.path.exists(mevcut_st): st.image(mevcut_st, width=100)
+                    with c_pr:
+                        l_pr = st.file_uploader("Profesyonel Paket Logosu", type=["png", "jpg", "jpeg"], key="up_pr")
+                        mevcut_pr = ayar_getir("Logo_Profesyonel", "-")
+                        if mevcut_pr != "-" and os.path.exists(mevcut_pr): st.image(mevcut_pr, width=100)
+                    with c_bs:
+                        l_bs = st.file_uploader("Business Paket Logosu", type=["png", "jpg", "jpeg"], key="up_bs")
+                        mevcut_bs = ayar_getir("Logo_Business", "-")
+                        if mevcut_bs != "-" and os.path.exists(mevcut_bs): st.image(mevcut_bs, width=100)
+                        
+                    if st.button("Üyelik Ayarlarını Kaydet", type="primary"):
+                        ayar_kaydet("Abonelik_Tipi", y_abonelik)
+                        if l_st:
+                            yolu = storage_utils.dosya_kaydet(os.path.join(storage_utils.UPLOAD_DIR, "ayarlar"), "logo_standart.png", l_st)
+                            ayar_kaydet("Logo_Standart", yolu)
+                        if l_pr:
+                            yolu = storage_utils.dosya_kaydet(os.path.join(storage_utils.UPLOAD_DIR, "ayarlar"), "logo_profesyonel.png", l_pr)
+                            ayar_kaydet("Logo_Profesyonel", yolu)
+                        if l_bs:
+                            yolu = storage_utils.dosya_kaydet(os.path.join(storage_utils.UPLOAD_DIR, "ayarlar"), "logo_business.png", l_bs)
+                            ayar_kaydet("Logo_Business", yolu)
+                        st.success("Abonelik ve logolar başarıyla kaydedildi!")
+                        st.rerun()
                     
                 elif secilen_ayar == "ℹ️ Sistem Hakkında":
                     st.markdown("### ℹ️ Yazılım Bilgileri")
