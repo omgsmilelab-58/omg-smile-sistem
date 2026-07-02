@@ -7596,14 +7596,18 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         
                     if st.button("Üyelik Ayarlarını Kaydet", type="primary"):
                         ayar_kaydet("Abonelik_Tipi", y_abonelik)
+                        
+                        ayar_yolu = "uploads/ayarlar"
+                        if not os.path.exists(ayar_yolu): os.makedirs(ayar_yolu)
+                        
                         if l_st:
-                            yolu = storage_utils.dosya_kaydet(os.path.join(storage_utils.UPLOAD_DIR, "ayarlar"), "logo_standart.png", l_st)
+                            yolu = storage_utils.dosya_kaydet(ayar_yolu, "logo_standart.png", l_st)
                             ayar_kaydet("Logo_Standart", yolu)
                         if l_pr:
-                            yolu = storage_utils.dosya_kaydet(os.path.join(storage_utils.UPLOAD_DIR, "ayarlar"), "logo_profesyonel.png", l_pr)
+                            yolu = storage_utils.dosya_kaydet(ayar_yolu, "logo_profesyonel.png", l_pr)
                             ayar_kaydet("Logo_Profesyonel", yolu)
                         if l_bs:
-                            yolu = storage_utils.dosya_kaydet(os.path.join(storage_utils.UPLOAD_DIR, "ayarlar"), "logo_business.png", l_bs)
+                            yolu = storage_utils.dosya_kaydet(ayar_yolu, "logo_business.png", l_bs)
                             ayar_kaydet("Logo_Business", yolu)
                         st.success("Abonelik ve logolar başarıyla kaydedildi!")
                         st.rerun()
