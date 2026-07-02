@@ -7242,10 +7242,13 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             "🗄️ Veri & Yedekleme", 
             "💰 Finansal Parametreler", 
             "🔐 Güvenlik", 
-            "🌍 Dil Seçenekleri", 
-            "💎 Üyelik & Lisans", 
-            "ℹ️ Sistem Hakkında"
+            "🌍 Dil Seçenekleri"
         ]
+        
+        if rol == "Yönetici":
+            ayarlar_menu.append("💎 Üyelik Yönetim Sistemi")
+            
+        ayarlar_menu.append("ℹ️ Sistem Hakkında")
         
         col_ayarlar_menu, col_ayarlar_icerik = st.columns([1, 3])
         
@@ -7569,8 +7572,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.selectbox("Kullanılacak Dili Seçin", ["Türkçe (Aktif)", "English (Yakında)", "Deutsch (Yakında)"])
                     st.info("Çoklu dil desteği global sürüm ile birlikte aktif edilecektir.")
                     
-                elif secilen_ayar == "💎 Üyelik & Lisans":
-                    st.markdown("### 💎 Üyelik & Logo Yönetimi")
+                elif secilen_ayar == "💎 Üyelik Yönetim Sistemi":
+                    st.markdown("### 💎 Üyelik Yönetim Sistemi")
                     st.info("Program seviyenizi (Standart, Profesyonel, Business) belirleyin ve her seviyeye özel logolarınızı yükleyin.")
                     
                     mevcut_abonelik = ayar_getir("Abonelik_Tipi", "Standart")
