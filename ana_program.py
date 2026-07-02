@@ -1371,7 +1371,9 @@ if not st.session_state["giris_yapildi"]:
         giris_logo = ayar_getir("Giris_Logosu", "-")
             
         if giris_logo != "-" and os.path.exists(giris_logo):
-            st.image(giris_logo, use_container_width=True)
+            img_c1, img_c2, img_c3 = st.columns([1, 1, 1])
+            with img_c2:
+                st.image(giris_logo, use_container_width=True)
             st.markdown("<br>", unsafe_allow_html=True)
         else:
             st.markdown("""<div style='text-align: center; margin-bottom: 20px;'><div style='font-size: 90px; line-height: 1; margin-bottom: 10px; text-shadow: 0 0 30px rgba(56, 189, 248, 0.8);'>🦷</div><h1 style='color: #fff; margin: 0; font-size: 48px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 15px rgba(255,255,255,0.3);'>OMG SMILE ERP</h1><h4 style='color: #38bdf8; margin: 0; font-weight: 600; letter-spacing: 3px;'>Dijital Ekosistem</h4></div>""", unsafe_allow_html=True)
