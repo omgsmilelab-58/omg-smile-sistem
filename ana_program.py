@@ -1368,7 +1368,16 @@ if not st.session_state["giris_yapildi"]:
     st.markdown("<br><br>", unsafe_allow_html=True)
     col_space_left, col_login, col_space_right = st.columns([1, 1.2, 1])
     with col_login:
-        giris_logo = ayar_getir("Giris_Logosu", "-")
+        abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
+        logo_standart = ayar_getir("Logo_Standart", "-")
+        logo_profesyonel = ayar_getir("Logo_Profesyonel", "-")
+        logo_business = ayar_getir("Logo_Business", "-")
+        
+        giris_logo = logo_standart
+        if abonelik_tipi == "Profesyonel":
+            giris_logo = logo_profesyonel if logo_profesyonel != "-" else logo_standart
+        elif abonelik_tipi == "Business":
+            giris_logo = logo_business if logo_business != "-" else logo_standart
             
         if giris_logo != "-" and os.path.exists(giris_logo):
             st.image(giris_logo, use_container_width=True)
@@ -1810,9 +1819,8 @@ if rol in ["Klinik", "Klinik_Asistan"]:
             
             if st.form_submit_button("🚀 Siparişi Onayla"):
                 if ha and hizmetler:
-                    sistem_kdv = float(ayar_getir("KDV_Orani", "20"))
-                    c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama, Hasta_Kodu, KDV_Orani) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                              (datetime.now().strftime("%Y-%m-%d"), ana_klinik, ha, secilen, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", "-", teslim_tarihi, "-", "-", "-", "-", h_kodu, sistem_kdv))
+                    c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama, Hasta_Kodu) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                              (datetime.now().strftime("%Y-%m-%d"), ana_klinik, ha, secilen, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", "-", teslim_tarihi, "-", "-", "-", "-", h_kodu))
                     yeni_id = c.lastrowid
                     onek = ayar_getir("Barkod_Onek", "OMG")
                     yeni_barkod = f"{onek}-{yeni_id:06d}"
@@ -2793,9 +2801,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         harcanan_m_metni = "CAM YOK"
                     
                     is_adet_son = harcanan_uye_m if (cam_kullan and harcanan_uye_m > 0) else int(is_adet_input)
-                    sistem_kdv = float(ayar_getir("KDV_Orani", "20"))
-                    c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama, Hasta_Kodu, Adet, KDV_Orani) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                              (tarih_saat, k_secim, ha, islem_adi, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", harcanan_m_metni, teslim_tarihi, "-", "-", "-", aciklama if aciklama else "-", h_kodu, is_adet_son, sistem_kdv))
+                    c.execute("INSERT INTO isler (Tarih, Klinik_Unvani, Hasta_Adi, Is_Turu, Renk, Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Teslim_Tarihi, Barkod, Lot_Numarasi, Sertifika_No, Aciklama, Hasta_Kodu, Adet) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                              (tarih_saat, k_secim, ha, islem_adi, renk, "Sipariş Alındı (Hekim Girdi)", 0.0, "-", harcanan_m_metni, teslim_tarihi, "-", "-", "-", aciklama if aciklama else "-", h_kodu, is_adet_son))
                     yeni_id = c.lastrowid
                     onek = ayar_getir("Barkod_Onek", "OMG")
                     yeni_barkod = f"{onek}-{yeni_id:06d}"
@@ -7365,24 +7372,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.session_state.w_radar = st.checkbox("Canlı Üretim Radarını Göster", value=st.session_state.w_radar)
                     st.session_state.w_grafikler = st.checkbox("Analitik Grafikleri Göster", value=st.session_state.w_grafikler)
                     st.markdown("---")
-                    st.markdown("#### 🖼️ Giriş Ekranı Logosu")
-                    st.caption("Sisteme giriş ekranında gösterilecek genel logoyu belirleyin. Yüklenmezse varsayılan metin gösterilir.")
-                    g_logo = st.file_uploader("Giriş Ekranı Logosunu Yükle", type=["png", "jpg", "jpeg"], key="up_giris_logo")
-                    mevcut_g_logo = ayar_getir("Giris_Logosu", "-")
-                    if mevcut_g_logo != "-" and os.path.exists(mevcut_g_logo): 
-                        st.image(mevcut_g_logo, width=150)
-                    
-                    if st.button("Logo Ayarını Kaydet", type="primary"):
-                        if g_logo:
-                            ayar_yolu = "uploads/ayarlar"
-                            if not os.path.exists(ayar_yolu): os.makedirs(ayar_yolu)
-                            yolu = storage_utils.dosya_kaydet(ayar_yolu, "giris_logosu.png", g_logo)
-                            ayar_kaydet("Giris_Logosu", yolu)
-                            st.success("Giriş ekranı logosu güncellendi!")
-                            st.rerun()
-                    
-                    st.markdown("---")
-                    st.markdown("#### 🎨 Arkaplan Teması")
+                    st.markdown("#### 🖼️ Arkaplan Teması")
                     st.selectbox("Tema Seçimi (Yakında)", ["Cyberpunk Dark (Aktif)", "Clean Light", "Deep Blue Ocean"])
                     
                 elif secilen_ayar == "💬 İletişim & Şablon":
