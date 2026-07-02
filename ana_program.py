@@ -1365,7 +1365,7 @@ if not st.session_state["giris_yapildi"]:
         div[data-testid="InputInstructions"] { display: none !important; }
         
         /* Ekranı daraltıp scroll'u engelleme */
-        .block-container { padding-top: 2rem !important; padding-bottom: 1rem !important; }
+        .block-container { padding-top: 15vh !important; padding-bottom: 1rem !important; }
 </style>
     """, unsafe_allow_html=True)
     col_space_left, col_login, col_space_right = st.columns([1, 1.2, 1])
