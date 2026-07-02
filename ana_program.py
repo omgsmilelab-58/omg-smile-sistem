@@ -1363,9 +1363,11 @@ if not st.session_state["giris_yapildi"]:
         
         /* 🚨 SİNİR BOZUCU "PRESS ENTER" YAZISINI GİZLEYEN ZIRH 🚨 */
         div[data-testid="InputInstructions"] { display: none !important; }
+        
+        /* Ekranı daraltıp scroll'u engelleme */
+        .block-container { padding-top: 2rem !important; padding-bottom: 1rem !important; }
 </style>
     """, unsafe_allow_html=True)
-    st.markdown("<br><br>", unsafe_allow_html=True)
     col_space_left, col_login, col_space_right = st.columns([1, 1.2, 1])
     with col_login:
         giris_logo = ayar_getir("Giris_Logosu", "-")
@@ -1374,7 +1376,6 @@ if not st.session_state["giris_yapildi"]:
             img_c1, img_c2, img_c3 = st.columns([1, 2, 1])
             with img_c2:
                 st.image(giris_logo, use_container_width=True)
-            st.markdown("<br>", unsafe_allow_html=True)
         else:
             st.markdown("""<div style='text-align: center; margin-bottom: 20px;'><div style='font-size: 90px; line-height: 1; margin-bottom: 10px; text-shadow: 0 0 30px rgba(56, 189, 248, 0.8);'>🦷</div><h1 style='color: #fff; margin: 0; font-size: 48px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 15px rgba(255,255,255,0.3);'>OMG SMILE ERP</h1><h4 style='color: #38bdf8; margin: 0; font-weight: 600; letter-spacing: 3px;'>Dijital Ekosistem</h4></div>""", unsafe_allow_html=True)
         giris_tipi = st.radio(" ", ["👨‍🔬 Sisteme Giriş", "🏥 Klinik Portalı"], horizontal=True, label_visibility="collapsed")
@@ -1403,7 +1404,6 @@ if not st.session_state["giris_yapildi"]:
                     else: st.warning("Kayıtlı klinik yok."); kullanici_giris = ""
                 
                 sifre_giris = st.text_input("Şifre", type="password")
-                st.markdown("<br>", unsafe_allow_html=True)
                 if st.form_submit_button("Portala Gir", use_container_width=True):
                     if asistan_girisi_mi:
                         sorgu = c.execute("SELECT Klinik_Unvani, Sifre FROM klinik_asistanlari WHERE Asistan_Kadi=? AND Sifre=?", (kullanici_giris, sifre_giris)).fetchone()
@@ -1421,8 +1421,8 @@ if not st.session_state["giris_yapildi"]:
     st.markdown("""
         <style>
         .footer-meta {
-            margin-top: 80px;
-            padding-top: 20px;
+            margin-top: 30px;
+            padding-top: 15px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
             font-size: 13px;
@@ -7431,7 +7431,34 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     
                     st.markdown("---")
                     st.markdown("#### 🎨 Arkaplan Teması")
-                    st.selectbox("Tema Seçimi (Yakında)", ["Cyberpunk Dark (Aktif)", "Clean Light", "Deep Blue Ocean"])
+                    mevcut_tema = ayar_getir("Sistem_Temasi", "Karanlık Tema (Gece)")
+                    yeni_tema = st.selectbox("Sistem Teması", ["Karanlık Tema (Gece)", "Aydınlık Tema (Gündüz)"], index=0 if mevcut_tema == "Karanlık Tema (Gece)" else 1)
+                    if st.button("Temayı Kaydet ve Uygula", type="primary"):
+                        ayar_kaydet("Sistem_Temasi", yeni_tema)
+                        
+                        import re
+                        config_yolu = ".streamlit/config.toml"
+                        if os.path.exists(config_yolu):
+                            with open(config_yolu, "r", encoding="utf-8") as f:
+                                icerik = f.read()
+                            
+                            theme_pattern = re.compile(r"\[theme\].*?(?=\n\[|$)", re.DOTALL)
+                            if yeni_tema == "Aydınlık Tema (Gündüz)":
+                                y_theme = '[theme]\nbase = "light"\nprimaryColor = "#0284c7"\nbackgroundColor = "#f8fafc"\nsecondaryBackgroundColor = "#ffffff"\ntextColor = "#0f172a"\nfont = "sans serif"\n'
+                            else:
+                                y_theme = '[theme]\nbase = "dark"\nprimaryColor = "#38bdf8"\nbackgroundColor = "#0f172a"\nsecondaryBackgroundColor = "#1e293b"\ntextColor = "#FFFFFF"\nfont = "sans serif"\n'
+                                
+                            if theme_pattern.search(icerik):
+                                yeni_icerik = theme_pattern.sub(y_theme, icerik)
+                            else:
+                                yeni_icerik = icerik + "\n\n" + y_theme
+                                
+                            with open(config_yolu, "w", encoding="utf-8") as f:
+                                f.write(yeni_icerik)
+                                
+                        st.success("Tema güncellendi! Sayfa yeniden yükleniyor...")
+                        import time; time.sleep(1)
+                        st.rerun()
                     
                 elif secilen_ayar == "💬 İletişim & Şablon":
                     st.markdown("### 💬 Dinamik Mesaj Şablonları")
