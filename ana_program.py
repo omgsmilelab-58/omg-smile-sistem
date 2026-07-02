@@ -1421,13 +1421,19 @@ if not st.session_state["giris_yapildi"]:
     st.markdown("""
         <style>
         .footer-meta {
-            margin-top: 30px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
             padding-top: 15px;
+            padding-bottom: 20px;
+            background-color: transparent;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
             font-size: 13px;
             color: #9ca3af;
             line-height: 2.0;
+            z-index: 9999;
         }
         .footer-meta a {
             color: #9ca3af;
