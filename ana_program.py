@@ -2892,10 +2892,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     except IndexError:
                         st.warning("Seçilen satır tablodan bulunamadı. Lütfen tabloyu yenileyin.")
                         st.stop()
-                    
-                    if st.session_state.get("son_acilan_hasta") != f"{s_hasta}_{s_klinik}":
-                        st.session_state.son_acilan_hasta = f"{s_hasta}_{s_klinik}"
-                        hasta_karti_goster(s_hasta, s_klinik)
                         
                     st.markdown("---")
                     st.success(f"👉 **İşlem Yapılan Reçete:** {s_barkod} | {s_klinik} - {s_hasta}")
