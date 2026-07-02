@@ -51,7 +51,20 @@ def dosya_kaydet(hedef_dizin, dosya_adi, dosya_objesi):
             return blob.public_url
         except Exception as e:
             st.error(f"Dosya Cloud'a yüklenemedi: {e}")
-            return f"{hedef_dizin}/{dosya_adi}"
+            # Hata durumunda lokale kaydet (Fallback)
+            if not os.path.exists(hedef_dizin):
+                os.makedirs(hedef_dizin, exist_ok=True)
+            tam_yol = os.path.join(hedef_dizin, dosya_adi)
+            try:
+                # Dosya objesinin başına sar (read() yapılmış olabilir)
+                if hasattr(dosya_objesi, 'seek'):
+                    dosya_objesi.seek(0)
+                with open(tam_yol, "wb") as f:
+                    f.write(dosya_objesi.getbuffer() if hasattr(dosya_objesi, 'getbuffer') else dosya_objesi.read())
+                return tam_yol
+            except Exception as e2:
+                st.error(f"Dosya lokale de kaydedilemedi: {e2}")
+                return tam_yol
     else:
         # Lokal Kayıt
         if not os.path.exists(hedef_dizin):
