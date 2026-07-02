@@ -767,6 +767,22 @@ c.execute('''CREATE TABLE IF NOT EXISTS personel_finans (id SERIAL PRIMARY KEY, 
 c.execute('''CREATE TABLE IF NOT EXISTS personel_izinler (id SERIAL PRIMARY KEY, Tarih TEXT, Personel_Adi TEXT, Baslangic_Tarihi TEXT, Bitis_Tarihi TEXT, Gun_Sayisi INTEGER, Aciklama TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS klinik_asistanlari (Klinik_Unvani TEXT, Asistan_Kadi TEXT PRIMARY KEY, Sifre TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS laboratuvar_dokumanlari (id SERIAL PRIMARY KEY, Tarih TEXT, Dokuman_Adi TEXT, Dosya_Yolu TEXT, Dosya_Turu TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS kurumsal_bilgiler (Kullanici_Adi TEXT PRIMARY KEY, Kurum_Ad TEXT, Ticari_Unvan TEXT, Kurulus TEXT, Sorumlu TEXT, Vergi_No TEXT, Vergi_Dairesi TEXT, IBAN TEXT, Kep TEXT, Telefon TEXT, Email TEXT, Web TEXT, Adres TEXT, Logo_Yolu TEXT)''')
+
+mevcut_lab = c.execute("SELECT COUNT(*) FROM kurumsal_bilgiler WHERE Kullanici_Adi='Laboratuvar'").fetchone()[0]
+if mevcut_lab == 0:
+    lab_adi_check = c.execute("SELECT Ayar_Degeri FROM ayarlar WHERE Ayar_Adi='Lab_Ad'").fetchone()
+    if lab_adi_check:
+        def get_ay(adi, var="Belirtilmemiş"):
+            val = c.execute("SELECT Ayar_Degeri FROM ayarlar WHERE Ayar_Adi=?", (adi,)).fetchone()
+            return val[0] if val else var
+        c.execute('''INSERT INTO kurumsal_bilgiler (
+            Kullanici_Adi, Kurum_Ad, Ticari_Unvan, Kurulus, Sorumlu, Vergi_No, Vergi_Dairesi, IBAN, Kep, Telefon, Email, Web, Adres, Logo_Yolu
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
+            'Laboratuvar', get_ay('Lab_Ad', 'OMG Smile Sistem'), get_ay('Lab_Unvan'), get_ay('Lab_Kurulus_Tarihi', 'Bilinmiyor'),
+            get_ay('Lab_Sorumlu_Kisi'), get_ay('Lab_Vergi_No'), get_ay('Lab_Vergi_Dairesi'), get_ay('Lab_IBAN', 'TR00 0000 0000 0000 0000 0000 00'),
+            get_ay('Lab_Kep'), get_ay('Lab_Telefon'), get_ay('Lab_Email'), get_ay('Lab_Web'), get_ay('Lab_Adres'), get_ay('Kurumsal_Logo', '-')
+        ))
 
 # 💎 FAZ 42: CANLI BİLDİRİM VE CHAT ALTYAPISI (BEYİN) 💎
 # Sistemdeki anlık hareketleri (giriş yaptı, reçete yazdı vb.) tutar. 
@@ -1804,20 +1820,31 @@ if rol in ["Klinik", "Klinik_Asistan"]:
 
 
     elif sayfa == "🏢 Kurumsal Bilgi":
-        banner_olustur("🏢", "Laboratuvar Kurumsal Bilgi", "Laboratuvarımıza ait resmi kurumsal bilgiler, vergi, ödeme ve iletişim detayları.")
+        k_adi = "Laboratuvar" if rol in ["Admin", "Yönetici", "Sekreter"] else kullanici_adi
         
-        lab_adi = ayar_getir("Lab_Ad", "OMG Smile Sistem")
-        lab_unvan = ayar_getir("Lab_Unvan", "Belirtilmemiş")
-        lab_kurulus = ayar_getir("Lab_Kurulus_Tarihi", "Bilinmiyor")
-        lab_sorumlu = ayar_getir("Lab_Sorumlu_Kisi", "Belirtilmemiş")
-        lab_vergi_no = ayar_getir("Lab_Vergi_No", "Belirtilmemiş")
-        lab_vergi_dairesi = ayar_getir("Lab_Vergi_Dairesi", "Belirtilmemiş")
-        lab_iban = ayar_getir("Lab_IBAN", "TR00 0000 0000 0000 0000 0000 00")
-        lab_kep = ayar_getir("Lab_Kep", "Belirtilmemiş")
-        lab_telefon = ayar_getir("Lab_Telefon", "Belirtilmemiş")
-        lab_email = ayar_getir("Lab_Email", "Belirtilmemiş")
-        lab_web = ayar_getir("Lab_Web", "Belirtilmemiş")
-        lab_adres = ayar_getir("Lab_Adres", "Belirtilmemiş")
+        banner_olustur("🏢", f"{k_adi} Kurumsal Bilgi", "Kurumsal bilgiler, vergi, ödeme ve iletişim detayları.")
+        
+        kurum_bilgi = c.execute("SELECT Kurum_Ad, Ticari_Unvan, Kurulus, Sorumlu, Vergi_No, Vergi_Dairesi, IBAN, Kep, Telefon, Email, Web, Adres FROM kurumsal_bilgiler WHERE Kullanici_Adi=?", (k_adi,)).fetchone()
+        
+        if not kurum_bilgi:
+            if rol in ["Admin", "Yönetici"]:
+                st.warning("Kurumsal bilgiler henüz girilmemiş. Ayarlar menüsünden doldurabilirsiniz.")
+            else:
+                st.warning("Kliniğinize ait kurumsal bilgileri henüz girmediniz. Lütfen Ayarlar > Kurumsal Kimlik menüsünden bilgilerinizi güncelleyin.")
+        else:
+            lab_adi = kurum_bilgi[0] if kurum_bilgi[0] else "Belirtilmemiş"
+            lab_unvan = kurum_bilgi[1] if kurum_bilgi[1] else "Belirtilmemiş"
+            lab_kurulus = kurum_bilgi[2] if kurum_bilgi[2] else "Bilinmiyor"
+            lab_sorumlu = kurum_bilgi[3] if kurum_bilgi[3] else "Belirtilmemiş"
+            lab_vergi_no = kurum_bilgi[4] if kurum_bilgi[4] else "Belirtilmemiş"
+            lab_vergi_dairesi = kurum_bilgi[5] if kurum_bilgi[5] else "Belirtilmemiş"
+            lab_iban = kurum_bilgi[6] if kurum_bilgi[6] else "TR00 0000 0000 0000 0000 0000 00"
+            lab_kep = kurum_bilgi[7] if kurum_bilgi[7] else "Belirtilmemiş"
+            lab_telefon = kurum_bilgi[8] if kurum_bilgi[8] else "Belirtilmemiş"
+            lab_email = kurum_bilgi[9] if kurum_bilgi[9] else "Belirtilmemiş"
+            lab_web = kurum_bilgi[10] if kurum_bilgi[10] else "Belirtilmemiş"
+            lab_adres = kurum_bilgi[11] if kurum_bilgi[11] else "Belirtilmemiş"
+
         
         st.markdown(f"""
         <div class='glass-card' style='padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 20px;'>
@@ -1911,7 +1938,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
     elif sayfa == "⚙️ Ayarlar" and rol == "Klinik":
         banner_olustur("⚙️", "Klinik Ayarları", "Şifre, güvenlik, asistan ve otonom laboratuvar tercihlerinizi yönetin.")
         
-        tab_sifre, tab_asistan, tab_bildirim, tab_otopilot = st.tabs(["🔑 Şifre Değiştir", "👥 Asistan / Alt Hesaplar", "🔔 Bildirim Tercihleri", "⚡ Otopilot Reçete"])
+        tab_sifre, tab_asistan, tab_bildirim, tab_otopilot, tab_kurumsal = st.tabs(["🔑 Şifre Değiştir", "👥 Asistan / Alt Hesaplar", "🔔 Bildirim Tercihleri", "⚡ Otopilot Reçete", "🏢 Kurumsal Kimlik"])
         
         with tab_sifre:
             col_bos1, col_form, col_bos2 = st.columns([1, 2, 1])
@@ -1970,6 +1997,43 @@ if rol in ["Klinik", "Klinik_Asistan"]:
                 if st.form_submit_button("Tercihleri Kaydet", type="primary"):
                     c.execute("UPDATE cariler SET Bildirim_Kurye=?, Bildirim_Fatura=?, Bildirim_Asama=? WHERE Klinik_Unvani=?", (yeni_bk, yeni_bf, yeni_ba, kullanici_adi))
                     conn.commit(); st.success("Bildirim tercihleriniz OMG AI sistemine başarıyla entegre edildi!"); st.rerun()
+
+        with tab_kurumsal:
+            st.markdown("### 🏢 Kurumsal Kimlik Bilgileri")
+            st.info("Kliniğinize ait fatura ve iletişim bilgilerini buradan güncelleyebilirsiniz.")
+            
+            k_bilgi = c.execute("SELECT Kurum_Ad, Ticari_Unvan, Kurulus, Sorumlu, Vergi_No, Vergi_Dairesi, IBAN, Kep, Telefon, Email, Web, Adres FROM kurumsal_bilgiler WHERE Kullanici_Adi=?", (kullanici_adi,)).fetchone()
+            if not k_bilgi: k_bilgi = ["", "", "", "", "", "", "", "", "", "", "", ""]
+            
+            with st.form("klinik_kurumsal_form"):
+                k_c1, k_c2, k_c3 = st.columns(3)
+                with k_c1:
+                    y_lab_adi = st.text_input("Klinik Adı", value=k_bilgi[0])
+                    y_lab_unvan = st.text_input("Ticaret Ünvanı", value=k_bilgi[1])
+                    y_lab_kurulus = st.text_input("Kuruluş Yılı", value=k_bilgi[2])
+                    y_lab_sorumlu = st.text_input("Sorumlu Kişi", value=k_bilgi[3])
+                with k_c2:
+                    y_lab_vergi_no = st.text_input("Vergi No", value=k_bilgi[4])
+                    y_lab_vergi_dairesi = st.text_input("Vergi Dairesi", value=k_bilgi[5])
+                    y_lab_iban = st.text_input("IBAN (Banka Hesap No)", value=k_bilgi[6])
+                    y_lab_kep = st.text_input("KEP Adresi", value=k_bilgi[7])
+                with k_c3:
+                    y_lab_telefon = st.text_input("Telefon", value=k_bilgi[8])
+                    y_lab_email = st.text_input("E-Mail", value=k_bilgi[9])
+                    y_lab_web = st.text_input("Web Sitesi", value=k_bilgi[10])
+                    y_lab_adres = st.text_area("Açık Adres", value=k_bilgi[11], height=68)
+                    
+                if st.form_submit_button("Kurumsal Bilgileri Kaydet", type="primary", use_container_width=True):
+                    var_mi = c.execute("SELECT COUNT(*) FROM kurumsal_bilgiler WHERE Kullanici_Adi=?", (kullanici_adi,)).fetchone()[0]
+                    if var_mi > 0:
+                        c.execute('''UPDATE kurumsal_bilgiler SET Kurum_Ad=?, Ticari_Unvan=?, Kurulus=?, Sorumlu=?, Vergi_No=?, Vergi_Dairesi=?, IBAN=?, Kep=?, Telefon=?, Email=?, Web=?, Adres=? WHERE Kullanici_Adi=?''', 
+                                  (y_lab_adi, y_lab_unvan, y_lab_kurulus, y_lab_sorumlu, y_lab_vergi_no, y_lab_vergi_dairesi, y_lab_iban, y_lab_kep, y_lab_telefon, y_lab_email, y_lab_web, y_lab_adres, kullanici_adi))
+                    else:
+                        c.execute('''INSERT INTO kurumsal_bilgiler (Kullanici_Adi, Kurum_Ad, Ticari_Unvan, Kurulus, Sorumlu, Vergi_No, Vergi_Dairesi, IBAN, Kep, Telefon, Email, Web, Adres, Logo_Yolu) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'-')''',
+                                  (kullanici_adi, y_lab_adi, y_lab_unvan, y_lab_kurulus, y_lab_sorumlu, y_lab_vergi_no, y_lab_vergi_dairesi, y_lab_iban, y_lab_kep, y_lab_telefon, y_lab_email, y_lab_web, y_lab_adres))
+                    conn.commit()
+                    st.success("Kurumsal bilgiler başarıyla güncellendi!")
+                    st.rerun()
 
         with tab_otopilot:
             st.markdown("### ⚡ Otopilot Reçete")
@@ -7200,35 +7264,34 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.markdown("### 🏢 Kurumsal Kimlik Ayarları")
                     st.info("Laboratuvarınızın belgelerde ve sistemde görünecek olan temel kimlik bilgilerini belirleyin.")
                     st.markdown("#### Genel & İletişim Bilgileri")
+                    k_bilgi = c.execute("SELECT Kurum_Ad, Ticari_Unvan, Kurulus, Sorumlu, Vergi_No, Vergi_Dairesi, IBAN, Kep, Telefon, Email, Web, Adres FROM kurumsal_bilgiler WHERE Kullanici_Adi='Laboratuvar'").fetchone()
+                    if not k_bilgi: k_bilgi = [ayar_getir("Lab_Ad", "OMG Smile Sistem"), ayar_getir("Lab_Unvan", "Belirtilmemiş"), ayar_getir("Lab_Kurulus_Tarihi", "Bilinmiyor"), ayar_getir("Lab_Sorumlu_Kisi", "Belirtilmemiş"), ayar_getir("Lab_Vergi_No", "Belirtilmemiş"), ayar_getir("Lab_Vergi_Dairesi", "Belirtilmemiş"), ayar_getir("Lab_IBAN", "TR00 0000 0000 0000 0000 0000 00"), ayar_getir("Lab_Kep", "Belirtilmemiş"), ayar_getir("Lab_Telefon", "Belirtilmemiş"), ayar_getir("Lab_Email", "Belirtilmemiş"), ayar_getir("Lab_Web", "Belirtilmemiş"), ayar_getir("Lab_Adres", "Belirtilmemiş")]
+                    
                     k_c1, k_c2, k_c3 = st.columns(3)
                     with k_c1:
-                        y_lab_adi = st.text_input("Laboratuvar Adı", value=ayar_getir("Lab_Ad", "OMG Smile Sistem"))
-                        y_lab_unvan = st.text_input("Ticaret Ünvanı", value=ayar_getir("Lab_Unvan", "Belirtilmemiş"))
-                        y_lab_kurulus = st.text_input("Kuruluş Tarihi", value=ayar_getir("Lab_Kurulus_Tarihi", "Bilinmiyor"))
-                        y_lab_sorumlu = st.text_input("Sorumlu Kişi", value=ayar_getir("Lab_Sorumlu_Kisi", "Belirtilmemiş"))
+                        y_lab_adi = st.text_input("Laboratuvar Adı", value=k_bilgi[0])
+                        y_lab_unvan = st.text_input("Ticaret Ünvanı", value=k_bilgi[1])
+                        y_lab_kurulus = st.text_input("Kuruluş Tarihi", value=k_bilgi[2])
+                        y_lab_sorumlu = st.text_input("Sorumlu Kişi", value=k_bilgi[3])
                     with k_c2:
-                        y_lab_vergi_no = st.text_input("Vergi No", value=ayar_getir("Lab_Vergi_No", "Belirtilmemiş"))
-                        y_lab_vergi_dairesi = st.text_input("Vergi Dairesi", value=ayar_getir("Lab_Vergi_Dairesi", "Belirtilmemiş"))
-                        y_lab_iban = st.text_input("IBAN (Cari Hesap)", value=ayar_getir("Lab_IBAN", "TR00 0000 0000 0000 0000 0000 00"))
-                        y_lab_kep = st.text_input("KEP Adresi", value=ayar_getir("Lab_Kep", "Belirtilmemiş"))
+                        y_lab_vergi_no = st.text_input("Vergi No", value=k_bilgi[4])
+                        y_lab_vergi_dairesi = st.text_input("Vergi Dairesi", value=k_bilgi[5])
+                        y_lab_iban = st.text_input("IBAN (Cari Hesap)", value=k_bilgi[6])
+                        y_lab_kep = st.text_input("KEP Adresi", value=k_bilgi[7])
                     with k_c3:
-                        y_lab_telefon = st.text_input("Telefon", value=ayar_getir("Lab_Telefon", "Belirtilmemiş"))
-                        y_lab_email = st.text_input("E-Mail", value=ayar_getir("Lab_Email", "Belirtilmemiş"))
-                        y_lab_web = st.text_input("Web Sitesi", value=ayar_getir("Lab_Web", "Belirtilmemiş"))
-                        y_lab_adres = st.text_area("Adres", value=ayar_getir("Lab_Adres", "Belirtilmemiş"), height=68)
+                        y_lab_telefon = st.text_input("Telefon", value=k_bilgi[8])
+                        y_lab_email = st.text_input("E-Mail", value=k_bilgi[9])
+                        y_lab_web = st.text_input("Web Sitesi", value=k_bilgi[10])
+                        y_lab_adres = st.text_area("Adres", value=k_bilgi[11], height=68)
                     if st.button("Kurumsal Bilgileri Kaydet", type="primary", use_container_width=True):
-                        ayar_kaydet("Lab_Ad", y_lab_adi)
-                        ayar_kaydet("Lab_Unvan", y_lab_unvan)
-                        ayar_kaydet("Lab_Kurulus_Tarihi", y_lab_kurulus)
-                        ayar_kaydet("Lab_Sorumlu_Kisi", y_lab_sorumlu)
-                        ayar_kaydet("Lab_Vergi_No", y_lab_vergi_no)
-                        ayar_kaydet("Lab_Vergi_Dairesi", y_lab_vergi_dairesi)
-                        ayar_kaydet("Lab_IBAN", y_lab_iban)
-                        ayar_kaydet("Lab_Kep", y_lab_kep)
-                        ayar_kaydet("Lab_Telefon", y_lab_telefon)
-                        ayar_kaydet("Lab_Email", y_lab_email)
-                        ayar_kaydet("Lab_Web", y_lab_web)
-                        ayar_kaydet("Lab_Adres", y_lab_adres)
+                        var_mi = c.execute("SELECT COUNT(*) FROM kurumsal_bilgiler WHERE Kullanici_Adi='Laboratuvar'").fetchone()[0]
+                        if var_mi > 0:
+                            c.execute('''UPDATE kurumsal_bilgiler SET Kurum_Ad=?, Ticari_Unvan=?, Kurulus=?, Sorumlu=?, Vergi_No=?, Vergi_Dairesi=?, IBAN=?, Kep=?, Telefon=?, Email=?, Web=?, Adres=? WHERE Kullanici_Adi='Laboratuvar' ''', 
+                                      (y_lab_adi, y_lab_unvan, y_lab_kurulus, y_lab_sorumlu, y_lab_vergi_no, y_lab_vergi_dairesi, y_lab_iban, y_lab_kep, y_lab_telefon, y_lab_email, y_lab_web, y_lab_adres))
+                        else:
+                            c.execute('''INSERT INTO kurumsal_bilgiler (Kullanici_Adi, Kurum_Ad, Ticari_Unvan, Kurulus, Sorumlu, Vergi_No, Vergi_Dairesi, IBAN, Kep, Telefon, Email, Web, Adres, Logo_Yolu) VALUES ('Laboratuvar',?,?,?,?,?,?,?,?,?,?,?,?,'-')''',
+                                      (y_lab_adi, y_lab_unvan, y_lab_kurulus, y_lab_sorumlu, y_lab_vergi_no, y_lab_vergi_dairesi, y_lab_iban, y_lab_kep, y_lab_telefon, y_lab_email, y_lab_web, y_lab_adres))
+                        conn.commit()
                         st.success("Kurumsal bilgiler başarıyla güncellendi!")
                         st.rerun()
                     st.markdown("---")
