@@ -1518,8 +1518,16 @@ if st.session_state.aktif_sayfa not in menu and st.session_state.aktif_sayfa not
 
 if st.session_state.aktif_sayfa == "📺 Lobi / TV Ekranı":
     st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
-    st.markdown("""<div style='text-align:center; padding:30px;'><h1 class='neon-text-blue' style='font-size:60px;'>OMG SMILE ÜRETİM MERKEZİ</h1><h3 style='color:#94a3b8; letter-spacing:5px;'>CANLI DURUM EKRANI</h3></div>""", unsafe_allow_html=True)
-    df_isler = pd.read_sql("SELECT Asama, Klinik_Unvani FROM isler", conn)
+    if rol in ["Klinik", "Klinik_Asistan"]:
+        baslik = ana_klinik.upper() if ana_klinik else "KLİNİK"
+        st.markdown(f"""<div style='text-align:center; padding:30px;'><h1 class='neon-text-blue' style='font-size:60px;'>{baslik}</h1><h3 style='color:#94a3b8; letter-spacing:5px;'>CANLI DURUM EKRANI</h3></div>""", unsafe_allow_html=True)
+        df_isler = pd.read_sql(f"SELECT Asama, Klinik_Unvani FROM isler WHERE Klinik_Unvani='{ana_klinik}'", conn)
+        kurye_bekleyen = c.execute("SELECT count(*) FROM kurye_islemleri WHERE Durum='Bekliyor' AND Klinik_Unvani=?", (ana_klinik,)).fetchone()[0]
+    else:
+        st.markdown("""<div style='text-align:center; padding:30px;'><h1 class='neon-text-blue' style='font-size:60px;'>OMG SMILE ÜRETİM MERKEZİ</h1><h3 style='color:#94a3b8; letter-spacing:5px;'>CANLI DURUM EKRANI</h3></div>""", unsafe_allow_html=True)
+        df_isler = pd.read_sql("SELECT Asama, Klinik_Unvani FROM isler", conn)
+        kurye_bekleyen = c.execute("SELECT count(*) FROM kurye_islemleri WHERE Durum='Bekliyor'").fetchone()[0]
+        
     c_sip = len(df_isler[df_isler["Asama"]=="Sipariş Alındı (Hekim Girdi)"])
     c_tas = len(df_isler[df_isler["Asama"]=="Tasarım Bekliyor"])
     c_kaz = len(df_isler[df_isler["Asama"]=="Kazıma/Döküm"])
@@ -1538,7 +1546,6 @@ if st.session_state.aktif_sayfa == "📺 Lobi / TV Ekranı":
     """, unsafe_allow_html=True)
     
     l1, l2 = st.columns(2)
-    kurye_bekleyen = c.execute("SELECT count(*) FROM kurye_islemleri WHERE Durum='Bekliyor'").fetchone()[0]
     l1.markdown(f"<div class='glass-card' style='text-align:center;'><h2 style='color:#FFFFFF;'>Toplam Aktif İş</h2><h1 class='neon-text-blue' style='font-size:80px;'>{c_sip+c_tas+c_kaz+c_fir}</h1></div>", unsafe_allow_html=True)
     l2.markdown(f"<div class='glass-card' style='text-align:center;'><h2 style='color:#FFFFFF;'>Bekleyen Kurye</h2><h1 class='neon-text-red' style='font-size:80px;'>{kurye_bekleyen}</h1></div>", unsafe_allow_html=True)
     
