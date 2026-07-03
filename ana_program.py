@@ -1419,16 +1419,13 @@ if not st.session_state["giris_yapildi"]:
                     else: st.error("Erişim Reddedildi!")
             else:
                 st.markdown("<h3 style='text-align:center; color:#38bdf8;'>Hekim VIP Portal</h3>", unsafe_allow_html=True)
-                klinikler_listesi = [row[0] for row in c.execute("SELECT Klinik_Unvani FROM cariler").fetchall()]
                 
                 asistan_girisi_mi = st.checkbox("👩‍💻 Asistan Girişi (Alt Hesap)")
                 
                 if asistan_girisi_mi:
                     kullanici_giris = st.text_input("Asistan Kullanıcı Adı (Örn: OMG_Ayse)")
                 else:
-                    if klinikler_listesi:
-                        kullanici_giris = st.selectbox("Kayıtlı Klinik", klinikler_listesi)
-                    else: st.warning("Kayıtlı klinik yok."); kullanici_giris = ""
+                    kullanici_giris = st.text_input("Klinik Adı / Kullanıcı Adı")
                 
                 sifre_giris = st.text_input("Şifre", type="password")
                 if st.form_submit_button("Portala Gir", use_container_width=True):
@@ -1439,11 +1436,24 @@ if not st.session_state["giris_yapildi"]:
                             st.rerun()
                         else: st.error("Asistan bilgileri hatalı!")
                     else:
-                        sorgu = c.execute("SELECT Sifre FROM cariler WHERE Klinik_Unvani=? AND Sifre=?", (kullanici_giris, sifre_giris)).fetchone()
-                        if sorgu: 
-                            st.session_state.update({"giris_yapildi": True, "kullanici_adi": kullanici_giris, "kullanici_rolu": "Klinik", "ana_klinik": kullanici_giris})
+                        # Case insensitive match with Python
+                        klinikler = c.execute("SELECT Klinik_Unvani, Sifre FROM cariler").fetchall()
+                        giris_basarili = False
+                        gercek_unvan = ""
+                        
+                        def tr_lower(text):
+                            return text.replace('I','ı').replace('İ','i').lower()
+                            
+                        for k_unvan, k_sifre in klinikler:
+                            if tr_lower(k_unvan) == tr_lower(kullanici_giris.strip()) and k_sifre == sifre_giris:
+                                giris_basarili = True
+                                gercek_unvan = k_unvan
+                                break
+                                
+                        if giris_basarili: 
+                            st.session_state.update({"giris_yapildi": True, "kullanici_adi": gercek_unvan, "kullanici_rolu": "Klinik", "ana_klinik": gercek_unvan})
                             st.rerun()
-                        else: st.error("Şifre Hatalı!")
+                        else: st.error("Klinik Adı (Kullanıcı Adı) veya Şifre Hatalı!")
     
     st.markdown("""
         <style>
