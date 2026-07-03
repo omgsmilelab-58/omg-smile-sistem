@@ -823,8 +823,35 @@ def ayar_varsayilan_ekle(ayar_adi, deger):
         mevcut = c.execute("SELECT COUNT(*) FROM ayarlar WHERE Ayar_Adi=?", (ayar_adi,)).fetchone()
         if not mevcut or mevcut[0] == 0:
             c.execute("INSERT INTO ayarlar (Ayar_Adi, Ayar_Degeri) VALUES (?, ?)", (ayar_adi, str(deger)))
-            conn.commit()
-    except: pass
+    except Exception:
+        pass
+
+import base64
+def kalici_logo_kaydet(ayar_anahtari, st_uploader_objesi):
+    if st_uploader_objesi is not None:
+        dosya_byte = st_uploader_objesi.getbuffer() if hasattr(st_uploader_objesi, 'getbuffer') else st_uploader_objesi.read()
+        b64_str = base64.b64encode(dosya_byte).decode("utf-8")
+        uzanti = str(st_uploader_objesi.name).split('.')[-1].lower()
+        tam_deger = f"base64:{uzanti}:{b64_str}"
+        ayar_kaydet(ayar_anahtari, tam_deger)
+        return tam_deger
+    return None
+
+def kalici_logo_getir(ayar_anahtari, default="-"):
+    deger = str(ayar_getir(ayar_anahtari, default))
+    if deger.startswith("base64:"):
+        parcalar = deger.split(":", 2)
+        if len(parcalar) == 3:
+            uzanti = parcalar[1]
+            b64_str = parcalar[2]
+            hedef_dizin = "uploads/ayarlar"
+            if not os.path.exists(hedef_dizin): os.makedirs(hedef_dizin)
+            dosya_yolu = os.path.join(hedef_dizin, f"{ayar_anahtari}.{uzanti}").replace("\\", "/")
+            if not os.path.exists(dosya_yolu) or os.path.getsize(dosya_yolu) == 0:
+                with open(dosya_yolu, "wb") as f:
+                    f.write(base64.b64decode(b64_str))
+            return dosya_yolu
+    return deger
 
 if not c.execute("SELECT count(*) FROM ayarlar").fetchone()[0] > 0:
     ayar_kaydet("Barkod_Onek", "OMG")
@@ -1064,7 +1091,7 @@ def garanti_sertifikasi_uret(hasta, klinik, is_turu, tarih, lot, cert_no):
     pdf = FPDF(orientation='L', unit='mm', format='A5'); pdf.set_auto_page_break(auto=False, margin=0); pdf.add_page()
     pdf.set_draw_color(30, 58, 138); pdf.set_line_width(1.5); pdf.rect(5, 5, 200, 138); pdf.set_line_width(0.5); pdf.rect(7, 7, 196, 134)
     # 💎 LOGO KONTROLÜ (SOL ÜST KÖŞEYE ZARİF YERLEŞTİRME) 💎
-    logo_yolu = ayar_getir("Kurumsal_Logo", "-")
+    logo_yolu = kalici_logo_getir("Kurumsal_Logo", "-")
     if logo_yolu != "-" and os.path.exists(logo_yolu):
         # Logoyu sol üst köşeye daha kibar (30mm genişlik) yerleştiriyoruz
         pdf.image(logo_yolu, x=12, y=10, w=30) 
@@ -1102,7 +1129,7 @@ def ekstre_pdf_uret(klinik, df, son_bakiye):
     def tr(metin): return str(metin).replace('ı','i').replace('ş','s').replace('ğ','g').replace('ö','o').replace('ç','c').replace('ü','u').replace('İ','I').replace('Ş','S').replace('Ğ','G').replace('Ö','O').replace('Ç','C').replace('Ü','U')
     pdf = FPDF(orientation='P', unit='mm', format='A4'); pdf.set_auto_page_break(auto=True, margin=15); pdf.add_page()
     # 💎 LOGO KONTROLÜ 💎
-    logo_yolu = ayar_getir("Kurumsal_Logo", "-")
+    logo_yolu = kalici_logo_getir("Kurumsal_Logo", "-")
     if logo_yolu != "-" and os.path.exists(logo_yolu):
         pdf.image(logo_yolu, x=10, y=10, w=35) # Sol üste küçük logo
         pdf.set_y(25)
@@ -1370,7 +1397,7 @@ if not st.session_state["giris_yapildi"]:
     """, unsafe_allow_html=True)
     col_space_left, col_login, col_space_right = st.columns([1, 1.2, 1])
     with col_login:
-        giris_logo = ayar_getir("Giris_Logosu", "-")
+        giris_logo = kalici_logo_getir("Giris_Logosu", "-")
             
         if giris_logo != "-" and os.path.exists(giris_logo):
             img_c1, img_c2, img_c3 = st.columns([1, 2, 1])
@@ -1560,9 +1587,9 @@ if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
 # --- STANDART MENÜ ---
 # --- SİDEBAR (LOGO DESTEKLİ VE ÜYELİK SEVİYESİ) ---
 abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
-logo_standart = ayar_getir("Logo_Standart", "-")
-logo_profesyonel = ayar_getir("Logo_Profesyonel", "-")
-logo_business = ayar_getir("Logo_Business", "-")
+logo_standart = kalici_logo_getir("Logo_Standart", "-")
+logo_profesyonel = kalici_logo_getir("Logo_Profesyonel", "-")
+logo_business = kalici_logo_getir("Logo_Business", "-")
 
 logo_yolu = logo_standart
 if abonelik_tipi == "Profesyonel":
@@ -7382,7 +7409,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         st.markdown("#### Logo (White-Label)")
                         
                         # Mevcut logoyu göster veya emojiyi hatırlat
-                        suanki_logo = ayar_getir("Kurumsal_Logo", "-")
+                        suanki_logo = kalici_logo_getir("Kurumsal_Logo", "-")
                         if suanki_logo != "-" and os.path.exists(suanki_logo):
                             st.image(suanki_logo, width=150, caption="Sistemde Aktif Logo")
                             if st.button("🗑️ Logoyu Kaldır (Eski Diş Emojisine Dön)", use_container_width=True):
@@ -7397,17 +7424,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         
                         if st.button("🚀 Yeni Logoyu Sisteme Giydir", use_container_width=True):
                             if logo_dosyasi:
-                                kurumsal_yol = "uploads/kurumsal"
-                                if not os.path.exists(kurumsal_yol): os.makedirs(kurumsal_yol)
-                                
-                                # 💎 HATA ÇÖZÜMÜ: Dosyanın gerçek uzantısını (.jpg, .png) otomatik bulur 💎
+                                kalici_logo_kaydet("Kurumsal_Logo", logo_dosyasi)
                                 gercek_uzanti = str(logo_dosyasi.name).split('.')[-1].lower()
-                                dosya_adi = f"sistem_logosu_{datetime.now().strftime('%H%M%S')}.{gercek_uzanti}"
-                                
-                                tam_yol = os.path.join(kurumsal_yol, dosya_adi)
-                                tam_yol = storage_utils.dosya_kaydet(os.path.dirname(tam_yol), os.path.basename(tam_yol), logo_dosyasi)
-                                ayar_kaydet("Kurumsal_Logo", tam_yol)
-                                st.success(f"✅ Kurumsal logo ({gercek_uzanti.upper()} formatında) başarıyla güncellendi!")
+                                st.success(f"✅ Kurumsal logo ({gercek_uzanti.upper()} formatında) kalıcı olarak güncellendi!")
                                 st.rerun()
                             else:
                                 st.error("Lütfen önce bir logo dosyası seçin!")
@@ -7422,17 +7441,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.markdown("#### 🖼️ Giriş Ekranı Logosu")
                     st.caption("Sisteme giriş ekranında gösterilecek genel logoyu belirleyin. Yüklenmezse varsayılan metin gösterilir.")
                     g_logo = st.file_uploader("Giriş Ekranı Logosunu Yükle", type=["png", "jpg", "jpeg"], key="up_giris_logo")
-                    mevcut_g_logo = ayar_getir("Giris_Logosu", "-")
+                    mevcut_g_logo = kalici_logo_getir("Giris_Logosu", "-")
                     if mevcut_g_logo != "-" and os.path.exists(mevcut_g_logo): 
                         st.image(mevcut_g_logo, width=150)
                     
                     if st.button("Logo Ayarını Kaydet", type="primary"):
                         if g_logo:
-                            ayar_yolu = "uploads/ayarlar"
-                            if not os.path.exists(ayar_yolu): os.makedirs(ayar_yolu)
-                            yolu = storage_utils.dosya_kaydet(ayar_yolu, "giris_logosu.png", g_logo)
-                            ayar_kaydet("Giris_Logosu", yolu)
-                            st.success("Giriş ekranı logosu güncellendi!")
+                            kalici_logo_kaydet("Giris_Logosu", g_logo)
+                            st.success("Giriş ekranı logosu kalıcı olarak güncellendi!")
                             st.rerun()
                     
                     st.markdown("---")
@@ -7692,15 +7708,15 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     c_st, c_pr, c_bs = st.columns(3)
                     with c_st:
                         l_st = st.file_uploader("Standart Paket Logosu", type=["png", "jpg", "jpeg"], key="up_st")
-                        mevcut_st = ayar_getir("Logo_Standart", "-")
+                        mevcut_st = kalici_logo_getir("Logo_Standart", "-")
                         if mevcut_st != "-" and os.path.exists(mevcut_st): st.image(mevcut_st, width=100)
                     with c_pr:
                         l_pr = st.file_uploader("Profesyonel Paket Logosu", type=["png", "jpg", "jpeg"], key="up_pr")
-                        mevcut_pr = ayar_getir("Logo_Profesyonel", "-")
+                        mevcut_pr = kalici_logo_getir("Logo_Profesyonel", "-")
                         if mevcut_pr != "-" and os.path.exists(mevcut_pr): st.image(mevcut_pr, width=100)
                     with c_bs:
                         l_bs = st.file_uploader("Business Paket Logosu", type=["png", "jpg", "jpeg"], key="up_bs")
-                        mevcut_bs = ayar_getir("Logo_Business", "-")
+                        mevcut_bs = kalici_logo_getir("Logo_Business", "-")
                         if mevcut_bs != "-" and os.path.exists(mevcut_bs): st.image(mevcut_bs, width=100)
                         
                     st.markdown("---")
@@ -7730,18 +7746,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         ayar_kaydet("Abonelik_Tipi", y_abonelik)
                         ayar_kaydet("Paket_Yetkileri", yeni_yetkiler.to_json(orient="records"))
                         
-                        ayar_yolu = "uploads/ayarlar"
-                        if not os.path.exists(ayar_yolu): os.makedirs(ayar_yolu)
-                        
-                        if l_st:
-                            yolu = storage_utils.dosya_kaydet(ayar_yolu, "logo_standart.png", l_st)
-                            ayar_kaydet("Logo_Standart", yolu)
-                        if l_pr:
-                            yolu = storage_utils.dosya_kaydet(ayar_yolu, "logo_profesyonel.png", l_pr)
-                            ayar_kaydet("Logo_Profesyonel", yolu)
-                        if l_bs:
-                            yolu = storage_utils.dosya_kaydet(ayar_yolu, "logo_business.png", l_bs)
-                            ayar_kaydet("Logo_Business", yolu)
+                        if l_st: kalici_logo_kaydet("Logo_Standart", l_st)
+                        if l_pr: kalici_logo_kaydet("Logo_Profesyonel", l_pr)
+                        if l_bs: kalici_logo_kaydet("Logo_Business", l_bs)
                         st.success("Paket yetkileri ve logolar başarıyla kaydedildi!")
                         st.rerun()
                     
