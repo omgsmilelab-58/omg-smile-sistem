@@ -6,7 +6,7 @@ import sqlite3
 import re
 import streamlit as st
 
-USE_POSTGRES = os.getenv("USE_POSTGRES", "False").lower() == "true"
+USE_POSTGRES = os.environ.get("K_SERVICE") is not None or os.getenv("USE_POSTGRES", "False").lower() == "true"
 
 if USE_POSTGRES:
     try:
@@ -23,25 +23,37 @@ def get_pg_pool(db_name):
     global _pg_pool_erp, _pg_pool_dentflow
     
     # Render, Cloud SQL veya doğrudan IP bağlantı string'leri kullanılabilir
-    db_host = os.getenv("DB_HOST", "localhost")
     db_user = os.getenv("DB_USER", "postgres")
     db_pass = os.getenv("DB_PASS", "postgres")
-    db_port = os.getenv("DB_PORT", "5432")
+    
+    # Cloud Run Unix Socket bağlantısı (Daha güvenli)
+    unix_socket = os.getenv("INSTANCE_UNIX_SOCKET")
+    if unix_socket:
+        db_host = unix_socket
+        db_port = None
+    else:
+        db_host = os.getenv("DB_HOST", "localhost")
+        db_port = os.getenv("DB_PORT", "5432")
     
     # Hangi DB?
     pg_db_name = "omg_smile_erp" if "erp" in db_name.lower() else "dentflow"
     
+    conn_kwargs = {
+        "user": db_user,
+        "password": db_pass,
+        "host": db_host,
+        "database": pg_db_name
+    }
+    if db_port:
+        conn_kwargs["port"] = db_port
+
     if pg_db_name == "omg_smile_erp":
         if _pg_pool_erp is None:
-            _pg_pool_erp = psycopg2.pool.ThreadedConnectionPool(
-                1, 20, user=db_user, password=db_pass, host=db_host, port=db_port, database=pg_db_name
-            )
+            _pg_pool_erp = psycopg2.pool.ThreadedConnectionPool(1, 20, **conn_kwargs)
         return _pg_pool_erp
     else:
         if _pg_pool_dentflow is None:
-            _pg_pool_dentflow = psycopg2.pool.ThreadedConnectionPool(
-                1, 20, user=db_user, password=db_pass, host=db_host, port=db_port, database=pg_db_name
-            )
+            _pg_pool_dentflow = psycopg2.pool.ThreadedConnectionPool(1, 20, **conn_kwargs)
         return _pg_pool_dentflow
 
 class CursorWrapper:

@@ -113,6 +113,9 @@ def omg_erp_db_kur():
         
         '''CREATE TABLE IF NOT EXISTS cam_frezler (id SERIAL PRIMARY KEY, Frez_Kodu TEXT, Urun_Adi TEXT, Uyumlu_Makine TEXT, 
             Max_Omur_Dk INTEGER, Kalan_Omur_Dk INTEGER, Durum TEXT DEFAULT 'Aktif')''',
+            
+        '''CREATE TABLE IF NOT EXISTS kullanici_aktiviteleri (id SERIAL PRIMARY KEY, Kullanici_Adi TEXT, Rol TEXT, Tarih TEXT, 
+            Son_Aktivite_Zamani TIMESTAMP, Toplam_Aktif_Saniye INTEGER DEFAULT 0)''',
         
         '''CREATE TABLE IF NOT EXISTS ayarlar 
            (Ayar_Adi TEXT PRIMARY KEY, Ayar_Degeri TEXT)''',

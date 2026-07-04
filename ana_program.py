@@ -724,9 +724,13 @@ try:
     c.execute("SELECT id FROM sistem_loglari LIMIT 1")
 except Exception:
     conn.rollback()
-    print("ESKİ ŞEMA TESPİT EDİLDİ (id sütunu yok). VERİTABANI SIFIRLANIYOR...")
-    c.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
-    conn.commit()
+    print("sistem_loglari tablosunda id sütunu yok, ekleniyor...")
+    try:
+        c.execute("ALTER TABLE sistem_loglari ADD COLUMN id SERIAL PRIMARY KEY")
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"Sütun ekleme hatası: {e}")
 
 c.execute('''CREATE TABLE IF NOT EXISTS cariler (id SERIAL PRIMARY KEY, Klinik_Unvani TEXT, Yetkili_Kisi TEXT, Telefon TEXT, Email TEXT, Bakiye REAL, Risk_Limiti REAL, Indirim_Orani REAL DEFAULT 0.0, Sifre TEXT DEFAULT '1234')''')
 c.execute('''CREATE TABLE IF NOT EXISTS isler (id SERIAL PRIMARY KEY, Tarih TEXT, Klinik_Unvani TEXT, Hasta_Adi TEXT, Is_Turu TEXT, Renk TEXT, Asama TEXT, Tutar_TL REAL DEFAULT 0.0, Sorumlu_Personel TEXT DEFAULT '-', Harcanan_Malzeme TEXT DEFAULT '-', Teslim_Tarihi TEXT DEFAULT '2026-01-01', Barkod TEXT DEFAULT '-', Lot_Numarasi TEXT DEFAULT '-', Sertifika_No TEXT DEFAULT '-', Adet INTEGER DEFAULT 1, Sinter_Sarfiyati TEXT DEFAULT '-')''')
@@ -767,6 +771,7 @@ c.execute('''CREATE TABLE IF NOT EXISTS personel_finans (id SERIAL PRIMARY KEY, 
 c.execute('''CREATE TABLE IF NOT EXISTS personel_izinler (id SERIAL PRIMARY KEY, Tarih TEXT, Personel_Adi TEXT, Baslangic_Tarihi TEXT, Bitis_Tarihi TEXT, Gun_Sayisi INTEGER, Aciklama TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS klinik_asistanlari (Klinik_Unvani TEXT, Asistan_Kadi TEXT PRIMARY KEY, Sifre TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS laboratuvar_dokumanlari (id SERIAL PRIMARY KEY, Tarih TEXT, Dokuman_Adi TEXT, Dosya_Yolu TEXT, Dosya_Turu TEXT)''')
+c.execute('''CREATE TABLE IF NOT EXISTS kullanici_aktiviteleri (id SERIAL PRIMARY KEY, Kullanici_Adi TEXT, Rol TEXT, Tarih TEXT, Son_Aktivite_Zamani TIMESTAMP, Toplam_Aktif_Saniye INTEGER DEFAULT 0)''')
 c.execute('''CREATE TABLE IF NOT EXISTS kurumsal_bilgiler (Kullanici_Adi TEXT PRIMARY KEY, Kurum_Ad TEXT, Ticari_Unvan TEXT, Kurulus TEXT, Sorumlu TEXT, Vergi_No TEXT, Vergi_Dairesi TEXT, IBAN TEXT, Kep TEXT, Telefon TEXT, Email TEXT, Web TEXT, Adres TEXT, Logo_Yolu TEXT)''')
 
 mevcut_lab = c.execute("SELECT COUNT(*) FROM kurumsal_bilgiler WHERE Kullanici_Adi='Laboratuvar'").fetchone()[0]
@@ -1513,6 +1518,25 @@ if not st.session_state["giris_yapildi"]:
 # --- 🚀 MENÜ YÖNLENDİRMESİ VE GÜVENLİ ROTA KONTROLÜ ---
 rol = st.session_state["kullanici_rolu"]; kullanici_adi = st.session_state['kullanici_adi']
 ana_klinik = st.session_state.get('ana_klinik', '')
+
+# --- ⏱ AKTİVİTE TAKİBİ ---
+from datetime import datetime
+bugun_tarih = datetime.now().strftime("%Y-%m-%d")
+simdi_dt = datetime.now()
+
+if kullanici_adi != "Lobi_TV" and kullanici_adi != "":
+    aktivite = c.execute("SELECT Son_Aktivite_Zamani, Toplam_Aktif_Saniye FROM kullanici_aktiviteleri WHERE Kullanici_Adi=? AND Tarih=?", (kullanici_adi, bugun_tarih)).fetchone()
+    if aktivite:
+        son_aktivite_str, toplam_saniye = aktivite
+        son_aktivite_dt = datetime.strptime(son_aktivite_str, "%Y-%m-%d %H:%M:%S")
+        fark_saniye = (simdi_dt - son_aktivite_dt).total_seconds()
+        if fark_saniye < 300:
+            toplam_saniye += int(fark_saniye)
+        c.execute("UPDATE kullanici_aktiviteleri SET Son_Aktivite_Zamani=?, Toplam_Aktif_Saniye=? WHERE Kullanici_Adi=? AND Tarih=?", (simdi_dt.strftime("%Y-%m-%d %H:%M:%S"), toplam_saniye, kullanici_adi, bugun_tarih))
+    else:
+        c.execute("INSERT INTO kullanici_aktiviteleri (Kullanici_Adi, Rol, Tarih, Son_Aktivite_Zamani, Toplam_Aktif_Saniye) VALUES (?, ?, ?, ?, ?)", (kullanici_adi, rol, bugun_tarih, simdi_dt.strftime("%Y-%m-%d %H:%M:%S"), 0))
+    conn.commit()
+
 if "aktif_sayfa" not in st.session_state: st.session_state.aktif_sayfa = "🎯 Komuta Merkezi"
 
 if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi", "🏢 Kurumsal Bilgi"]
@@ -1622,12 +1646,29 @@ else:
 alt_baslik = f"{rol} Yetkisi" if rol != "Klinik_Asistan" else f"{ana_klinik} Asistanı"
 st.sidebar.markdown(f"""<div class='glass-card' style='padding: 15px; text-align:center; margin-bottom:20px;'><h4 class='neon-text-blue' style='margin:0;'>{kullanici_adi.upper()}</h4><span style='color:#FFFFFF; font-size:12px;'>{alt_baslik}</span></div>""", unsafe_allow_html=True)
 
+abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
+    
 kategoriler = {
     "🛠️ 1. Operasyon & Üretim": [
         "🏠 Komuta Merkezi", "📅 Görev & Planlama", "⚙️ İş Akışı", 
         "📱 Teknisyen Terminali", "📺 Lobi / TV Ekranı", "🦷 Klinik Paneli"
     ]
 }
+
+if abonelik_tipi in ["Profesyonel", "Business"]:
+    kategoriler["🤝 2. Müşteri & İletişim (CRM)"] = [
+        "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
+        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "📅 Doktor Takvimi"
+    ]
+
+kategoriler["💰 3. Finans & Tedarik"] = [
+    "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
+    "🏭 Tedarikçi Yönetimi", "🧾 Detaylı Ekstre"
+]
+kategoriler["🏢 4. Altyapı & Yönetim"] = [
+    "🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", 
+    "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi", "⚙️ Ayarlar"
+]
 
 if abonelik_tipi in ["Profesyonel", "Business"]:
     kategoriler["🤝 2. Müşteri & İletişim (CRM)"] = [
@@ -1748,7 +1789,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
             m1.markdown(f"""<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Laboratuvardaki İşler</span><br><span class='neon-text-blue' style='font-size:32px;'>{len(df_isler[df_isler["Asama"] != "Teslim Edildi"])}</span></div>""", unsafe_allow_html=True)
             m2.markdown(f"""<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Teslim Edilenler</span><br><span class='neon-text-green' style='font-size:32px;'>{len(df_isler[df_isler["Asama"] == "Teslim Edildi"])}</span></div>""", unsafe_allow_html=True)
         else:
-            _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (ana_klinik,)).fetchone()[0] or 0.0
+            _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu != 'İptal'", (ana_klinik,)).fetchone()[0] or 0.0
             _kdv = float(ayar_getir("KDV_Orani", "20"))
             try:
                 df_tahs_ak = pd.read_sql(f"SELECT Tarih, Odeme_Turu, Tutar FROM tahsilatlar WHERE Klinik_Unvani='{ana_klinik}'", conn)
@@ -1996,7 +2037,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         
     elif sayfa == "🧾 Detaylı Ekstre" and rol == "Klinik":
         banner_olustur("🧾", "Detaylı Hesap Ekstresi", "Borç ve ödeme geçmişinizi takip edin.")
-        _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (kullanici_adi,)).fetchone()[0] or 0.0
+        _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu != 'İptal'", (kullanici_adi,)).fetchone()[0] or 0.0
         _kdv = float(ayar_getir("KDV_Orani", "20"))
         try:
             df_tahs_ak = pd.read_sql(f"SELECT Tarih, Odeme_Turu, Tutar FROM tahsilatlar WHERE Klinik_Unvani='{ana_klinik}'", conn)
@@ -2009,7 +2050,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         para_birimi = ayar_getir("Para_Birimi", "TL")
         st.markdown(f"<div class='glass-card' style='text-align:center;'><h2 style='color:#FFFFFF;'>Güncel Borcunuz</h2><h1 class='neon-text-red'>{anlik_bakiye:,.2f} {para_birimi}</h1></div>", unsafe_allow_html=True)
         
-        df_ch_borc = pd.read_sql(f"SELECT Tarih, Barkod, Hasta_Adi, Is_Turu, Tutar_TL as borc FROM isler WHERE Klinik_Unvani='{kullanici_adi}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')", conn)
+        df_ch_borc = pd.read_sql(f"SELECT Tarih, Barkod, Hasta_Adi, Is_Turu, Tutar_TL as borc FROM isler WHERE Klinik_Unvani='{kullanici_adi}' AND Bakiye_Durumu != 'İptal' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')", conn)
         df_ch_alacak = pd.read_sql(f"SELECT id, Tarih, Odeme_Turu, Aciklama, Tutar as alacak FROM tahsilatlar WHERE Klinik_Unvani='{kullanici_adi}'", conn)
         
         df_list = []
@@ -2247,7 +2288,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             
         if st.session_state.w_ciro:
             if not df_isler.empty and 'Bakiye_Durumu' in df_isler.columns:
-                toplam_gelir = pd.to_numeric(df_isler[df_isler['Bakiye_Durumu'] == 'Aktarıldı']['Tutar_TL'], errors='coerce').sum()
+                toplam_gelir = pd.to_numeric(df_isler[df_isler['Bakiye_Durumu'] != 'İptal']['Tutar_TL'], errors='coerce').sum()
             else:
                 toplam_gelir = pd.to_numeric(df_isler['Tutar_TL'], errors='coerce').sum() if not df_isler.empty else 0
             bugun_gun = datetime.now().day
@@ -2256,7 +2297,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             para_birimi = ayar_getir("Para_Birimi", "TL")
             
             # Gerçek zamanlı global bakiye hesaplaması
-            _g_toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Bakiye_Durumu='Aktarıldı'").fetchone()[0] or 0.0
+            _g_toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Bakiye_Durumu != 'İptal'").fetchone()[0] or 0.0
             _g_kdv = float(ayar_getir("KDV_Orani", "20"))
             try:
                 df_tahs_g = pd.read_sql("SELECT id, Tarih, Tutar, Odeme_Turu, Klinik_Unvani FROM tahsilatlar", conn)
@@ -2592,7 +2633,19 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         
         with tab_liste:
             # Sadece Aktifleri Listele
-            df_c = pd.read_sql("SELECT Klinik_Unvani, Email, Yetkili_Kisi, Telefon, Bakiye, Indirim_Orani FROM cariler WHERE Durum='Aktif'", conn)
+            query_c = """
+            SELECT 
+                c.Klinik_Unvani, 
+                c.Email, 
+                c.Yetkili_Kisi, 
+                c.Telefon, 
+                (COALESCE((SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=c.Klinik_Unvani AND Bakiye_Durumu != 'İptal'), 0.0) - 
+                 COALESCE((SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=c.Klinik_Unvani), 0.0)) as "Bakiye", 
+                c.Indirim_Orani as "Indirim_Orani"
+            FROM cariler c 
+            WHERE c.Durum='Aktif'
+            """
+            df_c = pd.read_sql(query_c, conn)
             st.dataframe(df_c.style.format({"Bakiye": "{:.2f}", "Indirim_Orani": "%{:.0f}"}), hide_index=True, use_container_width=True)
             
             # 🚨 YENİ ARŞİVLEME ÖZELLİĞİ (Pasife Alma) 🚨
@@ -2608,7 +2661,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             st.markdown("### 🌟 Klinik Sadakat (Loyalty) Analizi")
             st.info("Laboratuvara en çok kazandıran klinikleri tespit edin ve onları VIP statüsüne yükselterek ödüllendirin.")
             
-            df_is_f = pd.read_sql("SELECT Klinik_Unvani, Tutar_TL FROM isler WHERE Bakiye_Durumu='Aktarıldı'", conn)
+            df_is_f = pd.read_sql("SELECT Klinik_Unvani, Tutar_TL FROM isler WHERE Bakiye_Durumu != 'İptal'", conn)
             if not df_is_f.empty:
                 klinik_ciro = df_is_f.groupby("Klinik_Unvani")["Tutar_TL"].sum().reset_index()
                 # CRM sadece Aktif klinikleri baz alsın
@@ -5749,17 +5802,18 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 
                                 c.execute("UPDATE isler SET Tutar_TL=?, Adet=?, Fatura_Tarihi=?, Iskonto=?, KDV_Orani=? WHERE id=?", (float(yeni_t_fiyat), int(eski_adet), fatura_str, float(isk_float), float(yeni_kdv), int(idx_db)))
 
-                                if btn_yansit:
-                                    try: c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani=?", (yeni_t_fiyat, f_klinik_adi))
+                                # Delta Güncelleme (Cari Bakiye için)
+                                fark = yeni_t_fiyat - eski_veritabani_tutar
+                                if fark != 0:
+                                    try: c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani=?", (fark, f_klinik_adi))
                                     except: pass
-                                    try: c.execute("UPDATE isler SET Bakiye_Durumu='Aktarıldı' WHERE id=?", (int(idx_db),))
+
+                                if btn_yansit:
+                                    try: c.execute("UPDATE isler SET Bakiye_Durumu = 'Aktarıldı' WHERE id=?", (int(idx_db),))
                                     except: pass
 
                                 conn.commit()
-                                if btn_yansit:
-                                    st.success("✅ Fiyatlar güncellendi ve cari bakiyeye aktarıldı!")
-                                else:
-                                    st.success("✅ Fiyatlar güncellendi (Bakiye değiştirilmedi).")
+                                st.success("✅ Fiyatlar güncellendi ve cari hesaba yansıtıldı!")
                                 st.rerun()
                             else:
                                 st.warning("Herhangi bir değişiklik yapmadınız.")
@@ -5862,14 +5916,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
 
                     # Bakiye kartı — BRÜT MANTIK: İş tutarı KDV dahil, tahsilat KDV dahil, fark = net bakiye.
                     try:
-                        toplam_isler = float(c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (cb_klinik,)).fetchone()[0] or 0.0)
+                        toplam_isler = float(c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu != 'İptal'", (cb_klinik,)).fetchone()[0] or 0.0)
                         toplam_tahsilat = float(c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (cb_klinik,)).fetchone()[0] or 0.0)
                         net_bakiye = toplam_isler - toplam_tahsilat
                         
                         # S.NO-HASTA KODU-HASTA ADI-İŞLEM TÜRÜ-ADET-İSKONTO-B. FİYAT-TUTAR(TL)
                         df_isler_cb = pd.read_sql(
                             f"SELECT i.id, i.Hasta_Kodu, i.Hasta_Adi, i.Is_Turu, i.Adet, i.Iskonto, i.Tutar_TL "
-                            f"FROM isler i WHERE i.Klinik_Unvani='{cb_klinik}' AND i.Bakiye_Durumu='Aktarıldı' "
+                            f"FROM isler i WHERE i.Klinik_Unvani='{cb_klinik}' AND i.Bakiye_Durumu != 'İptal' "
                             f"ORDER BY i.Tarih DESC LIMIT 500", conn)
                         
                         # Eğer PostgreSQL küçük harfe dönüştürdüyse toparla
@@ -5953,7 +6007,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 if klinikler:
                     ch_klinik = st.selectbox("Hareketleri Gösterilecek Klinik", klinikler, key="ch_klinik_sec")
                     
-                    df_ch_borc = pd.read_sql(f"SELECT Tarih, Barkod, Hasta_Adi, Is_Turu, Tutar_TL as borc FROM isler WHERE Klinik_Unvani='{ch_klinik}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')", conn)
+                    df_ch_borc = pd.read_sql(f"SELECT Tarih, Barkod, Hasta_Adi, Is_Turu, Tutar_TL as borc FROM isler WHERE Klinik_Unvani='{ch_klinik}' AND Bakiye_Durumu != 'İptal' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%')", conn)
                     df_ch_alacak = pd.read_sql(f"SELECT id, Tarih, Odeme_Turu, Aciklama, Tutar as alacak FROM tahsilatlar WHERE Klinik_Unvani='{ch_klinik}'", conn)
                     
                     df_list = []
@@ -6034,7 +6088,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             try:
                                 df_prev_borc = pd.read_sql(
                                     f"SELECT Tarih, Is_Turu || ' - ' || Hasta_Adi as Islem, Tutar_TL as Borc, 0.0 as Alacak "
-                                    f"FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') "
+                                    f"FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu != 'İptal' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') "
                                     f"AND Tarih >= '{bas_str}' AND Tarih <= '{bit_str}'", conn)
                                 df_prev_alacak = pd.read_sql(
                                     f"SELECT Tarih, Odeme_Turu, Tutar, Odeme_Turu || ' Odemesi (' || Aciklama || ')' as Islem, 0.0 as Borc, Tutar as Alacak "
@@ -6055,7 +6109,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     
 
                                     # Devreden bakiyeyi baştan hesapla (Geçmiş Borç - Geçmiş Alacak)
-                                    past_borc_row = c.execute(f"SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu='Aktarıldı' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') AND Tarih < '{bas_str}'").fetchone()
+                                    past_borc_row = c.execute(f"SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani='{e_klinik}' AND Bakiye_Durumu != 'İptal' AND (Tutar_TL > 0 OR Is_Turu LIKE '%(RPT)%') AND Tarih < '{bas_str}'").fetchone()
                                     past_borc = float(past_borc_row[0] or 0.0) if past_borc_row else 0.0
                                     
                                     try:
@@ -6457,7 +6511,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             
                 euro_kuru = guncel_euro_kuru_getir()
                 try:
-                    df_is_f = pd.read_sql("SELECT Klinik_Unvani, Is_Turu, Tutar_TL FROM isler WHERE Bakiye_Durumu='Aktarıldı'", conn)
+                    df_is_f = pd.read_sql("SELECT Klinik_Unvani, Is_Turu, Tutar_TL FROM isler WHERE Bakiye_Durumu != 'İptal'", conn)
                     if not df_is_f.empty:
                         df_is_f['Tutar_TL'] = pd.to_numeric(df_is_f['Tutar_TL'], errors='coerce')
                         toplam_gelir = df_is_f['Tutar_TL'].sum()
@@ -6535,7 +6589,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 try:
                     toplam_alacak = c.execute("SELECT sum(Bakiye) FROM cariler WHERE Bakiye > 0").fetchone()[0] or 0
                     bu_ay_tahsilat = c.execute(f"SELECT sum(Tutar) FROM tahsilatlar WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
-                    bu_ay_fatura = c.execute(f"SELECT sum(Tutar_TL) FROM isler WHERE Bakiye_Durumu='Aktarıldı' AND Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
+                    bu_ay_fatura = c.execute(f"SELECT sum(Tutar_TL) FROM isler WHERE Bakiye_Durumu != 'İptal' AND Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
                     bu_ay_gider = c.execute(f"SELECT sum(Tutar) FROM giderler WHERE Tarih LIKE '{mevcut_ay}%'").fetchone()[0] or 0
                 except: toplam_alacak, bu_ay_tahsilat, bu_ay_fatura, bu_ay_gider = 0, 0, 0, 0
                 
@@ -7341,7 +7395,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
         banner_olustur("⚙️", "Sistem Ayarları", "Laboratuvarınızın siber ekosistemini, otonom kurallarını ve güvenliğini buradan yapılandırın.")
         
         ayarlar_menu = [
-            "🏢 Kurumsal Kimlik", 
             "🎨 Görünüm Ayarları", 
             "💬 İletişim & Şablon", 
             "🖨️ Donanım Entegrasyonu", 
@@ -7351,9 +7404,11 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             "🌍 Dil Seçenekleri"
         ]
         
-        if rol in ["Yönetici", "Admin"]:
-            ayarlar_menu.append("📦 Paket Yönetim Sistemi")
+        if rol.lower().strip() in ["yönetici", "admin", "lab", "yonetici", "kurucu", "patron"]:
+            ayarlar_menu.insert(0, "🏢 Kurumsal Kimlik")
             
+        ayarlar_menu.append("📦 Paket Yönetim Sistemi")
+        ayarlar_menu.append("👥 Aktif Kullanıcı İzleme")
         ayarlar_menu.append("ℹ️ Sistem Hakkında")
         
         col_ayarlar_menu, col_ayarlar_icerik = st.columns([1, 3])
@@ -7662,7 +7717,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 klinikler_sync = c.execute("SELECT Klinik_Unvani FROM cariler").fetchall()
                                 for (ksync,) in klinikler_sync:
                                     # BRÜT MANTIK: İş tutarları (KDV dahil) - Tahsilat tutarları (KDV dahil)
-                                    ts_isler = float(c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu='Aktarıldı'", (ksync,)).fetchone()[0] or 0.0)
+                                    ts_isler = float(c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu != 'İptal'", (ksync,)).fetchone()[0] or 0.0)
                                     ts_tahs  = float(c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (ksync,)).fetchone()[0] or 0.0)
                                     net_b = ts_isler - ts_tahs
                                     c.execute("UPDATE cariler SET Bakiye=? WHERE Klinik_Unvani=?", (net_b, ksync))
@@ -7768,6 +7823,46 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         if l_bs: kalici_logo_kaydet("Logo_Business", l_bs)
                         st.success("Paket yetkileri ve logolar başarıyla kaydedildi!")
                         st.rerun()
+                elif secilen_ayar == "👥 Aktif Kullanıcı İzleme" and rol.lower().strip() in ["yönetici", "admin", "lab"]:
+                    st.markdown("### 👥 Aktif Kullanıcı İzleme")
+                    st.info("Bugün sisteme giriş yapan ve aktif olan kullanıcıların listesi aşağıdadır. (Son 5 dakika içinde işlem yapanlar 'Online 🟢' olarak görünür.)")
+                    
+                    import pandas as pd
+                    from datetime import datetime
+                    
+                    bugun = datetime.now().strftime("%Y-%m-%d")
+                    aktiviteler = c.execute("SELECT Kullanici_Adi, Rol, Son_Aktivite_Zamani, Toplam_Aktif_Saniye FROM kullanici_aktiviteleri WHERE Tarih=? ORDER BY Son_Aktivite_Zamani DESC", (bugun,)).fetchall()
+                    
+                    if aktiviteler:
+                        gosterim_listesi = []
+                        simdi_dt = datetime.now()
+                        
+                        for akt in aktiviteler:
+                            k_adi, k_rol, son_islem_str, toplam_sn = akt
+                            
+                            son_islem_dt = datetime.strptime(son_islem_str, "%Y-%m-%d %H:%M:%S")
+                            fark_saniye = (simdi_dt - son_islem_dt).total_seconds()
+                            
+                            durum = "Online 🟢" if fark_saniye < 300 else "Offline 🔴"
+                            
+                            saat = toplam_sn // 3600
+                            dakika = (toplam_sn % 3600) // 60
+                            sure_str = f"{saat} sa {dakika} dk" if saat > 0 else f"{dakika} dk"
+                            if toplam_sn < 60:
+                                sure_str = f"{toplam_sn} saniye"
+                                
+                            gosterim_listesi.append({
+                                "Kullanıcı Adı": k_adi,
+                                "Rol": k_rol,
+                                "Durum": durum,
+                                "Son İşlem Zamanı": son_islem_str.split(" ")[1],
+                                "Bugünkü Toplam Süre": sure_str
+                            })
+                            
+                        df_akt = pd.DataFrame(gosterim_listesi)
+                        st.dataframe(df_akt, use_container_width=True, hide_index=True)
+                    else:
+                        st.warning("Bugün henüz aktif olan bir kullanıcı bulunmuyor.")
                     
                 elif secilen_ayar == "ℹ️ Sistem Hakkında":
                     st.markdown("### ℹ️ Yazılım Bilgileri")
