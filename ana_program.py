@@ -5803,13 +5803,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 
                                 c.execute("UPDATE isler SET Tutar_TL=?, Adet=?, Fatura_Tarihi=?, Iskonto=?, KDV_Orani=? WHERE id=?", (float(yeni_t_fiyat), int(eski_adet), fatura_str, float(isk_float), float(yeni_kdv), int(idx_db)))
 
-                                # Delta Güncelleme (Cari Bakiye için)
-                                fark = yeni_t_fiyat - eski_veritabani_tutar
-                                if fark != 0:
-                                    try: c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani=?", (fark, f_klinik_adi))
-                                    except: pass
-
                                 if btn_yansit:
+                                    try: c.execute("UPDATE cariler SET Bakiye = Bakiye + ? WHERE Klinik_Unvani=?", (yeni_t_fiyat, f_klinik_adi))
+                                    except: pass
                                     try: c.execute("UPDATE isler SET Bakiye_Durumu = 'Aktarıldı' WHERE id=?", (int(idx_db),))
                                     except: pass
 
