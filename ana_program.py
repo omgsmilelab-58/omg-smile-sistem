@@ -1528,7 +1528,8 @@ if kullanici_adi != "Lobi_TV" and kullanici_adi != "":
     aktivite = c.execute("SELECT Son_Aktivite_Zamani, Toplam_Aktif_Saniye FROM kullanici_aktiviteleri WHERE Kullanici_Adi=? AND Tarih=?", (kullanici_adi, bugun_tarih)).fetchone()
     if aktivite:
         son_aktivite_str, toplam_saniye = aktivite
-        son_aktivite_dt = datetime.strptime(son_aktivite_str, "%Y-%m-%d %H:%M:%S")
+        if isinstance(son_aktivite_str, str): son_aktivite_dt = datetime.strptime(son_aktivite_str, "%Y-%m-%d %H:%M:%S")
+        else: son_aktivite_dt = son_aktivite_str
         fark_saniye = (simdi_dt - son_aktivite_dt).total_seconds()
         if fark_saniye < 300:
             toplam_saniye += int(fark_saniye)
