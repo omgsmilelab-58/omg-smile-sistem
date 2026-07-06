@@ -4852,6 +4852,28 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             istenen_sira = ["Ürün Kodu", "Ürün Adı", "Marka", "Renk", "Malzeme", "Kritik Sınır", "Mevcut Miktar"]
                             mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
                             df_goster = df_goster[mevcut_kolonlar]
+                        elif kat_adi == "Metal Tozu":
+                            def ext_boyut(x):
+                                if "(Boyut:" in str(x):
+                                    try: return str(x).split("Boyut:")[1].split("-")[0].replace(")", "").strip()
+                                    except: return "-"
+                                return "-"
+                            def ext_alasim(x):
+                                if "Nikelli" in str(x): return "Nikelli"
+                                if "Nikelsiz" in str(x): return "Nikelsiz"
+                                return "-"
+                            def ext_temiz_ad(x):
+                                if "(" in str(x): return str(x).split("(")[0].strip()
+                                return x
+                            
+                            df_goster["Toz Boyutu"] = df_goster["Ürün Adı"].apply(ext_boyut)
+                            df_goster["Alaşım Türü"] = df_goster["Ürün Adı"].apply(ext_alasim)
+                            df_goster["Ürün Adı"] = df_goster["Ürün Adı"].apply(ext_temiz_ad)
+                            df_goster["Mevcut Miktar (Birim)"] = df_goster["Mevcut Miktar"].astype(str) + " " + df_goster["Birim"]
+                            
+                            istenen_sira = ["Ürün Kodu", "Ürün Adı", "Kategori", "Malzeme", "Toz Boyutu", "Alaşım Türü", "Mevcut Miktar (Birim)", "Güncelleme Tarihi"]
+                            mevcut_kolonlar = [k for k in istenen_sira if k in df_goster.columns]
+                            df_goster = df_goster[mevcut_kolonlar]
                         
                         # 🚨 ZARİF MAT GÜMÜŞ ZIRH 🚨
                         def satir_renk(row):
