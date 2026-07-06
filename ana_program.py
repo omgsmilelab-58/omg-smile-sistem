@@ -3015,7 +3015,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             df_isler = pd.read_sql('''
                 SELECT id, Barkod, Tarih, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Renk, Adet as "Adet", Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Aciklama, Lot_Numarasi, Sertifika_No 
                 FROM isler i 
-                WHERE NOT EXISTS (
+                WHERE i.Asama != 'Teslim Edildi' OR NOT EXISTS (
                     SELECT 1 FROM hesap_ekstreleri h
                     JOIN faturalar f ON h.id = f.Ekstre_ID
                     WHERE i.Klinik_Unvani = h.Klinik_Unvani
