@@ -6588,6 +6588,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         for _, ar_row in df_arsiv2.iterrows():
                             fat_durum = ""
                             fat_id_ar = ar_row.get("Fatura_ID")
+                            if pd.isna(fat_id_ar) or str(fat_id_ar).strip().lower() in ["nan", "none", ""]:
+                                fat_id_ar = None
+                            
                             if fat_id_ar:
                                 try:
                                     fat_info = c.execute("SELECT Fatura_No, Durum, Kalan_Tutar FROM faturalar WHERE id=?", (int(fat_id_ar),)).fetchone()
