@@ -7276,7 +7276,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             with st.form("yeni_cihaz_formu"):
                 c1, c2 = st.columns(2)
                 c_adi = c1.text_input("Cihaz Adı / Markası")
-                c_kat = c2.selectbox("Kategori", ["Kazıma Makinesi (Milling)", "Fırın (Sinter/Porselen)", "3D Yazıcı", "Tarayıcı (Scanner)", "Yardımcı Ekipman"])
+                c_kat = c2.selectbox("Kategori", ["Kazıma Makinesi (Milling)", "Fırın (Sinter/Porselen)", "3D Yazıcı", "3D Metal Yazıcı", "Tarayıcı (Scanner)", "Yardımcı Ekipman"])
                 c_bakim_siniri = c1.number_input("Spindle/Parça Ömrü (Saat veya Döngü)", min_value=1.0, value=500.0)
                 c_guc = c2.number_input("Saatlik Enerji Tüketimi (kW/h)", min_value=0.0, value=2.5, step=0.1)
                 yuklenen_cihaz_gorsel = st.file_uploader("Makinenin Fotoğrafını Seç", type=["png", "jpg", "jpeg"])
@@ -7304,7 +7304,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     c1, c2 = st.columns(2)
                     yeni_adi = c1.text_input("Cihaz Adı / Markası", value=g_veri[0])
                     
-                    kategoriler_list = ["Kazıma Makinesi (Milling)", "Fırın (Sinter/Porselen)", "3D Yazıcı", "Tarayıcı (Scanner)", "Yardımcı Ekipman"]
+                    kategoriler_list = ["Kazıma Makinesi (Milling)", "Fırın (Sinter/Porselen)", "3D Yazıcı", "3D Metal Yazıcı", "Tarayıcı (Scanner)", "Yardımcı Ekipman"]
                     idx_kat = kategoriler_list.index(g_veri[1]) if g_veri[1] in kategoriler_list else 0
                     yeni_kat = c2.selectbox("Kategori", kategoriler_list, index=idx_kat)
                     
