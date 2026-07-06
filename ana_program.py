@@ -744,6 +744,8 @@ try: c.execute("ALTER TABLE isler ADD COLUMN Sinter_Sarfiyati TEXT DEFAULT '-'")
 except: pass
 try: c.execute("ALTER TABLE isler ADD COLUMN Recine_Sarfiyati TEXT DEFAULT '-'")
 except: pass
+try: c.execute("ALTER TABLE isler ADD COLUMN Metal_Tozu_Sarfiyati TEXT DEFAULT '-'")
+except: pass
 try: c.execute("ALTER TABLE isler ADD COLUMN Fatura_Tarihi TEXT DEFAULT '-'")
 except: pass
 try: c.execute("ALTER TABLE isler ADD COLUMN Iskonto REAL DEFAULT 0.0")
@@ -3074,7 +3076,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     st.success(f"👉 **İşlem Yapılan Reçete:** {s_barkod} | {s_klinik} - {s_hasta}")
                     is_verisi = c.execute("SELECT Asama, Sorumlu_Personel, Lot_Numarasi, Sertifika_No, Klinik_Unvani, Hasta_Adi, Is_Turu, Tarih, Teslim_Tarihi, Renk, Adet, Tutar_TL, Aciklama, Harcanan_Malzeme FROM isler WHERE id=?",(s_rowid,)).fetchone()
                     
-                    t1, t_bilgi, t2, t3, t4, t5, t6 = st.tabs(["🔄 Aşama Güncelle", "✏️ Bilgileri Güncelle", "📸 Medya & Arşiv", "📜 Garanti", "⚙️ CAM Sarfiyatı", "🔥 Sinter Sarfiyatı", "💧 Reçine Sarfiyatı"])
+                    t1, t_bilgi, t2, t3, t4, t5, t6, t7 = st.tabs(["🔄 Aşama Güncelle", "✏️ Bilgileri Güncelle", "📸 Medya & Arşiv", "📜 Garanti", "⚙️ CAM Sarfiyatı", "🔥 Sinter Sarfiyatı", "💧 Reçine Sarfiyatı", "🖨️ Metal Tozu Sarfiyatı"])
                     
                     with t1:
                         col_a, col_b = st.columns(2)
@@ -3547,6 +3549,64 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             st.success("Reçine Sarfiyatı başarıyla işlendi!")
                             st.rerun()
                             st.rerun()
+
+                    with t7:
+                        st.markdown("#### 🖨️ Metal Tozu Sarfiyatı Kaydı")
+                        st.caption("İşin geçtiği 3D Metal yazıcıyı ve toz detaylarını seçiniz. Stoktan gram olarak düşülecektir.")
+                        
+                        m_list_raw = c.execute("SELECT Cihaz_Adi FROM cihazlar WHERE Kategori='3D Metal Yazıcı' AND Durum='Aktif'").fetchall()
+                        m_list = ["-- Seçiniz --"] + [f[0] for f in m_list_raw]
+                        if len(m_list) == 1:
+                            st.warning("Aktif 3D Metal Yazıcı bulunamadı! Lütfen 'Makine Parkuru' sayfasından ekleyiniz.")
+                        else:
+                            m_val = st.selectbox("METAL YAZICI SEÇİMİ", m_list, key=f"mt_yazici_{s_rowid}")
+                            
+                            toz_list_raw = c.execute("SELECT Urun_Kodu, Urun_Adi FROM stok WHERE Kategori='Metal Tozu'").fetchall()
+                            toz_list = ["-- Seçiniz --"] + [f"{f[0]} - {f[1]}" for f in toz_list_raw]
+                            
+                            if len(toz_list) == 1:
+                                st.warning("Stokta Metal Tozu bulunamadı! Lütfen 'Stok Yönetimi' sayfasından ekleyiniz.")
+                            else:
+                                t_val = st.selectbox("METAL TOZU SEÇİMİ", toz_list, key=f"mt_toz_{s_rowid}")
+                                
+                                c1, c2, c3 = st.columns(3)
+                                sarfiyat_gr = c1.number_input("ÜYE BAŞINA SARFİYAT (gr)", min_value=0.0, value=0.0, step=0.1, key=f"mt_sarf_{s_rowid}")
+                                sure_dk = c2.number_input("ÜRETİM SÜRESİ (dk)", min_value=0.0, value=0.0, step=1.0, key=f"mt_sure_{s_rowid}")
+                                miktar_uye = c3.number_input("MİKTAR (üye)", min_value=1, value=1, step=1, key=f"mt_miktar_{s_rowid}")
+                                
+                                mt_veri = c.execute("SELECT Metal_Tozu_Sarfiyati FROM isler WHERE id=?", (s_rowid,)).fetchone()
+                                mevcut_metal = mt_veri[0] if mt_veri and mt_veri[0] != "-" else None
+                                
+                                if mevcut_metal:
+                                    st.info(f"Mevcut Sarfiyat Kaydı: {mevcut_metal}")
+                                    
+                                btn_txt = "🖨️ Metal Tozu Sarfiyatını Güncelle" if mevcut_metal else "🖨️ Metal Tozu Sarfiyatını Kaydet"
+                                if st.button(btn_txt, type="primary", key=f"btn_mt_{s_rowid}"):
+                                    if m_val == "-- Seçiniz --" or t_val == "-- Seçiniz --":
+                                        st.error("Lütfen yazıcı ve toz seçiniz.")
+                                    else:
+                                        toplam_tuketim = sarfiyat_gr * miktar_uye
+                                        toz_kodu = t_val.split(" - ")[0].strip()
+                                        
+                                        import json
+                                        
+                                        # Deduct stock
+                                        mevcut_toz_stok = c.execute("SELECT Mevcut_Miktar FROM stok WHERE Urun_Kodu=?", (toz_kodu,)).fetchone()
+                                        if mevcut_toz_stok:
+                                            c.execute("UPDATE stok SET Mevcut_Miktar=? WHERE Urun_Kodu=?", (float(mevcut_toz_stok[0]) - toplam_tuketim, toz_kodu))
+                                        
+                                        # Update Machine Time
+                                        mevcut_saat = c.execute("SELECT Calisma_Saati FROM cihazlar WHERE Cihaz_Adi=?", (m_val,)).fetchone()
+                                        if mevcut_saat:
+                                            c.execute("UPDATE cihazlar SET Calisma_Saati=? WHERE Cihaz_Adi=?", (float(mevcut_saat[0]) + (sure_dk / 60.0), m_val))
+                                            
+                                        # Update Isler
+                                        yeni_metal_json = json.dumps({"yazici": m_val, "toz": t_val, "sarfiyat_gr": sarfiyat_gr, "sure_dk": sure_dk, "miktar": miktar_uye, "toplam_tuketim_gr": toplam_tuketim})
+                                        c.execute("UPDATE isler SET Metal_Tozu_Sarfiyati=? WHERE id=?", (yeni_metal_json, s_rowid))
+                                        
+                                        conn.commit()
+                                        st.success("Metal Tozu Sarfiyatı başarıyla işlendi!")
+                                        st.rerun()
         with tab_cam:
             # 🚨 SİGORTA VE YENİ SÜTUN (İSİM) EKLENTİSİ 🚨
             c.execute('''CREATE TABLE IF NOT EXISTS aktif_frezler (
