@@ -7853,7 +7853,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 "Kullanıcı Adı": k_adi,
                                 "Rol": k_rol,
                                 "Durum": durum,
-                                "Son İşlem Zamanı": son_islem_str.split(" ")[1],
+                                "Son İşlem Zamanı": son_islem_dt.strftime("%H:%M:%S"),
                                 "Bugünkü Toplam Süre": sure_str
                             })
                             
