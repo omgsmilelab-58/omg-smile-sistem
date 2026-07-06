@@ -7,6 +7,10 @@ import sqlite3
 import db_baglanti
 import storage_utils
 import os
+import time
+os.environ['TZ'] = 'Europe/Istanbul'
+if hasattr(time, 'tzset'):
+    time.tzset()
 import io
 import urllib.parse
 import textwrap
