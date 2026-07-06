@@ -7837,7 +7837,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         for akt in aktiviteler:
                             k_adi, k_rol, son_islem_str, toplam_sn = akt
                             
-                            son_islem_dt = datetime.strptime(son_islem_str, "%Y-%m-%d %H:%M:%S")
+                            if isinstance(son_islem_str, str): son_islem_dt = datetime.strptime(son_islem_str, "%Y-%m-%d %H:%M:%S")
+                            else: son_islem_dt = son_islem_str
                             fark_saniye = (simdi_dt - son_islem_dt).total_seconds()
                             
                             durum = "Online 🟢" if fark_saniye < 300 else "Offline 🔴"
