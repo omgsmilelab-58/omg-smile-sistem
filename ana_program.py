@@ -5211,6 +5211,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 return 'ZİRKONYUM'
                             if 'titan' in u_kat:
                                 return 'TİTANYUM'
+                            if 'metal tozu' in u_kat:
+                                return 'METAL TOZU'
                             if 'frez' in u_kat:
                                 return 'FREZ'
 
@@ -5221,6 +5223,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                     return 'REÇİNE'
                                 if islem_serisi_lower.str.contains('frez').any():
                                     return 'FREZ'
+                                if islem_serisi_lower.str.contains('metal tozu').any():
+                                    return 'METAL TOZU'
                                 if islem_serisi_lower.str.contains('blok').any():
                                     pass  # Blok üretimini ürün adı ile daha iyi belirleyebiliriz
 
@@ -5234,6 +5238,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 return 'ZİRKONYUM'
                             if 'titan' in u_malz:
                                 return 'TİTANYUM'
+                            if 'metal tozu' in u_malz:
+                                return 'METAL TOZU'
 
                             # 4. ÖNCELİK: Ürün adı
                             u_adi = str(urun_adi).lower()
@@ -5258,6 +5264,8 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 return 'PMMA'
                             if isler.str.contains('titan').any():
                                 return 'TİTANYUM'
+                            if isler.str.contains('metal tozu').any():
+                                return 'METAL TOZU'
 
                             return 'DİĞER'
 
@@ -5321,10 +5329,33 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             if recine_adet_map.get(k, 0) > 0
                         }
 
+                        metal_miktar_map = {}
+                        metal_adet_map   = {}
+                        try:
+                            metal_log_rows = c.execute(
+                                "SELECT malzeme_kodu, SUM(CAST(uye_sayisi AS REAL)), COUNT(*) "
+                                "FROM uretim_loglari "
+                                "WHERE malzeme_turu = 'Metal Tozu' "
+                                "AND malzeme_kodu IS NOT NULL AND malzeme_kodu != '' "
+                                "GROUP BY malzeme_kodu"
+                            ).fetchall()
+                            for m_kod_j, m_toplam_gr, m_kayit in metal_log_rows:
+                                if not m_kod_j: continue
+                                metal_miktar_map[m_kod_j] = float(m_toplam_gr or 0)
+                                metal_adet_map[m_kod_j]   = int(m_kayit or 0)
+                        except:
+                            pass
+
                         for lv in liste_verileri:
-                            if str(lv.get('Kategori', '')).upper() in ['REÇİNE', 'RECINE', 'RECİNE', 'REÇINE']:
+                            kat = str(lv.get('Kategori', '')).upper()
+                            if kat in ['REÇİNE', 'RECINE', 'RECİNE', 'REÇINE']:
                                 lv['Toplam Üretilen'] = recine_adet_map.get(lv['Stok Kodu'], 0)
-                            lv['Kullanılan Miktar (gr)'] = round(recine_miktar_map.get(lv['Stok Kodu'], 0.0), 2)
+                                lv['Kullanılan Miktar (gr)'] = round(recine_miktar_map.get(lv['Stok Kodu'], 0.0), 2)
+                            elif kat == 'METAL TOZU':
+                                lv['Toplam Üretilen'] = metal_adet_map.get(lv['Stok Kodu'], 0)
+                                lv['Kullanılan Miktar (gr)'] = round(metal_miktar_map.get(lv['Stok Kodu'], 0.0), 2)
+                            else:
+                                lv['Kullanılan Miktar (gr)'] = 0.0
 
                         df_liste_full = pd.DataFrame(liste_verileri, columns=["Stok Kodu", "Ürün Adı", "Toplam Üretilen", "Çalışma (Dk)", "Durum", "Pasif Nedeni", "İlk İşlem", "Kategori", "Kullanılan Miktar (gr)"])
                         kategori_map = dict(zip(df_liste_full["Stok Kodu"], df_liste_full["Kategori"]))
@@ -5335,14 +5366,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             elif val == "Pasif": return 'color: #f87171; font-weight:bold;'
                             return ''
 
-                        kategoriler = ["ZİRKONYUM", "PMMA", "TİTANYUM", "FREZ", "REÇİNE", "DİĞER"]
+                        kategoriler = ["ZİRKONYUM", "PMMA", "TİTANYUM", "METAL TOZU", "FREZ", "REÇİNE", "DİĞER"]
                         sekmeler = st.tabs(kategoriler)
                         
                         for i, kategori_adi in enumerate(kategoriler):
                             with sekmeler[i]:
                                 df_arsiv_alt = df_arsiv[df_arsiv['Kategori'] == kategori_adi]
                                 kat_norm = str(kategori_adi).upper().replace('İ', 'I').replace('Ç', 'C').replace('Ş', 'S').replace('Ğ', 'G').replace('Ü', 'U').replace('Ö', 'O')
-                                if kat_norm == "RECINE":
+                                if kat_norm in ["RECINE", "METAL TOZU"]:
                                     df_liste_alt = df_liste_full[df_liste_full['Kategori'] == kategori_adi].drop(columns=['Kategori'])
                                 else:
                                     df_liste_alt = df_liste_full[df_liste_full['Kategori'] == kategori_adi].drop(columns=['Kategori', 'Kullanılan Miktar (gr)'])
@@ -5403,6 +5434,32 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                                 )
                                     else:
                                         st.caption("Henüz reçine üretim verisi yok.")
+
+                                elif kat_norm == "METAL TOZU":
+                                    toplam_gr      = sum(metal_miktar_map.values())
+                                    toplam_kayit   = sum(1 for v in metal_adet_map.values() if v > 0)
+                                    toplam_tur     = len([k for k in metal_miktar_map if metal_miktar_map[k] > 0])
+                                    toplam_adet    = sum(metal_adet_map.values())
+                                    ort_adet_basi  = round(toplam_gr / toplam_adet, 2) if toplam_adet > 0 else 0
+
+                                    m1, m2, m3, m4 = st.columns(4)
+                                    m1.metric("🟢 Toplam Kullanım", f"{toplam_gr:,.2f} gr")
+                                    m2.metric("📦 Toplam İşlem", f"{int(toplam_adet)}")
+                                    m3.metric("🧪 Farklı Toz Türü", f"{toplam_tur}")
+                                    m4.metric("⚖️ Ort. Sarfiyat", f"{ort_adet_basi} gr")
+
+                                    if metal_miktar_map:
+                                        import plotly.express as px
+                                        st.markdown("###### 📊 Toz Bazlı Sarfiyat (gr)")
+                                        fig = px.bar(
+                                            x=[str(k) for k in metal_miktar_map.keys()], 
+                                            y=list(metal_miktar_map.values()),
+                                            labels={'x':'Stok Kodu', 'y':'Gram'}
+                                        )
+                                        fig.update_layout(margin=dict(l=0, r=0, t=30, b=0), height=250)
+                                        st.plotly_chart(fig, use_container_width=True)
+                                    else:
+                                        st.caption("Henüz metal tozu üretim verisi yok.")
                                 
                                 st.markdown("---")
                                 st.markdown("##### 🗂️ Tüm Malzemeler (Özet Liste)")
@@ -7270,10 +7327,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             st.subheader(f"⚙️ {row['Cihaz_Adi']}")
                             guc = row.get('Guc_kW', 0.0)
                             st.caption(f"{row['Kategori']} | Güç: {guc} kW/h")
-                            yuzde_saat = min(row['Calisma_Saati'] / row['Bakim_Siniri'], 1.0)
-                            renk_saat = "#34D399" if yuzde_saat < 0.7 else "#FBBF24" if yuzde_saat < 0.9 else "#F87171"
-                            st.markdown(f"**⚙️ Spindle / Çalışma Süresi Doluluk Oranı:** {row['Calisma_Saati']:.0f} / {row['Bakim_Siniri']:.0f} Saat")
-                            st.markdown(f"""<div style="width: 100%; background-color: #374151; border-radius: 4px; margin-bottom:15px;"><div style="width: {yuzde_saat*100}%; height: 16px; background-color: {renk_saat}; border-radius: 4px;"></div></div>""", unsafe_allow_html=True)
+                            st.markdown(f"**⏱️ Toplam Çalışma Süresi:** {row['Calisma_Saati']:.1f} Saat")
                             col_t1, col_t2, col_t3 = st.columns(3)
                             with col_t1: st.markdown("<span style='color:#9CA3AF;'>🗓️ Haftalık</span>", unsafe_allow_html=True); st.markdown(timer_renk_hesapla(row['Haftalik_Hedef'], 7), unsafe_allow_html=True)
                             with col_t2: st.markdown("<span style='color:#9CA3AF;'>🗓️ Aylık</span>", unsafe_allow_html=True); st.markdown(timer_renk_hesapla(row['Aylik_Hedef'], 30), unsafe_allow_html=True)
@@ -7337,7 +7391,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 c1, c2 = st.columns(2)
                 c_adi = c1.text_input("Cihaz Adı / Markası")
                 c_kat = c2.selectbox("Kategori", ["Kazıma Makinesi (Milling)", "Fırın (Sinter/Porselen)", "3D Yazıcı", "3D Metal Yazıcı", "Tarayıcı (Scanner)", "Yardımcı Ekipman"])
-                c_bakim_siniri = c1.number_input("Spindle/Parça Ömrü (Saat veya Döngü)", min_value=1.0, value=500.0)
+                c_calisma_saati = c1.number_input("Toplam Çalışma Süresi (Saat)", min_value=0.0, value=0.0)
                 c_guc = c2.number_input("Saatlik Enerji Tüketimi (kW/h)", min_value=0.0, value=2.5, step=0.1)
                 yuklenen_cihaz_gorsel = st.file_uploader("Makinenin Fotoğrafını Seç", type=["png", "jpg", "jpeg"])
                 if st.form_submit_button("Cihazı Sisteme Ekle") and c_adi:
@@ -7368,7 +7422,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     idx_kat = kategoriler_list.index(g_veri[1]) if g_veri[1] in kategoriler_list else 0
                     yeni_kat = c2.selectbox("Kategori", kategoriler_list, index=idx_kat)
                     
-                    yeni_sinir = c1.number_input("Spindle/Parça Ömrü (Saat veya Döngü)", min_value=1.0, value=float(g_veri[2]))
+                    yeni_calisma_saati = c1.number_input("Toplam Çalışma Süresi (Saat)", min_value=0.0, value=float(g_veri[2]))
                     yeni_guc = c2.number_input("Saatlik Enerji Tüketimi (kW/h)", min_value=0.0, value=float(g_veri[4]), step=0.1)
                     yeni_gorsel = st.file_uploader("Yeni Fotoğraf Seç (Sadece değiştirmek istiyorsanız)", type=["png", "jpg", "jpeg"])
                     
@@ -7378,7 +7432,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             guncel_yol = os.path.join("uploads", "cihazlar", f"{datetime.now().strftime('%H%M%S')}_{yeni_gorsel.name}")
                             guncel_yol = storage_utils.dosya_kaydet(os.path.dirname(guncel_yol), os.path.basename(guncel_yol), yeni_gorsel)
                         
-                        c.execute("UPDATE cihazlar SET Cihaz_Adi=?, Kategori=?, Bakim_Siniri=?, Gorsel_Yolu=?, Guc_kW=? WHERE Cihaz_Adi=?", (yeni_adi, yeni_kat, yeni_sinir, guncel_yol, yeni_guc, secilen_guncelle))
+                        c.execute("UPDATE cihazlar SET Cihaz_Adi=?, Kategori=?, Calisma_Saati=?, Gorsel_Yolu=?, Guc_kW=? WHERE Cihaz_Adi=?", (yeni_adi, yeni_kat, yeni_calisma_saati, guncel_yol, yeni_guc, secilen_guncelle))
                         if yeni_adi != secilen_guncelle: c.execute("UPDATE cihaz_bakim_gecmisi SET Cihaz_Adi=? WHERE Cihaz_Adi=?", (yeni_adi, secilen_guncelle))
                         conn.commit(); st.success("✅ Cihaz bilgileri başarıyla güncellendi!"); st.rerun()
             else: st.info("Sistemde düzenlenecek kayıtlı cihaz bulunmuyor.")
