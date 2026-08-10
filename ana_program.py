@@ -67,6 +67,40 @@ st.text_input = custom_text_input
 st.text_area = custom_text_area
 # ----------------------------------------
 import pandas as pd
+from pandas.io.formats.style import Styler
+
+# --- DATAFRAME DATE FIXER INTERCEPTOR ---
+def _fix_date_cols(df):
+    if not isinstance(df, pd.DataFrame):
+        return df
+    for col in df.columns:
+        col_str = str(col).lower()
+        if "tarih" in col_str or "zaman" in col_str:
+            try:
+                df[col] = pd.to_datetime(df[col], format="mixed", dayfirst=True)
+            except:
+                pass
+    return df
+
+original_st_dataframe = st.dataframe
+def custom_st_dataframe(data, *args, **kwargs):
+    if isinstance(data, pd.DataFrame):
+        data = _fix_date_cols(data.copy())
+    elif isinstance(data, Styler):
+        _fix_date_cols(data.data)
+    return original_st_dataframe(data, *args, **kwargs)
+st.dataframe = custom_st_dataframe
+
+original_st_data_editor = st.data_editor
+def custom_st_data_editor(data, *args, **kwargs):
+    if isinstance(data, pd.DataFrame):
+        data = _fix_date_cols(data.copy())
+    elif isinstance(data, Styler):
+        _fix_date_cols(data.data)
+    return original_st_data_editor(data, *args, **kwargs)
+st.data_editor = custom_st_data_editor
+# ----------------------------------------
+import pandas as pd
 import sqlite3
 import db_baglanti
 import storage_utils
