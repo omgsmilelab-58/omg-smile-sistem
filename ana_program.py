@@ -3029,7 +3029,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             df_isler = df_isler.sort_values(by=["Tarih", "id"], ascending=[False, False]).reset_index(drop=True)
             # Sıra No Sütunu Ekle
             st.subheader("📋 Reçeteler ve Üretim Takibi")
-            
+
+            takip_arama = st.text_input("🔍 Hasta Adı, Klinik, Barkod veya Sorumlu ile Ara...", key="uretim_takip_arama")
+            if takip_arama:
+                mask = (
+                    df_isler.get('Hasta_Adi', pd.Series()).astype(str).str.contains(takip_arama, case=False, na=False) |
+                    df_isler.get('Klinik_Unvani', pd.Series()).astype(str).str.contains(takip_arama, case=False, na=False) |
+                    df_isler.get('Barkod', pd.Series()).astype(str).str.contains(takip_arama, case=False, na=False) |
+                    df_isler.get('Sorumlu_Personel', pd.Series()).astype(str).str.contains(takip_arama, case=False, na=False)
+                )
+                df_isler = df_isler[mask].reset_index(drop=True)
 
             if not df_isler.empty:
                 for c_name in ["barkod", "tarih", "teslim_tarihi", "klinik_unvani", "hasta_adi", "hasta_kodu", "is_turu", "renk", "adet", "asama", "sorumlu_personel"]:
