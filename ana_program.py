@@ -2,6 +2,70 @@ from dotenv import load_dotenv
 load_dotenv()
 # Not: 'from click import style' kaldırıldı - kullanılmıyor ve requirements.txt'de yok
 import streamlit as st
+
+# --- TDK TEXT FORMATTING INTERCEPTOR ---
+def tr_upper(char):
+    tr_map = {'i': 'İ', 'ı': 'I', 'ğ': 'Ğ', 'ü': 'Ü', 'ş': 'Ş', 'ö': 'Ö', 'ç': 'Ç'}
+    return tr_map.get(char, char.upper())
+
+def tr_lower(char):
+    tr_map = {'İ': 'i', 'I': 'ı', 'Ğ': 'ğ', 'Ü': 'ü', 'Ş': 'ş', 'Ö': 'ö', 'Ç': 'ç'}
+    return tr_map.get(char, char.lower())
+
+def turkish_title_case(text):
+    if not isinstance(text, str) or not text: return text
+    words = text.split(' ')
+    formatted = []
+    for w in words:
+        if len(w) > 0:
+            formatted.append(tr_upper(w[0]) + ''.join(tr_lower(c) for c in w[1:]))
+        else:
+            formatted.append('')
+    return ' '.join(formatted)
+
+def turkish_sentence_case(text):
+    if not isinstance(text, str) or not text: return text
+    lower_text = ''.join(tr_lower(c) for c in text)
+    formatted = ''
+    capitalize_next = True
+    for c in lower_text:
+        if c.strip() == '':
+            formatted += c
+            continue
+        if capitalize_next:
+            formatted += tr_upper(c)
+            capitalize_next = False
+        else:
+            formatted += c
+        if c in '.!?':
+            capitalize_next = True
+    return formatted
+
+original_text_input = st.text_input
+def custom_text_input(label, *args, **kwargs):
+    val = original_text_input(label, *args, **kwargs)
+    if isinstance(val, str) and val:
+        lbl = label.lower()
+        if kwargs.get('type') == 'password' or 'şifre' in lbl or 'password' in lbl:
+            return val
+        elif 'renk' in lbl or 'kod' in lbl or 'barkod' in lbl or 'tc' in lbl:
+            return ''.join(tr_upper(c) for c in val)
+        elif 'açıklama' in lbl or 'not' in lbl or 'adres' in lbl or 'mesaj' in lbl:
+            return turkish_sentence_case(val)
+        else:
+            return turkish_title_case(val)
+    return val
+
+original_text_area = st.text_area
+def custom_text_area(label, *args, **kwargs):
+    val = original_text_area(label, *args, **kwargs)
+    if isinstance(val, str) and val:
+        return turkish_sentence_case(val)
+    return val
+
+st.text_input = custom_text_input
+st.text_area = custom_text_area
+# ----------------------------------------
 import pandas as pd
 import sqlite3
 import db_baglanti
