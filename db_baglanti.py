@@ -71,6 +71,7 @@ class ProxyCursorWrapper:
     def execute(self, query, parameters=None):
         conn = self.pool_obj.getconn()
         try:
+            conn.autocommit = True
             cur = conn.cursor()
             pg_query = self._convert_query(query)
             is_insert = "INSERT " in pg_query.upper()
@@ -121,6 +122,7 @@ class ProxyCursorWrapper:
     def executemany(self, query, seq_of_parameters):
         conn = self.pool_obj.getconn()
         try:
+            conn.autocommit = True
             cur = conn.cursor()
             pg_query = self._convert_query(query)
             cur.executemany(pg_query, seq_of_parameters)
