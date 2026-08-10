@@ -2838,7 +2838,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             
             # 1. SATIR: Çok Daraltılmış ve Kısaltılmış Girdiler
             import random
-            c1, c2, c_kodu, c3, c4 = st.columns([2.5, 1.5, 1.5, 1, 1.2])
+            c1, c2, c_kodu, c3, dt1, c4 = st.columns([2, 1.5, 1.5, 0.8, 1.1, 1.1])
             k_secim = c1.selectbox("Klinik / Hekim", klinikler) if klinikler else c1.text_input("Klinik Adı (Kayıtlı Değil)")
             ha = c2.text_input("Hasta/Dosya No")
             
@@ -2858,6 +2858,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             else:
                 c_kodu.text_input("Hasta Kodu", disabled=True)
             renk = c3.text_input("Renk")
+            manuel_is_tarihi = dt1.date_input("İş Tarihi").strftime("%Y-%m-%d")
             teslim_tarihi = c4.date_input("Teslim").strftime("%Y-%m-%d")
             
             # 2. SATIR: İşlem Seçimi ve Açıklama (TextArea yerine dar Text Input)
@@ -2930,7 +2931,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     islem_adi = h_dict_lab[secilen_lab][0] if hizmetler_lab else "-"
                     if is_rpt:
                         islem_adi = f"{islem_adi} (RPT)"
-                    tarih_saat = datetime.now().strftime("%Y-%m-%d %H:%M")
+                    tarih_saat = f"{manuel_is_tarihi} {datetime.now().strftime('%H:%M')}" 
                     
                     # Eğer CAM seçildiyse sarfiyatları arkadan sessizce düşüyoruz
                     harcanan_m_metni = "-"
