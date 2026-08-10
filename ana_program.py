@@ -2889,6 +2889,23 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 
                 if not df_arsiv_isler.empty:
                     df_arsiv_isler['Faturali_Mi'] = df_arsiv_isler.get('Faturali_Mi', df_arsiv_isler.get('faturali_mi', 0)).fillna(0).astype(int)
+                    
+                    # --- DASHBOARD ---
+                    toplam_is = len(df_arsiv_isler)
+                    toplam_hasta = df_arsiv_isler['Hasta_Adi'].nunique()
+                    toplam_klinik = df_arsiv_isler['Klinik_Unvani'].nunique()
+                    faturalanan = len(df_arsiv_isler[df_arsiv_isler['Faturali_Mi'] > 0])
+                    bekleyen = toplam_is - faturalanan
+
+                    st.markdown("#### 📊 Arşiv Özeti")
+                    d1, d2, d3, d4 = st.columns(4)
+                    d1.metric("Toplam İş", f"{toplam_is} Adet")
+                    d2.metric("Benzersiz Hasta", f"{toplam_hasta} Kişi")
+                    d3.metric("Fatura Kesilen", f"{faturalanan} Adet")
+                    d4.metric("Fatura Bekleyen", f"{bekleyen} Adet")
+                    st.divider()
+                    # -----------------
+                    
                     df_grouped = df_arsiv_isler.groupby(['Hasta_Adi', 'Klinik_Unvani'], as_index=False).agg(
                         id=('id', 'first'),
                         Teslim_Tarihi=('Teslim_Tarihi', 'max'),
