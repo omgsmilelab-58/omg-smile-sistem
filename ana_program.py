@@ -2883,9 +2883,9 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 
                 fat_sorgu = "(SELECT COUNT(*) FROM hesap_ekstreleri e INNER JOIN faturalar f ON f.Ekstre_ID = e.id WHERE e.Klinik_Unvani = isler.Klinik_Unvani AND isler.Tarih >= e.Baslangic_Tarihi AND isler.Tarih <= e.Bitis_Tarihi) as Faturali_Mi"
                 if arsiv_klinik == "Tümü":
-                    df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Hasta_Kodu, Hasta_Adi, Klinik_Unvani, {fat_sorgu} FROM isler WHERE Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(bas_tar, bit_tar))
+                    df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Hasta_Kodu, Hasta_Adi, Klinik_Unvani, Adet, {fat_sorgu} FROM isler WHERE Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(bas_tar, bit_tar))
                 else:
-                    df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Hasta_Kodu, Hasta_Adi, Klinik_Unvani, {fat_sorgu} FROM isler WHERE Klinik_Unvani=? AND Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(arsiv_klinik, bas_tar, bit_tar))
+                    df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Hasta_Kodu, Hasta_Adi, Klinik_Unvani, Adet, {fat_sorgu} FROM isler WHERE Klinik_Unvani=? AND Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(arsiv_klinik, bas_tar, bit_tar))
                 
                 if not df_arsiv_isler.empty:
                     df_arsiv_isler['Faturali_Mi'] = df_arsiv_isler.get('Faturali_Mi', df_arsiv_isler.get('faturali_mi', 0)).fillna(0).astype(int)
@@ -2896,13 +2896,20 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                     toplam_klinik = df_arsiv_isler['Klinik_Unvani'].nunique()
                     faturalanan = len(df_arsiv_isler[df_arsiv_isler['Faturali_Mi'] > 0])
                     bekleyen = toplam_is - faturalanan
+                    
+                    # Toplam Diş Sayısı (Adet sütunundan hesapla)
+                    if 'Adet' in df_arsiv_isler.columns:
+                        toplam_dis = pd.to_numeric(df_arsiv_isler['Adet'], errors='coerce').fillna(0).astype(int).sum()
+                    else:
+                        toplam_dis = 0
 
                     st.markdown("#### 📊 Arşiv Özeti")
-                    d1, d2, d3, d4 = st.columns(4)
+                    d1, d2, d3, d4, d5 = st.columns(5)
                     d1.metric("Toplam İş", f"{toplam_is} Adet")
-                    d2.metric("Benzersiz Hasta", f"{toplam_hasta} Kişi")
-                    d3.metric("Fatura Kesilen", f"{faturalanan} Adet")
-                    d4.metric("Fatura Bekleyen", f"{bekleyen} Adet")
+                    d2.metric("Toplam Diş", f"{toplam_dis} Adet")
+                    d3.metric("Benzersiz Hasta", f"{toplam_hasta} Kişi")
+                    d4.metric("Fatura Kesilen", f"{faturalanan} Adet")
+                    d5.metric("Fatura Bekleyen", f"{bekleyen} Adet")
                     st.divider()
                     # -----------------
                     
