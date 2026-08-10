@@ -46,7 +46,7 @@ def custom_text_input(label, *args, **kwargs):
     val = original_text_input(label, *args, **kwargs)
     if isinstance(val, str) and val:
         lbl = label.lower()
-        if kwargs.get('type') == 'password' or 'şifre' in lbl or 'password' in lbl:
+        if kwargs.get('type') == 'password' or 'şifre' in lbl or 'password' in lbl or 'kullanıcı' in lbl or 'kullanici' in lbl or 'e-posta' in lbl or 'email' in lbl:
             return val
         elif 'renk' in lbl or 'kod' in lbl or 'barkod' in lbl or 'tc' in lbl:
             return ''.join(tr_upper(c) for c in val)
