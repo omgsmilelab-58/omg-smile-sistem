@@ -56,115 +56,115 @@ def get_pg_pool(db_name):
             _pg_pool_dentflow = psycopg2.pool.ThreadedConnectionPool(1, 20, **conn_kwargs)
         return _pg_pool_dentflow
 
-class CursorWrapper:
-    """
-    Bu sınıf, PostgreSQL cursor'ını sarmalar ve SQLite'ın '?' parametrelerini
-    PostgreSQL'in '%s' parametrelerine dönüştürür. 
-    Böylece ana kodda hiçbir SQL sorgusunu elle değiştirmek gerekmez.
-    """
-    def __init__(self, pg_cursor):
-        self.cursor = pg_cursor
+class ProxyCursorWrapper:
+    def __init__(self, pool_obj):
+        self.pool_obj = pool_obj
+        self.description = None
         self.rowcount = -1
         self.lastrowid = None
+        self._results = []
+        self._idx = 0
 
     def _convert_query(self, query):
-        # ? işaretlerini %s ile değiştirir. 
-        # NOT: Eğer string içinde ? varsa bu da değişir (örneğin "Nasılsın?"). 
-        # Omg Smile Sisteminde genelde ? sadece parametre olarak kullanılıyor.
         return query.replace("?", "%s")
 
-    @property
-    def description(self):
-        desc = self.cursor.description
-        if not desc:
-            return None
-        
-        # case_map moved to top level
-        
-        new_desc = []
-        for col in desc:
-            col_name = col[0]
-            mapped_name = case_map.get(col_name.lower(), col_name)
-            new_col = (mapped_name,) + col[1:]
-            new_desc.append(new_col)
-        
-        return new_desc
-
     def execute(self, query, parameters=None):
-        pg_query = self._convert_query(query)
-        is_insert = "INSERT " in pg_query.upper()
-        needs_returning = is_insert and "RETURNING" not in pg_query.upper() and any(t in pg_query.upper() for t in ["INTO ISLER", "INTO KURYE_ISLEMLERI", "INTO GRUPLAR", "INTO AKTIF_FREZLER"])
-        
-        if needs_returning:
-            pg_query += " RETURNING id"
-
-        if parameters:
-            self.cursor.execute(pg_query, parameters)
-        else:
-            self.cursor.execute(pg_query)
-        
-        self.rowcount = self.cursor.rowcount
+        conn = self.pool_obj.getconn()
         try:
+            cur = conn.cursor()
+            pg_query = self._convert_query(query)
+            is_insert = "INSERT " in pg_query.upper()
+            needs_returning = is_insert and "RETURNING" not in pg_query.upper() and any(t in pg_query.upper() for t in ["INTO ISLER", "INTO KURYE_ISLEMLERI", "INTO GRUPLAR", "INTO AKTIF_FREZLER"])
+
             if needs_returning:
-                self.lastrowid = self.cursor.fetchone()[0]
-            elif is_insert:
-                self.lastrowid = None
-        except:
-            self.lastrowid = None
+                pg_query += " RETURNING id"
+
+            if parameters:
+                cur.execute(pg_query, parameters)
+            else:
+                cur.execute(pg_query)
+
+            self.rowcount = cur.rowcount
             
+            if needs_returning:
+                res = cur.fetchone()
+                self.lastrowid = res[0] if res else None
+                self.description = None
+                self._results = []
+            else:
+                desc = cur.description
+                if desc:
+                    new_desc = []
+                    for col in desc:
+                        col_name = col[0]
+                        mapped_name = case_map.get(col_name.lower(), col_name)
+                        new_col = (mapped_name,) + col[1:]
+                        new_desc.append(new_col)
+                    self.description = new_desc
+                    self._results = cur.fetchall()
+                else:
+                    self.description = None
+                    self._results = []
+                    
+                if is_insert:
+                    self.lastrowid = None
+                else:
+                    self.lastrowid = None # SELECT doesn't have lastrowid
+
+            cur.close()
+        finally:
+            self.pool_obj.putconn(conn)
+            
+        self._idx = 0
         return self
 
     def executemany(self, query, seq_of_parameters):
-        pg_query = self._convert_query(query)
-        self.cursor.executemany(pg_query, seq_of_parameters)
+        conn = self.pool_obj.getconn()
+        try:
+            cur = conn.cursor()
+            pg_query = self._convert_query(query)
+            cur.executemany(pg_query, seq_of_parameters)
+            self.rowcount = cur.rowcount
+            cur.close()
+        finally:
+            self.pool_obj.putconn(conn)
         return self
 
     def fetchone(self):
-        return self.cursor.fetchone()
+        if self._idx < len(self._results):
+            res = self._results[self._idx]
+            self._idx += 1
+            return res
+        return None
 
     def fetchall(self):
-        return self.cursor.fetchall()
-        
+        res = self._results[self._idx:]
+        self._idx = len(self._results)
+        return res
+
     def close(self):
-        self.cursor.close()
+        pass
 
 
 class ConnectionWrapper:
-    """
-    PostgreSQL bağlantısını sarmalar.
-    """
-    def __init__(self, pg_conn, pool_obj):
-        self.conn = pg_conn
+    def __init__(self, pool_obj):
         self.pool_obj = pool_obj
-        self._closed = False
-
-    def __del__(self):
-        try:
-            self.close()
-        except:
-            pass
 
     def cursor(self):
-        return CursorWrapper(self.conn.cursor())
+        return ProxyCursorWrapper(self.pool_obj)
 
     def commit(self):
-        self.conn.commit()
+        pass
 
     def rollback(self):
-        self.conn.rollback()
+        pass
 
     def execute(self, query, parameters=None):
         cur = self.cursor()
         return cur.execute(query, parameters)
 
     def close(self):
-        # Bağlantıyı kapatmak yerine havuza geri koy
-        if not getattr(self, '_closed', False):
-            try:
-                self.pool_obj.putconn(self.conn)
-            except:
-                pass
-            self._closed = True
+        pass
 
 
 def get_connection(db_name="omg_smile_erp.db", check_same_thread=False, timeout=20):
@@ -174,9 +174,7 @@ def get_connection(db_name="omg_smile_erp.db", check_same_thread=False, timeout=
     """
     if USE_POSTGRES:
         pool_obj = get_pg_pool(db_name)
-        pg_conn = pool_obj.getconn()
-        pg_conn.autocommit = True
-        return ConnectionWrapper(pg_conn, pool_obj)
+        return ConnectionWrapper(pool_obj)
     else:
         # Standart SQLite bağlantısı
         kwargs = {}
