@@ -1644,16 +1644,91 @@ if kullanici_adi != "Lobi_TV" and kullanici_adi != "":
 
 if "aktif_sayfa" not in st.session_state: st.session_state.aktif_sayfa = "🎯 Komuta Merkezi"
 
-if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi", "🏢 Kurumsal Bilgi"]
-elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik", "🏢 Kurumsal Bilgi"]
+if rol in ["Admin", "Yönetici"]: menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "👥 Personel Yönetimi", "📦 Stok Yönetimi", "🏢 Varlık Yönetimi", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📱 Teknisyen Terminali", "📱 WhatsApp Entegrasyonu",  "🛵 Kurye Lojistik",  "🔧 Makine Parkuru ve Bakımı", "🔐 Kullanıcı & Yetki Yönetimi", "🏢 Kurumsal Bilgi", "💬 Mobil İletişim"]
+elif rol == "Sekreter": menu = ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "🤝 Hekim ve Cari Kayıt", "⚙️ İş Akışı", "📱 WhatsApp Entegrasyonu", "🏭 Tedarikçi Yönetimi", "💰 Finans & Analitik", "🛵 Kurye Lojistik", "🏢 Kurumsal Bilgi", "💬 Mobil İletişim"]
 elif rol == "Teknisyen": menu = ["⚙️ İş Akışı", "📅 Görev & Planlama", "📺 Lobi / TV Ekranı", "📱 Teknisyen Terminali", "📦 Stok Yönetimi", "🏭 Tedarikçi Yönetimi", "🔧 Makine Parkuru ve Bakımı"]
-elif rol == "Klinik": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🧾 Detaylı Ekstre", "📅 Doktor Takvimi", "🏢 Kurumsal Bilgi"]
-elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "📅 Doktor Takvimi", "🏢 Kurumsal Bilgi"]
+elif rol == "Klinik": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "🧾 Detaylı Ekstre", "📅 Doktor Takvimi", "🏢 Kurumsal Bilgi", "💬 Mobil İletişim"]
+elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekranı", "📤 Yeni Sipariş (Reçete)", "📅 Doktor Takvimi", "🏢 Kurumsal Bilgi", "💬 Mobil İletişim"]
 elif rol == "Kurye": menu = ["🛵 Kurye Mobil Terminali", "📺 Lobi / TV Ekranı"]
 elif rol == "Kiosk": menu = ["📺 Lobi / TV Ekranı"]
 
 if st.session_state.aktif_sayfa not in menu and st.session_state.aktif_sayfa not in ["⚙️ Ayarlar", "🤖 OMG AI Asistan"]:
     st.session_state.aktif_sayfa = menu[0]
+
+if st.session_state.aktif_sayfa == "💬 Mobil İletişim":
+    st.markdown("<div style='text-align:center; padding:20px;'><h2 class='neon-text-blue' style='font-size:40px;'>💬 Mesaj ve Bildirim Merkezi</h2><h3 style='color:#94a3b8; letter-spacing:2px;'>Mobil Uygulama Haberleşme Ağı</h3></div>", unsafe_allow_html=True)
+    st.info("Bu ekrandan mobil uygulamayı kullanan personele veya kliniklere anlık bildirim (push notification) ve mesaj gönderebilirsiniz.")
+    
+    t1, t2 = st.tabs(["💬 Yeni Mesaj Gönder", "🔔 Push Bildirim Gönder"])
+    
+    # Kullanıcı Listesini Çek
+    try:
+        conn_dent = db_baglanti.get_connection('dentflow.db')
+        df_users = pd.read_sql("SELECT id, kullanici_adi, isim, rol FROM kullanicilar", conn_dent)
+        conn_dent.close()
+        user_options = {f"{row['isim']} ({row['rol']})": row['id'] for idx, row in df_users.iterrows()}
+        user_names = {row['kullanici_adi']: f"{row['isim']} ({row['rol']})" for idx, row in df_users.iterrows()}
+    except Exception as e:
+        st.error(f"Kullanıcılar yüklenirken hata oluştu: {e}")
+        user_options = {}
+        user_names = {}
+    
+    with t1:
+        with st.container(border=True):
+            st.subheader("Bireysel Mesaj Gönder")
+            secili_alici_isim = st.selectbox("Alıcı Personel / Klinik Seçin", list(user_options.keys()), key="msg_alici")
+            mesaj_icerik = st.text_area("Mesajınız", height=100, key="msg_icerik")
+            if st.button("Mesajı Gönder", type="primary", use_container_width=True):
+                if not mesaj_icerik.strip():
+                    st.warning("Lütfen bir mesaj yazın.")
+                else:
+                    alici_id = user_options[secili_alici_isim]
+                    conn_dent = db_baglanti.get_connection('dentflow.db')
+                    c_dent = conn_dent.cursor()
+                    
+                    g_id = 0
+                    if not df_users[df_users['kullanici_adi'] == kullanici_adi].empty:
+                        g_id = int(df_users[df_users['kullanici_adi'] == kullanici_adi].iloc[0]['id'])
+                    
+                    c_dent.execute("INSERT INTO mesajlar (gonderen_id, alici_id, icerik, zaman, okundu, tip) VALUES (%s, %s, %s, CURRENT_TIMESTAMP, 0, 'sohbet')", (g_id, alici_id, mesaj_icerik))
+                    conn_dent.commit()
+                    
+                    try:
+                        import firebase_utils
+                        alici_kadi = df_users[df_users['id'] == alici_id].iloc[0]['kullanici_adi']
+                        firebase_utils.send_push_notification(alici_kadi, "Yeni Mesaj: OMG Smile", mesaj_icerik)
+                    except Exception as e:
+                        print("Bildirim atılamadı:", e)
+                        
+                    conn_dent.close()
+                    st.success("Mesaj başarıyla gönderildi ve alıcının mobil uygulamasına iletildi!")
+            
+    with t2:
+        with st.container(border=True):
+            st.subheader("Sistem Bildirimi (Push) Gönder")
+            st.caption("Uygulama kapalı olsa bile kullanıcının telefon ekranına uyarı olarak düşer.")
+            secili_kadi = st.selectbox("Alıcı Seçin", list(user_names.keys()), format_func=lambda x: user_names[x], key="push_alici")
+            b_baslik = st.text_input("Bildirim Başlığı", "OMG Smile Sistem")
+            b_icerik = st.text_area("Bildirim İçeriği", key="push_icerik")
+            if st.button("Bildirimi Gönder", type="primary", use_container_width=True):
+                if not b_icerik.strip():
+                    st.warning("İçerik boş olamaz.")
+                else:
+                    conn_dent = db_baglanti.get_connection('dentflow.db')
+                    c_dent = conn_dent.cursor()
+                    c_dent.execute("INSERT INTO bildirimler (kullanici_adi, baslik, icerik, okundu, zaman) VALUES (%s, %s, %s, 0, CURRENT_TIMESTAMP)", (secili_kadi, b_baslik, b_icerik))
+                    conn_dent.commit()
+                    conn_dent.close()
+                    
+                    try:
+                        import firebase_utils
+                        success = firebase_utils.send_push_notification(secili_kadi, b_baslik, b_icerik)
+                        if success:
+                            st.success("Bildirim başarıyla telefona iletildi!")
+                        else:
+                            st.warning("Bildirim sisteme eklendi ancak kullanıcının telefonunda aktif bir FCM oturumu (token) bulunamadı.")
+                    except Exception as e:
+                        st.error("Bildirim gönderilemedi: " + str(e))
 
 if st.session_state.aktif_sayfa == "📺 Lobi / TV Ekranı":
     st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
@@ -1788,6 +1863,9 @@ kategoriler["💰 3. Finans & Tedarik"] = [
 kategoriler["🏢 4. Altyapı & Yönetim"] = [
     "🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", 
     "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi"
+]
+kategoriler["💬 5. Mobil İletişim"] = [
+    "💬 Mobil İletişim"
 ]
 
 kategori_bulundu = False
