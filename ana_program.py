@@ -1478,25 +1478,25 @@ if client_ip == kayitli_lobi_ip and kayitli_lobi_ip != "" and not st.session_sta
 if not st.session_state["giris_yapildi"]:
     st.markdown("""
 <style>
-        /* ── DENTMESHER.COM GÖRSEL KİMLİĞİ VE TASARIM SİSTEMİ ── */
+        /* ── DENTMESHER.COM GÖRSEL KİMLİĞİ (ÇOK KOYU LACİVERT GRADYAN TASARIM) ── */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800;900&display=swap');
         
         :root {
-            --dm-zemin-1: #150d07;
-            --dm-zemin-2: #241609;
-            --dm-isik:    #7a3c12;
-            --dm-metin:   #ffedd7;
-            --dm-metin-2: rgba(255, 237, 215, 0.70);
-            --dm-vurgu:   #e8622c;
+            --dm-zemin-1: #040812;    /* En koyu derin gece laciverti */
+            --dm-zemin-2: #091326;    /* Koyu lüks lacivert */
+            --dm-isik:    #15305b;    /* Sol alttan vuran derin siber lacivert/safir ışıma */
+            --dm-metin:   #f8fafc;    /* Beyaz / gümüşi açık metin */
+            --dm-metin-2: rgba(226, 232, 240, 0.72);
+            --dm-vurgu:   #e8622c;    /* Canlı DentMesher Turuncusu */
             --dm-vurgu-hover: #f2703a;
-            --dm-cizgi:   rgba(255, 237, 215, 0.14);
+            --dm-cizgi:   rgba(255, 255, 255, 0.12);
         }
 
-        /* CANLI VE SICAK KAHVE/AMBER ARKA PLAN */
+        /* CANLI VE ÇOK KOYU LACİVERT RADYAL GRADYAN ARKA PLAN */
         .stApp {
             background:
                 radial-gradient(120% 90% at 8% 100%, var(--dm-isik) 0%, transparent 58%),
-                radial-gradient(90% 70% at 100% 0%, #3a1f0c 0%, transparent 55%),
+                radial-gradient(90% 70% at 100% 0%, #0d2242 0%, transparent 55%),
                 linear-gradient(160deg, var(--dm-zemin-2) 0%, var(--dm-zemin-1) 60%) !important;
             background-attachment: fixed !important;
             color: var(--dm-metin) !important;
@@ -1523,19 +1523,19 @@ if not st.session_state["giris_yapildi"]:
             color: var(--dm-vurgu);
         }
 
-        /* ── DENTMESHER KOYU CAM GİRİŞ KARTI (GLASSMORPHISM) ── */
+        /* ── DENTMESHER KOYU LACİVERT CAM GİRİŞ KARTI (GLASSMORPHISM) ── */
         div[data-testid="stForm"] { 
             max-width: 420px !important; 
             margin: 0 auto !important; 
-            background: rgba(24, 15, 8, 0.78) !important;
+            background: rgba(9, 18, 36, 0.80) !important;
             backdrop-filter: blur(24px) saturate(140%) !important;
             -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
             border: 1px solid var(--dm-cizgi) !important;
             border-radius: 22px !important;
             padding: 32px 30px !important;
-            box-shadow: 0 1px 0 rgba(255, 237, 215, 0.10) inset,
-                        0 30px 80px rgba(0, 0, 0, 0.65),
-                        0 0 40px rgba(122, 60, 18, 0.25) !important;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset,
+                        0 30px 80px rgba(0, 0, 0, 0.70),
+                        0 0 40px rgba(21, 48, 91, 0.35) !important;
         }
 
         .form-header {
@@ -1567,7 +1567,7 @@ if not st.session_state["giris_yapildi"]:
             width: 100% !important; 
             padding: 4px 6px !important; 
             gap: 6px !important; 
-            background: rgba(255, 237, 215, 0.06) !important; 
+            background: rgba(255, 255, 255, 0.05) !important; 
             backdrop-filter: blur(14px) !important; 
             -webkit-backdrop-filter: blur(14px) !important; 
             border: 1px solid var(--dm-cizgi) !important; 
@@ -1588,7 +1588,7 @@ if not st.session_state["giris_yapildi"]:
             margin-bottom: 4px !important;
         }
         .stTextInput > div > div > input {
-            background-color: rgba(255, 237, 215, 0.07) !important;
+            background-color: rgba(255, 255, 255, 0.06) !important;
             border: 1.5px solid var(--dm-cizgi) !important;
             border-radius: 10px !important;
             color: var(--dm-metin) !important;
@@ -1599,9 +1599,9 @@ if not st.session_state["giris_yapildi"]:
             transition: all 0.2s ease !important;
         }
         .stTextInput > div > div > input:focus {
-            background-color: rgba(255, 237, 215, 0.12) !important;
+            background-color: rgba(255, 255, 255, 0.10) !important;
             border-color: var(--dm-vurgu) !important;
-            box-shadow: 0 0 0 3px rgba(232, 98, 44, 0.22) !important;
+            box-shadow: 0 0 0 3px rgba(232, 98, 44, 0.25) !important;
             color: #ffffff !important;
         }
         
@@ -1715,17 +1715,17 @@ if not st.session_state["giris_yapildi"]:
             width: 100%;
             padding-top: 10px;
             padding-bottom: 12px;
-            background: rgba(18, 11, 5, 0.65);
+            background: rgba(4, 8, 18, 0.75);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
-            border-top: 1px solid rgba(255, 237, 215, 0.12);
+            border-top: 1px solid rgba(255, 255, 255, 0.10);
             text-align: center;
             font-size: 12px;
-            color: rgba(255, 237, 215, 0.65);
+            color: rgba(226, 232, 240, 0.65);
             z-index: 9999;
         }
         .footer-meta a {
-            color: rgba(255, 237, 215, 0.75);
+            color: rgba(226, 232, 240, 0.75);
             text-decoration: none;
             margin: 0 10px;
             font-weight: 500;
@@ -1743,7 +1743,7 @@ if not st.session_state["giris_yapildi"]:
                 <a href="#">Kullanım Koşulları</a> •
                 <a href="#">Yardım & Destek</a>
             </div>
-            <div style="font-size: 11px; margin-top: 4px; color: rgba(255, 237, 215, 0.45);">
+            <div style="font-size: 11px; margin-top: 4px; color: rgba(226, 232, 240, 0.45);">
                 © 2026 DentMesher Dijital Diş Laboratuvarı Ekosistemi — Tüm Hakları Saklıdır.
             </div>
         </div>
