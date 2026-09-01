@@ -12,7 +12,7 @@ def sync_database(db_name):
         user='postgres',
         password='Zeynep6658.',
         database=db_name,
-        connect_timeout=10
+        connect_timeout=15
     )
     src_cur = src_conn.cursor()
     
@@ -21,12 +21,12 @@ def sync_database(db_name):
         user='postgres',
         password='Zeynep6658.',
         database=db_name,
-        connect_timeout=10
+        connect_timeout=15
     )
     dst_conn.autocommit = True
     dst_cur = dst_conn.cursor()
     
-    # Kaynaktaki tüm tabloları bul
+    # 1. Kaynaktaki tüm tabloları bul
     src_cur.execute("""
         SELECT table_name 
         FROM information_schema.tables 
@@ -37,9 +37,9 @@ def sync_database(db_name):
     print(f"Bulunan tablolar ({len(tables)} adet): {', '.join(tables)}")
     
     for table in tables:
-        # Kaynak tablonun kolonlarını al
+        # Kaynak tablonun kolonlarını ve veri tiplerini al
         src_cur.execute(f"""
-            SELECT column_name, data_type, character_maximum_length, is_nullable
+            SELECT column_name, data_type, udt_name, is_nullable
             FROM information_schema.columns 
             WHERE table_schema = 'public' AND table_name = '{table}'
             ORDER BY ordinal_position
@@ -47,16 +47,28 @@ def sync_database(db_name):
         cols_info = src_cur.fetchall()
         cols = [c[0] for c in cols_info]
         
-        # Hedefte tablo yoksa otomatik oluştur
+        # Hedefte tabloyu kaynak kolonlarla birebir yeniden oluştur
         col_defs = []
-        for c in cols_info:
-            c_name, c_type, c_len, c_null = c
-            if c_name.lower() == 'id':
+        has_id_pk = False
+        for c_name, c_type, udt_name, is_null in cols_info:
+            c_name_lower = c_name.lower()
+            if c_name_lower == 'id' and 'int' in c_type.lower() and not has_id_pk:
                 col_defs.append(f'"{c_name}" SERIAL PRIMARY KEY')
+                has_id_pk = True
+            elif 'int' in c_type.lower():
+                col_defs.append(f'"{c_name}" BIGINT')
+            elif 'numeric' in c_type.lower() or 'double' in c_type.lower() or 'real' in c_type.lower():
+                col_defs.append(f'"{c_name}" NUMERIC')
+            elif 'bytea' in udt_name.lower():
+                col_defs.append(f'"{c_name}" BYTEA')
+            elif 'bool' in c_type.lower():
+                col_defs.append(f'"{c_name}" BOOLEAN')
             else:
                 col_defs.append(f'"{c_name}" TEXT')
         
-        create_sql = f'CREATE TABLE IF NOT EXISTS "{table}" ({", ".join(col_defs)});'
+        # Hedef tabloyu drop edip tam güncel şemayla oluştur
+        dst_cur.execute(f'DROP TABLE IF EXISTS "{table}" CASCADE;')
+        create_sql = f'CREATE TABLE "{table}" ({", ".join(col_defs)});'
         dst_cur.execute(create_sql)
         
         # Verileri kaynaktan çek
@@ -64,13 +76,10 @@ def sync_database(db_name):
         rows = src_cur.fetchall()
         
         if not rows:
-            print(f"▶ Tablo: {table} (0 kayıt, atlandı)")
+            print(f"▶ Tablo: {table} (0 kayıt aktarıldı)")
             continue
             
         print(f"▶ Tablo: {table} -> {len(rows)} kayıt aktarılıyor...")
-        
-        # Hedefteki mevcut veriyi temizle
-        dst_cur.execute(f'TRUNCATE TABLE "{table}" CASCADE;')
         
         cols_joined = ", ".join([f'"{c}"' for c in cols])
         placeholders = ", ".join(["%s"] * len(cols))
@@ -92,14 +101,14 @@ def sync_database(db_name):
         
     src_conn.close()
     dst_conn.close()
-    print(f"🎉 [{db_name}] BAŞARIYLA AKTARILDI!")
+    print(f"🎉 [{db_name}] BAŞARIYLA TAMAMLANDI!")
 
 def main():
     try:
         sync_database('omg_smile_erp')
         sync_database('dentflow')
         
-        # .env dosyasını localhost olarak sabitle
+        # .env dosyasını localhost olarak ayarla
         env_content = (
             "USE_POSTGRES=True\n"
             "DB_HOST=localhost\n"
