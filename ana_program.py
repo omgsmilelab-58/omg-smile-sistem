@@ -1460,8 +1460,46 @@ def fatura_pdf_uret(fatura_no, klinik, ekstre_df, toplam_tutar, fatura_tarihi, k
 # 💎 AYARLAR (SESSION STATE) 💎
 if "w_ciro" not in st.session_state: st.session_state.update({"w_ciro": True, "w_radar": True, "w_grafikler": True})
 
-# --- 🔒 GÜVENLİK (GİRİŞ EKRANI SİMETRİSİ VE KIOSK KİLİDİ) ---
-if "giris_yapildi" not in st.session_state: st.session_state.update({"giris_yapildi": False, "kullanici_adi": "", "kullanici_rolu": "", "ana_klinik": ""})
+# --- 🔒 GÜVENLİK (GİRİŞ EKRANI SİMETRİSİ VE KALICI OTURUM KORUMASI) ---
+import hmac, hashlib, base64, json, time
+
+SECRET_KEY = b'DentMesherHub_Secure_Key_2026_OMG_Smile'
+
+def create_session_token(kullanici_adi, rol, ana_klinik=''):
+    payload = {'u': str(kullanici_adi), 'r': str(rol), 'k': str(ana_klinik), 't': int(time.time())}
+    raw_json = json.dumps(payload, ensure_ascii=False).encode('utf-8')
+    b64_payload = base64.urlsafe_b64encode(raw_json).decode('utf-8')
+    signature = hmac.new(SECRET_KEY, b64_payload.encode('utf-8'), hashlib.sha256).hexdigest()[:16]
+    return f'{b64_payload}.{signature}'
+
+def verify_session_token(token):
+    try:
+        if not token or '.' not in token: return None
+        b64_payload, signature = token.split('.', 1)
+        expected_sig = hmac.new(SECRET_KEY, b64_payload.encode('utf-8'), hashlib.sha256).hexdigest()[:16]
+        if not hmac.compare_digest(signature, expected_sig): return None
+        raw_json = base64.urlsafe_b64decode(b64_payload.encode('utf-8')).decode('utf-8')
+        data = json.loads(raw_json)
+        if time.time() - data.get('t', 0) > 30 * 86400: return None
+        return data
+    except Exception: return None
+
+if "giris_yapildi" not in st.session_state: 
+    st.session_state.update({"giris_yapildi": False, "kullanici_adi": "", "kullanici_rolu": "", "ana_klinik": ""})
+
+# Sayfa yenilendiğinde (F5 / Refresh) oturumu ve bulunulan sayfayı geri yükle
+if not st.session_state["giris_yapildi"]:
+    session_token = st.query_params.get("auth")
+    if session_token:
+        sess_data = verify_session_token(session_token)
+        if sess_data:
+            st.session_state["giris_yapildi"] = True
+            st.session_state["kullanici_adi"] = sess_data["u"]
+            st.session_state["kullanici_rolu"] = sess_data["r"]
+            st.session_state["ana_klinik"] = sess_data.get("k", "")
+            saved_page = st.query_params.get("page", "")
+            if saved_page:
+                st.session_state["aktif_sayfa"] = saved_page
 
 client_ip = st.query_params.get("ip", "127.0.0.1") 
 kayitli_lobi_ip = ayar_getir("Lobi_IP", "192.168.1.100")
@@ -1658,6 +1696,7 @@ if not st.session_state["giris_yapildi"]:
                 if st.form_submit_button("Giriş Yap", use_container_width=True):
                     sorgu = c.execute("SELECT Rol, Kullanici_Adi FROM kullanicilar WHERE LOWER(Kullanici_Adi)=LOWER(?) AND Sifre=?", (kullanici_giris.strip(), sifre_giris.strip())).fetchone()
                     if sorgu:
+                        st.query_params["auth"] = create_session_token(sorgu[1], sorgu[0], "")
                         st.session_state.update({"giris_yapildi": True, "kullanici_adi": sorgu[1], "kullanici_rolu": sorgu[0], "ana_klinik": ""})
                         st.rerun()
                     else:
@@ -1683,6 +1722,7 @@ if not st.session_state["giris_yapildi"]:
                     if asistan_girisi_mi:
                         sorgu = c.execute("SELECT Klinik_Unvani, Sifre FROM klinik_asistanlari WHERE LOWER(Asistan_Kadi)=LOWER(?) AND Sifre=?", (kullanici_giris.strip(), sifre_giris.strip())).fetchone()
                         if sorgu:
+                            st.query_params["auth"] = create_session_token(kullanici_giris.strip(), "Klinik_Asistan", sorgu[0])
                             st.session_state.update({"giris_yapildi": True, "kullanici_adi": kullanici_giris.strip(), "kullanici_rolu": "Klinik_Asistan", "ana_klinik": sorgu[0]})
                             st.rerun()
                         else: st.error("Asistan bilgileri hatalı!")
@@ -1702,6 +1742,7 @@ if not st.session_state["giris_yapildi"]:
                                 break
                                 
                         if giris_basarili: 
+                            st.query_params["auth"] = create_session_token(gercek_unvan, "Klinik", gercek_unvan)
                             st.session_state.update({"giris_yapildi": True, "kullanici_adi": gercek_unvan, "kullanici_rolu": "Klinik", "ana_klinik": gercek_unvan})
                             st.rerun()
                         else: st.error("Klinik Adı (Kullanıcı Adı) veya Şifre Hatalı!")
@@ -1786,6 +1827,10 @@ elif rol == "Kiosk": menu = ["📺 Lobi / TV Ekranı"]
 if st.session_state.aktif_sayfa not in menu and st.session_state.aktif_sayfa not in ["⚙️ Ayarlar", "🤖 OMG AI Asistan"]:
     st.session_state.aktif_sayfa = menu[0]
 
+# Aktif sayfayı tarayıcı URL'sine senkronize et (F5 durumunda aynı sayfada kalması için)
+if st.query_params.get("page") != st.session_state.aktif_sayfa:
+    st.query_params["page"] = st.session_state.aktif_sayfa
+
 if st.session_state.aktif_sayfa == "💬 Mobil İletişim":
     st.markdown("<div style='text-align:center; padding:20px;'><h2 class='neon-text-blue' style='font-size:40px;'>💬 Mesaj ve Bildirim Merkezi</h2><h3 style='color:#94a3b8; letter-spacing:2px;'>Mobil Uygulama Haberleşme Ağı</h3></div>", unsafe_allow_html=True)
     st.info("Bu ekrandan mobil uygulamayı kullanan personele veya kliniklere anlık bildirim (push notification) ve mesaj gönderebilirsiniz.")
@@ -1838,54 +1883,51 @@ if st.session_state.aktif_sayfa == "💬 Mobil İletişim":
         with st.container(border=True):
             st.subheader("Sistem Bildirimi (Push) Gönder")
             st.caption("Uygulama kapalı olsa bile kullanıcının telefon ekranına uyarı olarak düşer.")
-            secili_kadi = st.selectbox("Alıcı Seçin", list(user_names.keys()), format_func=lambda x: user_names[x], key="push_alici")
-            b_baslik = st.text_input("Bildirim Başlığı", "OMG Smile Sistem")
-            b_icerik = st.text_area("Bildirim İçeriği", key="push_icerik")
-            if st.button("Bildirimi Gönder", type="primary", use_container_width=True):
-                if not b_icerik.strip():
-                    st.warning("İçerik boş olamaz.")
+            duyuru_baslik = st.text_input("Bildirim Başlığı", value="OMG Smile Duyuru")
+            duyuru_icerik = st.text_area("Bildirim İçeriği", height=100)
+            if st.button("Tüm Kullanıcılara Push Bildirimi Gönder", type="primary", use_container_width=True):
+                if not duyuru_icerik.strip():
+                    st.warning("Lütfen bir duyuru metni girin.")
                 else:
-                    conn_dent = db_baglanti.get_connection('dentflow.db')
-                    c_dent = conn_dent.cursor()
-                    c_dent.execute("INSERT INTO bildirimler (kullanici_adi, baslik, icerik, okundu, zaman) VALUES (%s, %s, %s, 0, CURRENT_TIMESTAMP)", (secili_kadi, b_baslik, b_icerik))
-                    conn_dent.commit()
-                    conn_dent.close()
-                    
                     try:
                         import firebase_utils
-                        success = firebase_utils.send_push_notification(secili_kadi, b_baslik, b_icerik)
-                        if success:
-                            st.success("Bildirim başarıyla telefona iletildi!")
-                        else:
-                            st.warning("Bildirim sisteme eklendi ancak kullanıcının telefonunda aktif bir FCM oturumu (token) bulunamadı.")
+                        firebase_utils.send_push_notification("herkes", duyuru_baslik, duyuru_icerik)
+                        st.success("Toplu bildirim gönderildi!")
                     except Exception as e:
-                        st.error("Bildirim gönderilemedi: " + str(e))
+                        st.error(f"Bildirim gönderilemedi: {e}")
 
 if st.session_state.aktif_sayfa == "📺 Lobi / TV Ekranı":
-    st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
-    if rol in ["Klinik", "Klinik_Asistan"]:
-        baslik = ana_klinik.upper() if ana_klinik else "KLİNİK"
-        st.markdown(f"""<div style='text-align:center; padding:30px;'><h1 class='neon-text-blue' style='font-size:60px;'>{baslik}</h1><h3 style='color:#94a3b8; letter-spacing:5px;'>CANLI DURUM EKRANI</h3></div>""", unsafe_allow_html=True)
-        df_isler = pd.read_sql(f"SELECT Asama, Klinik_Unvani FROM isler WHERE Klinik_Unvani='{ana_klinik}'", conn)
-        kurye_bekleyen = c.execute("SELECT count(*) FROM kurye_islemleri WHERE Durum='Bekliyor' AND Klinik_Unvani=?", (ana_klinik,)).fetchone()[0]
-    else:
-        st.markdown("""<div style='text-align:center; padding:30px;'><h1 class='neon-text-blue' style='font-size:60px;'>OMG SMILE ÜRETİM MERKEZİ</h1><h3 style='color:#94a3b8; letter-spacing:5px;'>CANLI DURUM EKRANI</h3></div>""", unsafe_allow_html=True)
-        df_isler = pd.read_sql("SELECT Asama, Klinik_Unvani FROM isler", conn)
-        kurye_bekleyen = c.execute("SELECT count(*) FROM kurye_islemleri WHERE Durum='Bekliyor'").fetchone()[0]
-        
-    c_sip = len(df_isler[df_isler["Asama"]=="Sipariş Alındı (Hekim Girdi)"])
-    c_tas = len(df_isler[df_isler["Asama"]=="Tasarım Bekliyor"])
-    c_kaz = len(df_isler[df_isler["Asama"]=="Kazıma/Döküm"])
-    c_fir = len(df_isler[df_isler["Asama"]=="Seramik/Fırın"])
-    c_tes = len(df_isler[df_isler["Asama"]=="Teslim Edildi"])
+    st.markdown("""
+        <style>
+            [data-testid="stHeader"] {display:none !important;}
+            [data-testid="stSidebar"] {display:none !important;}
+            .block-container {padding: 1.5rem !important; max-width: 100% !important;}
+        </style>
+    """, unsafe_allow_html=True)
+    
+    col_t1, col_t2 = st.columns([3, 1])
+    col_t1.markdown("<h1 class='neon-text-blue' style='font-size:45px; margin:0;'>📺 OMG SMILE - CANLI LOBİ TAKİP EKRANI</h1>", unsafe_allow_html=True)
+    col_t2.markdown(f"<div style='text-align:right; font-size:24px; color:#94a3b8;'>{datetime.now().strftime('%H:%M:%S')}</div>", unsafe_allow_html=True)
+    
+    st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 15px 0;'>", unsafe_allow_html=True)
+    
+    c_sip = c.execute("SELECT count(*) FROM isler WHERE Asama='Sipariş Alındı (Hekim Girdi)'").fetchone()[0]
+    c_tas = c.execute("SELECT count(*) FROM isler WHERE Asama='Tasarım Bekliyor'").fetchone()[0]
+    c_kaz = c.execute("SELECT count(*) FROM isler WHERE Asama='Kazıma/Döküm'").fetchone()[0]
+    c_fir = c.execute("SELECT count(*) FROM isler WHERE Asama='Seramik/Fırın'").fetchone()[0]
+    c_tes = c.execute("SELECT count(*) FROM isler WHERE Asama='Teslim Edildi'").fetchone()[0]
+    kurye_bekleyen = c.execute("SELECT count(*) FROM kurye_islemleri WHERE Durum='Bekliyor'").fetchone()[0]
     
     st.markdown(f"""
-        <div class="radar-container" style="padding: 60px 20px;">
+        <div class="radar-container" style="padding: 20px 10px; margin-bottom: 25px;">
+            <div class="radar-step step-active"><div class="radar-circle" style="border-color:#38bdf8; color:#38bdf8;">{c_sip}</div><div class="radar-label" style="color:#38bdf8;">Sipariş<br>Alındı</div></div>
             <div class="radar-line"></div>
-            <div class="radar-step {'step-active' if c_sip > 0 else ''}"><div class="radar-circle">{c_sip}</div><div class="radar-label">Sipariş<br>Alındı</div></div>
-            <div class="radar-step {'step-active' if c_tas > 0 else ''}"><div class="radar-circle">{c_tas}</div><div class="radar-label">CAD<br>Tasarım</div></div>
-            <div class="radar-step {'step-active' if c_kaz > 0 else ''}"><div class="radar-circle">{c_kaz}</div><div class="radar-label">CAM<br>Kazıma</div></div>
-            <div class="radar-step {'step-active' if c_fir > 0 else ''}"><div class="radar-circle">{c_fir}</div><div class="radar-label">Fırın &<br>Seramik</div></div>
+            <div class="radar-step step-active"><div class="radar-circle" style="border-color:#fbbf24; color:#fbbf24;">{c_tas}</div><div class="radar-label" style="color:#fbbf24;">CAD<br>Tasarım</div></div>
+            <div class="radar-line"></div>
+            <div class="radar-step step-active"><div class="radar-circle" style="border-color:#a855f7; color:#a855f7;">{c_kaz}</div><div class="radar-label" style="color:#a855f7;">CAM<br>Kazıma</div></div>
+            <div class="radar-line"></div>
+            <div class="radar-step step-active"><div class="radar-circle" style="border-color:#f97316; color:#f97316;">{c_fir}</div><div class="radar-label" style="color:#f97316;">Sinter &<br>Fırın</div></div>
+            <div class="radar-line"></div>
             <div class="radar-step step-active"><div class="radar-circle" style="border-color:#34d399; color:#34d399;">{c_tes}</div><div class="radar-label" style="color:#34d399;">Teslim<br>Edildi</div></div>
         </div>
     """, unsafe_allow_html=True)
@@ -1902,26 +1944,33 @@ if st.session_state.aktif_sayfa == "📺 Lobi / TV Ekranı":
 
     # 💎 FAZ 40: KURYE MOBİL TERMİNALİ (TAM EKRAN APP) 💎
 if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
-    st.markdown("<style>[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
-    st.markdown("""<div style='text-align:center; padding:20px;'><h2 class='neon-text-blue' style='font-size:30px;'>OMG Lojistik</h2><h4 style='color:#94a3b8;'>Canlı Kurye Rota Ekranı</h4></div>""", unsafe_allow_html=True)
+    st.markdown("""
+        <style>
+            [data-testid="stHeader"] {display:none !important;}
+            [data-testid="stSidebar"] {display:none !important;}
+            .block-container {padding: 1rem !important; max-width: 100% !important;}
+        </style>
+    """, unsafe_allow_html=True)
     
-    bekleyenler = pd.read_sql("SELECT id, Tarih, Saat, Klinik_Unvani, Aciklama FROM kurye_islemleri WHERE Durum='Bekliyor' ORDER BY Tarih ASC, Saat ASC", conn)
-    if not bekleyenler.empty:
-        for _, r in bekleyenler.iterrows():
-            klinik_adi = r["Klinik_Unvani"]
-            adres_sorgu = c.execute("SELECT Adres FROM cariler WHERE Klinik_Unvani=?", (klinik_adi,)).fetchone()
-            k_adres = adres_sorgu[0] if adres_sorgu and adres_sorgu[0] != "-" else "Adres Kayıtlı Değil"
-            
+    st.markdown("<div style='text-align:center;'><h2 class='neon-text-blue' style='margin:0; font-size:32px;'>🛵 OMG KURYE</h2><h4 style='color:#94a3b8; margin:0;'>Canlı Sevkiyat ve Görev Paneli</h4></div>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 10px 0;'>", unsafe_allow_html=True)
+    
+    rotalar = pd.read_sql("SELECT * FROM kurye_islemleri WHERE Durum='Bekliyor' ORDER BY id DESC", conn)
+    if not rotalar.empty:
+        for idx, r in rotalar.iterrows():
             st.markdown(f"""
-            <div class="glass-card" style="margin-bottom:15px; border-left: 5px solid #FBBF24;">
-                <h3 style="margin-top:0; color:#FBBF24;">{klinik_adi}</h3>
-                <p><b>Talep:</b> {r["Tarih"]} {r["Saat"]}<br><b>Açıklama:</b> {r["Aciklama"]}</p>
-                <p style="color:#9CA3AF; font-size:14px;">📍 {k_adres}</p>
-            </div>
+                <div class="glass-card" style="margin-bottom: 10px; border-left: 5px solid #38bdf8;">
+                    <div style="font-size:18px; font-weight:800; color:#FFFFFF;">🏥 {r['Klinik_Unvani']}</div>
+                    <div style="color:#94a3b8; font-size:13px; margin:4px 0;">⏰ Talep: {r['Tarih']} | {r['Saat']}</div>
+                    <div style="background: rgba(15, 23, 42, 0.6); padding: 8px; border-radius: 8px; color:#e2e8f0; font-size:14px; margin-top:5px;">📝 Not: {r['Aciklama']}</div>
+                </div>
             """, unsafe_allow_html=True)
             
-            col_k1, col_k2 = st.columns(2)
-            harita_url = f"http://maps.google.com/?q={urllib.parse.quote(k_adres)}"
+            col_k1, col_k2 = st.columns([1, 1])
+            klinik_adres = c.execute("SELECT Adres FROM cariler WHERE Klinik_Unvani=?", (r['Klinik_Unvani'],)).fetchone()
+            adres_str = klinik_adres[0] if klinik_adres and klinik_adres[0] != '-' else r['Klinik_Unvani']
+            harita_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(adres_str)}"
+            
             col_k1.markdown(f"""<a href="{harita_url}" target="_blank" class="wp-btn" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">🗺️ Haritada Aç</a>""", unsafe_allow_html=True)
             
             if col_k2.button(f"✅ İşi Teslim Aldım (ID: {r['id']})", key=f"teslim_{r['id']}", use_container_width=True):
@@ -1933,7 +1982,9 @@ if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
     
     st.markdown("<br><br>", unsafe_allow_html=True)
     if st.button("🚪 Sistemden Çıkış Yap", use_container_width=True):
-        st.session_state.clear(); st.rerun()
+        st.query_params.clear()
+        st.session_state.clear()
+        st.rerun()
     st.stop()
 
 # --- STANDART MENÜ ---
@@ -2016,6 +2067,7 @@ for kat_adi, moduller in kategoriler.items():
                 btn_type = "primary" if modul == st.session_state.aktif_sayfa else "secondary"
                 if st.button(modul, key=f"nav_{modul}", use_container_width=True, type=btn_type):
                     st.session_state.aktif_sayfa = modul
+                    st.query_params["page"] = modul
                     st.rerun()
 
 # Diğer modüller menüsü iptal edildi (ekstra_moduller)
@@ -2040,24 +2092,31 @@ st.sidebar.markdown("""
 """, unsafe_allow_html=True)
 
 if rol in ["Admin", "Yönetici", "Sekreter"]:
-    if st.sidebar.button("🤖 OMG AI Asistan", type="primary", use_container_width=True): st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"; st.rerun()
+    if st.sidebar.button("🤖 OMG AI Asistan", type="primary", use_container_width=True): 
+        st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"
+        st.query_params["page"] = "🤖 OMG AI Asistan"
+        st.rerun()
 
 if "🏢 Kurumsal Bilgi" in menu:
     if st.sidebar.button("🏢 Kurumsal Bilgi", type="primary", use_container_width=True):
         st.session_state.aktif_sayfa = "🏢 Kurumsal Bilgi"
+        st.query_params["page"] = "🏢 Kurumsal Bilgi"
         st.rerun()
 
 st.sidebar.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 5px 0;'>", unsafe_allow_html=True)
 if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
     c1, c2 = st.sidebar.columns(2)
     if c1.button("🚪 Çıkış", help="Sistemden Çıkış Yap", use_container_width=True):
+        st.query_params.clear()
         st.session_state.clear()
         st.rerun()
     if c2.button("⚙️ Ayarlar", help="Sistem ve Güvenlik Ayarları", use_container_width=True):
         st.session_state.aktif_sayfa = "⚙️ Ayarlar"
+        st.query_params["page"] = "⚙️ Ayarlar"
         st.rerun()
 else:
     if st.sidebar.button("🚪 Çıkış Yap", help="Sistemden Çıkış Yap", use_container_width=True):
+        st.query_params.clear()
         st.session_state.clear()
         st.rerun()
 
