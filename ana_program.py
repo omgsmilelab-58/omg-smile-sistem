@@ -1506,14 +1506,14 @@ if not st.session_state["giris_yapildi"]:
     """, unsafe_allow_html=True)
     col_space_left, col_login, col_space_right = st.columns([1, 1.2, 1])
     with col_login:
-        giris_logo = kalici_logo_getir("Giris_Logosu", "-")
-            
-        if giris_logo != "-" and os.path.exists(giris_logo):
-            st.image(giris_logo, use_container_width=True)
-        elif os.path.exists("dentmesherhub_logo.jpg"):
+        if os.path.exists("dentmesherhub_logo.jpg"):
             st.image("dentmesherhub_logo.jpg", use_container_width=True)
         else:
-            st.markdown("""<div style='text-align: center; margin-bottom: 20px;'><h1 style='color: #fff; margin: 0; font-size: 36px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 15px rgba(255,255,255,0.3);'>DentmesherHub</h1><h4 style='color: #38bdf8; margin: 0; font-weight: 600; letter-spacing: 2px;'>Connect • Collaborate • Grow</h4></div>""", unsafe_allow_html=True)
+            giris_logo = kalici_logo_getir("Giris_Logosu", "-")
+            if giris_logo != "-" and os.path.exists(giris_logo):
+                st.image(giris_logo, use_container_width=True)
+            else:
+                st.markdown("""<div style='text-align: center; margin-bottom: 20px;'><h1 style='color: #fff; margin: 0; font-size: 36px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 15px rgba(255,255,255,0.3);'>DentmesherHub</h1><h4 style='color: #38bdf8; margin: 0; font-weight: 600; letter-spacing: 2px;'>Connect • Collaborate • Grow</h4></div>""", unsafe_allow_html=True)
         giris_tipi = st.radio(" ", ["👨‍🔬 Sisteme Giriş", "🏥 Klinik Portalı"], horizontal=True, label_visibility="collapsed")
         
         with st.form("giris_formu"):
@@ -1821,10 +1821,10 @@ if abonelik_tipi == "Profesyonel":
 elif abonelik_tipi == "Business":
     logo_yolu = logo_business if logo_business != "-" else logo_standart
 
-if logo_yolu != "-" and os.path.exists(logo_yolu):
-    st.sidebar.image(logo_yolu, use_container_width=True)
-elif os.path.exists("dentmesherhub_logo.jpg"):
+if os.path.exists("dentmesherhub_logo.jpg"):
     st.sidebar.image("dentmesherhub_logo.jpg", use_container_width=True)
+elif logo_yolu != "-" and os.path.exists(logo_yolu):
+    st.sidebar.image(logo_yolu, use_container_width=True)
 else:
     st.sidebar.markdown("<div style='text-align:center; margin-bottom:20px;'><h2 style='margin:0; letter-spacing:2px; color:#38bdf8;'>DentmesherHub</h2></div>", unsafe_allow_html=True)
 
