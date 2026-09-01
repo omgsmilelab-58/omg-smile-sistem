@@ -1514,266 +1514,264 @@ if client_ip == kayitli_lobi_ip and kayitli_lobi_ip != "" and not st.session_sta
     })
 
 if not st.session_state["giris_yapildi"]:
-    st.markdown("""
-<style>
-        /* ── DENTMESHER.COM GÖRSEL KİMLİĞİ (CANLI ANİMASYONLU ÇOK KOYU LACİVERT TASARIM) ── */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800;900&display=swap');
-        
-        :root {
-            --dm-zemin-1: #030712;    /* En koyu derin gece laciverti */
-            --dm-zemin-2: #081122;    /* Koyu lüks lacivert */
-            --dm-isik:    #132c54;    /* Sol alttan vuran derin siber lacivert/safir ışıma */
-            --dm-metin:   #f8fafc;    /* Beyaz / gümüşi açık metin */
-            --dm-metin-2: rgba(226, 232, 240, 0.72);
-            --dm-vurgu:   #e8622c;    /* Canlı DentMesher Turuncusu */
-            --dm-vurgu-hover: #f2703a;
-            --dm-cizgi:   rgba(255, 255, 255, 0.12);
-        }
+    st.markdown("""<style>
+/* ── DENTMESHER.COM GÖRSEL KİMLİĞİ (CANLI ANİMASYONLU ÇOK KOYU LACİVERT) ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800;900&display=swap');
 
-        /* CANLI VE ÇOK KOYU LACİVERT RADYAL GRADYAN ARKA PLAN */
-        .stApp {
-            background:
-                radial-gradient(120% 90% at 8% 100%, var(--dm-isik) 0%, transparent 58%),
-                radial-gradient(90% 70% at 100% 0%, #0d2242 0%, transparent 55%),
-                linear-gradient(160deg, var(--dm-zemin-2) 0%, var(--dm-zemin-1) 60%) !important;
-            background-attachment: fixed !important;
-            color: var(--dm-metin) !important;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-            overflow: hidden !important;
-        }
+:root {
+    --dm-zemin-1: #030712;
+    --dm-zemin-2: #081122;
+    --dm-isik:    #132c54;
+    --dm-metin:   #f8fafc;
+    --dm-metin-2: rgba(226, 232, 240, 0.72);
+    --dm-vurgu:   #e8622c;
+    --dm-vurgu-hover: #f2703a;
+    --dm-cizgi:   rgba(255, 255, 255, 0.12);
+}
 
-        /* ── HAREKETLİ IŞIMA VE AURA KÜRELERİ (ANIMATED AURORA ORBS) ── */
-        .dm-aurora-wrap {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            pointer-events: none;
-            z-index: 0;
-        }
-        
-        .dm-orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(90px);
-            pointer-events: none;
-            opacity: 0.55;
-            animation: dmFloatOrb 20s infinite alternate ease-in-out;
-        }
-        
-        .dm-orb-1 {
-            width: 550px;
-            height: 550px;
-            background: radial-gradient(circle, rgba(232, 98, 44, 0.32) 0%, rgba(232, 98, 44, 0) 70%);
-            bottom: -120px;
-            left: -100px;
-            animation-duration: 18s;
-        }
-        
-        .dm-orb-2 {
-            width: 650px;
-            height: 650px;
-            background: radial-gradient(circle, rgba(14, 116, 224, 0.38) 0%, rgba(14, 116, 224, 0) 70%);
-            top: -150px;
-            right: -120px;
-            animation-duration: 24s;
-            animation-delay: -6s;
-        }
-        
-        .dm-orb-3 {
-            width: 480px;
-            height: 480px;
-            background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, rgba(56, 189, 248, 0) 70%);
-            top: 40%;
-            left: 60%;
-            animation-duration: 16s;
-            animation-delay: -10s;
-        }
+.stApp {
+    background:
+        radial-gradient(120% 90% at 8% 100%, var(--dm-isik) 0%, transparent 58%),
+        radial-gradient(90% 70% at 100% 0%, #0d2242 0%, transparent 55%),
+        linear-gradient(160deg, var(--dm-zemin-2) 0%, var(--dm-zemin-1) 60%) !important;
+    background-attachment: fixed !important;
+    color: var(--dm-metin) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
 
-        @keyframes dmFloatOrb {
-            0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-            33% { transform: translate(70px, -50px) scale(1.12) rotate(45deg); }
-            66% { transform: translate(-50px, 60px) scale(0.92) rotate(-30deg); }
-            100% { transform: translate(40px, -40px) scale(1.06) rotate(20deg); }
-        }
+/* ── HAREKETLİ IŞIMA VE AURA KÜRELERİ ── */
+.dm-aurora-wrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
 
-        /* ── UÇUŞAN IŞIK PARÇACIKLARI (FLOATING EMBER PARTICLES) ── */
-        .dm-particle {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(232, 98, 44, 0.6);
-            box-shadow: 0 0 12px rgba(232, 98, 44, 0.9), 0 0 24px rgba(232, 98, 44, 0.5);
-            pointer-events: none;
-            animation: dmFloatParticle linear infinite;
-        }
-        .dm-particle-blue {
-            background: rgba(56, 189, 248, 0.6);
-            box-shadow: 0 0 12px rgba(56, 189, 248, 0.9), 0 0 24px rgba(56, 189, 248, 0.5);
-        }
+.dm-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(85px);
+    pointer-events: none;
+    opacity: 0.55;
+    animation: dmFloatOrb 18s infinite alternate ease-in-out;
+}
 
-        @keyframes dmFloatParticle {
-            0% { transform: translateY(105vh) translateX(0) scale(0.6); opacity: 0; }
-            15% { opacity: 0.8; }
-            85% { opacity: 0.8; }
-            100% { transform: translateY(-10vh) translateX(60px) scale(1.2); opacity: 0; }
-        }
+.dm-orb-1 {
+    width: 550px;
+    height: 550px;
+    background: radial-gradient(circle, rgba(232, 98, 44, 0.32) 0%, rgba(232, 98, 44, 0) 70%);
+    bottom: -100px;
+    left: -100px;
+    animation-duration: 16s;
+}
 
-        /* ── SOL ÜST SABİT MARKA (DENTMESHER.COM GİBİ) ── */
-        .giris-marka {
-            position: fixed;
-            top: clamp(16px, 3vh, 28px);
-            left: clamp(18px, 3vw, 34px);
-            z-index: 99;
-            font-family: 'Manrope', 'Inter', sans-serif;
-            font-weight: 900;
-            font-size: clamp(1.15rem, 2vw, 1.45rem);
-            letter-spacing: -0.03em;
-            color: var(--dm-metin);
-            user-select: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .giris-marka span {
-            color: var(--dm-vurgu);
-            text-shadow: 0 0 20px rgba(232, 98, 44, 0.6);
-        }
+.dm-orb-2 {
+    width: 650px;
+    height: 650px;
+    background: radial-gradient(circle, rgba(14, 116, 224, 0.38) 0%, rgba(14, 116, 224, 0) 70%);
+    top: -120px;
+    right: -100px;
+    animation-duration: 22s;
+    animation-delay: -5s;
+}
 
-        /* ── DENTMESHER KOYU LACİVERT CAM GİRİŞ KARTI (GLASSMORPHISM) ── */
-        div[data-testid="stForm"] { 
-            position: relative !important;
-            z-index: 10 !important;
-            max-width: 420px !important; 
-            margin: 0 auto !important; 
-            background: rgba(8, 16, 32, 0.82) !important;
-            backdrop-filter: blur(28px) saturate(150%) !important;
-            -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
-            border: 1px solid var(--dm-cizgi) !important;
-            border-radius: 22px !important;
-            padding: 32px 30px !important;
-            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14) inset,
-                        0 30px 80px rgba(0, 0, 0, 0.75),
-                        0 0 50px rgba(21, 48, 91, 0.40) !important;
-        }
+.dm-orb-3 {
+    width: 480px;
+    height: 480px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, rgba(56, 189, 248, 0) 70%);
+    top: 35%;
+    left: 55%;
+    animation-duration: 15s;
+    animation-delay: -8s;
+}
 
-        .form-header {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        .form-title {
-            font-family: 'Manrope', 'Inter', sans-serif;
-            font-weight: 800;
-            font-size: 1.7rem;
-            letter-spacing: -0.03em;
-            color: var(--dm-metin);
-            margin: 0 0 4px;
-        }
-        .form-subtitle {
-            font-size: 0.86rem;
-            color: var(--dm-metin-2);
-            margin: 0;
-        }
-        
-        /* GİRİŞ TÜRÜ SEÇİCİ (PİLLER) */
-        div[data-testid="stElementContainer"]:has(div[data-testid="stRadio"]), 
-        div[data-testid="stRadio"] { display: flex !important; justify-content: center !important; align-items: center !important; width: 100% !important; margin-bottom: 14px !important; position: relative !important; z-index: 10 !important;}
-        div[data-testid="stRadio"] > div[role="radiogroup"] { 
-            display: inline-flex !important; 
-            justify-content: center !important; 
-            align-items: center !important; 
-            margin: 0 auto !important; 
-            width: 100% !important; 
-            padding: 4px 6px !important; 
-            gap: 6px !important; 
-            background: rgba(255, 255, 255, 0.05) !important; 
-            backdrop-filter: blur(14px) !important; 
-            -webkit-backdrop-filter: blur(14px) !important; 
-            border: 1px solid var(--dm-cizgi) !important; 
-            border-radius: 12px !important; 
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important; 
-        }
-        div[data-testid="stRadio"] label span {
-            color: var(--dm-metin) !important;
-            font-weight: 600 !important;
-            font-size: 13px !important;
-        }
-        
-        /* GİRİŞ ALANLARI (INPUTLAR) */
-        .stTextInput > label, .stTextInput > label > div > p {
-            color: var(--dm-metin-2) !important;
-            font-size: 12px !important;
-            font-weight: 600 !important;
-            margin-bottom: 4px !important;
-        }
-        .stTextInput > div > div > input {
-            background-color: rgba(255, 255, 255, 0.06) !important;
-            border: 1.5px solid var(--dm-cizgi) !important;
-            border-radius: 10px !important;
-            color: var(--dm-metin) !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            padding: 10px 14px !important;
-            height: 44px !important;
-            transition: all 0.2s ease !important;
-        }
-        .stTextInput > div > div > input:focus {
-            background-color: rgba(255, 255, 255, 0.10) !important;
-            border-color: var(--dm-vurgu) !important;
-            box-shadow: 0 0 0 3px rgba(232, 98, 44, 0.25) !important;
-            color: #ffffff !important;
-        }
-        
-        /* VURGU BUTONU (DENTMESHER TURUNCUSU) */
-        div[data-testid="stForm"] button[kind="primary"],
-        div[data-testid="stForm"] button[kind="secondary"],
-        div[data-testid="stForm"] button {
-            background: linear-gradient(135deg, var(--dm-vurgu) 0%, var(--dm-vurgu-hover) 100%) !important;
-            color: #ffffff !important;
-            font-family: 'Inter', sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 700 !important;
-            letter-spacing: 0.02em !important;
-            border: none !important;
-            border-radius: 10px !important;
-            height: 46px !important;
-            box-shadow: 0 8px 24px rgba(232, 98, 44, 0.45) !important;
-            transition: transform 0.15s ease, box-shadow 0.15s ease !important;
-        }
-        div[data-testid="stForm"] button:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 14px 32px rgba(232, 98, 44, 0.60) !important;
-        }
-        
-        div[data-testid="stCheckbox"] label span {
-            color: var(--dm-metin-2) !important;
-            font-size: 13px !important;
-        }
-        div[data-testid="InputInstructions"] { display: none !important; }
-        .block-container { padding-top: 2.5rem !important; padding-bottom: 2rem !important; position: relative !important; z-index: 5 !important; }
+@keyframes dmFloatOrb {
+    0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+    33% { transform: translate(60px, -45px) scale(1.10) rotate(35deg); }
+    66% { transform: translate(-45px, 55px) scale(0.95) rotate(-25deg); }
+    100% { transform: translate(35px, -35px) scale(1.05) rotate(15deg); }
+}
+
+.dm-particle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(232, 98, 44, 0.65);
+    box-shadow: 0 0 12px rgba(232, 98, 44, 0.9), 0 0 24px rgba(232, 98, 44, 0.5);
+    pointer-events: none;
+    animation: dmFloatParticle linear infinite;
+}
+.dm-particle-blue {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(56, 189, 248, 0.65);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.9), 0 0 24px rgba(56, 189, 248, 0.5);
+    pointer-events: none;
+    animation: dmFloatParticle linear infinite;
+}
+
+@keyframes dmFloatParticle {
+    0% { transform: translateY(105vh) translateX(0) scale(0.6); opacity: 0; }
+    15% { opacity: 0.85; }
+    85% { opacity: 0.85; }
+    100% { transform: translateY(-10vh) translateX(50px) scale(1.2); opacity: 0; }
+}
+
+/* ── SOL ÜST MARKA ── */
+.giris-marka {
+    position: fixed;
+    top: clamp(16px, 3vh, 28px);
+    left: clamp(18px, 3vw, 34px);
+    z-index: 99;
+    font-family: 'Manrope', 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1.15rem, 2vw, 1.45rem);
+    letter-spacing: -0.03em;
+    color: var(--dm-metin);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.giris-marka span {
+    color: var(--dm-vurgu);
+    text-shadow: 0 0 20px rgba(232, 98, 44, 0.6);
+}
+
+/* ── GİRİŞ KARTI (GLASSMORPHISM) ── */
+div[data-testid="stForm"] { 
+    position: relative !important;
+    z-index: 10 !important;
+    max-width: 420px !important; 
+    margin: 0 auto !important; 
+    background: rgba(8, 16, 32, 0.82) !important;
+    backdrop-filter: blur(28px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
+    border: 1px solid var(--dm-cizgi) !important;
+    border-radius: 22px !important;
+    padding: 32px 30px !important;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14) inset,
+                0 30px 80px rgba(0, 0, 0, 0.75),
+                0 0 50px rgba(21, 48, 91, 0.40) !important;
+}
+
+.form-header {
+    margin-bottom: 20px;
+    text-align: left;
+}
+.form-title {
+    font-family: 'Manrope', 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 1.7rem;
+    letter-spacing: -0.03em;
+    color: var(--dm-metin);
+    margin: 0 0 4px;
+}
+.form-subtitle {
+    font-size: 0.86rem;
+    color: var(--dm-metin-2);
+    margin: 0;
+}
+
+div[data-testid="stElementContainer"]:has(div[data-testid="stRadio"]), 
+div[data-testid="stRadio"] { 
+    display: flex !important; 
+    justify-content: center !important; 
+    align-items: center !important; 
+    width: 100% !important; 
+    margin-bottom: 14px !important; 
+    position: relative !important; 
+    z-index: 10 !important;
+}
+div[data-testid="stRadio"] > div[role="radiogroup"] { 
+    display: inline-flex !important; 
+    justify-content: center !important; 
+    align-items: center !important; 
+    margin: 0 auto !important; 
+    width: 100% !important; 
+    padding: 4px 6px !important; 
+    gap: 6px !important; 
+    background: rgba(255, 255, 255, 0.05) !important; 
+    backdrop-filter: blur(14px) !important; 
+    -webkit-backdrop-filter: blur(14px) !important; 
+    border: 1px solid var(--dm-cizgi) !important; 
+    border-radius: 12px !important; 
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important; 
+}
+div[data-testid="stRadio"] label span {
+    color: var(--dm-metin) !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+
+.stTextInput > label, .stTextInput > label > div > p {
+    color: var(--dm-metin-2) !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    margin-bottom: 4px !important;
+}
+.stTextInput > div > div > input {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border: 1.5px solid var(--dm-cizgi) !important;
+    border-radius: 10px !important;
+    color: var(--dm-metin) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    padding: 10px 14px !important;
+    height: 44px !important;
+    transition: all 0.2s ease !important;
+}
+.stTextInput > div > div > input:focus {
+    background-color: rgba(255, 255, 255, 0.10) !important;
+    border-color: var(--dm-vurgu) !important;
+    box-shadow: 0 0 0 3px rgba(232, 98, 44, 0.25) !important;
+    color: #ffffff !important;
+}
+
+div[data-testid="stForm"] button[kind="primary"],
+div[data-testid="stForm"] button[kind="secondary"],
+div[data-testid="stForm"] button {
+    background: linear-gradient(135deg, var(--dm-vurgu) 0%, var(--dm-vurgu-hover) 100%) !important;
+    color: #ffffff !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    border: none !important;
+    border-radius: 10px !important;
+    height: 46px !important;
+    box-shadow: 0 8px 24px rgba(232, 98, 44, 0.45) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+div[data-testid="stForm"] button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 14px 32px rgba(232, 98, 44, 0.60) !important;
+}
+
+div[data-testid="stCheckbox"] label span {
+    color: var(--dm-metin-2) !important;
+    font-size: 13px !important;
+}
+div[data-testid="InputInstructions"] { display: none !important; }
+.block-container { padding-top: 2.5rem !important; padding-bottom: 2rem !important; position: relative !important; z-index: 5 !important; }
 </style>
-
-<!-- CANLI HAREKETLİ AURORA IŞIMALARI VE PARÇACIKLAR -->
-<div class="dm-aurora-wrap" aria-hidden="true">
-    <div class="dm-orb dm-orb-1"></div>
-    <div class="dm-orb dm-orb-2"></div>
-    <div class="dm-orb dm-orb-3"></div>
-    
-    <div class="dm-particle" style="width: 4px; height: 4px; left: 12%; animation-duration: 14s; animation-delay: 0s;"></div>
-    <div class="dm-particle dm-particle-blue" style="width: 6px; height: 6px; left: 28%; animation-duration: 18s; animation-delay: -3s;"></div>
-    <div class="dm-particle" style="width: 5px; height: 5px; left: 45%; animation-duration: 16s; animation-delay: -7s;"></div>
-    <div class="dm-particle dm-particle-blue" style="width: 4px; height: 4px; left: 68%; animation-duration: 20s; animation-delay: -2s;"></div>
-    <div class="dm-particle" style="width: 7px; height: 7px; left: 82%; animation-duration: 15s; animation-delay: -9s;"></div>
-    <div class="dm-particle dm-particle-blue" style="width: 5px; height: 5px; left: 93%; animation-duration: 22s; animation-delay: -5s;"></div>
-    <div class="dm-particle" style="width: 4px; height: 4px; left: 38%; animation-duration: 19s; animation-delay: -12s;"></div>
-    <div class="dm-particle dm-particle-blue" style="width: 6px; height: 6px; left: 58%; animation-duration: 17s; animation-delay: -8s;"></div>
+<div class="dm-aurora-wrap">
+<div class="dm-orb dm-orb-1"></div>
+<div class="dm-orb dm-orb-2"></div>
+<div class="dm-orb dm-orb-3"></div>
+<div class="dm-particle" style="width:4px;height:4px;left:12%;animation-duration:14s;animation-delay:0s;"></div>
+<div class="dm-particle-blue" style="width:6px;height:6px;left:28%;animation-duration:18s;animation-delay:-3s;"></div>
+<div class="dm-particle" style="width:5px;height:5px;left:45%;animation-duration:16s;animation-delay:-7s;"></div>
+<div class="dm-particle-blue" style="width:4px;height:4px;left:68%;animation-duration:20s;animation-delay:-2s;"></div>
+<div class="dm-particle" style="width:7px;height:7px;left:82%;animation-duration:15s;animation-delay:-9s;"></div>
+<div class="dm-particle-blue" style="width:5px;height:5px;left:93%;animation-duration:22s;animation-delay:-5s;"></div>
+<div class="dm-particle" style="width:4px;height:4px;left:38%;animation-duration:19s;animation-delay:-12s;"></div>
+<div class="dm-particle-blue" style="width:6px;height:6px;left:58%;animation-duration:17s;animation-delay:-8s;"></div>
 </div>
-
-<div class="giris-marka">
-    DENTMESHER <span>HUB</span>
-</div>
-    """, unsafe_allow_html=True)
+<div class="giris-marka">DENTMESHER <span>HUB</span></div>""", unsafe_allow_html=True)
     
     col_space_left, col_login, col_space_right = st.columns([1, 1.25, 1])
     with col_login:
@@ -1782,12 +1780,7 @@ if not st.session_state["giris_yapildi"]:
         
         with st.form("giris_formu"):
             if giris_tipi == "👨‍🔬 Laboratuvar Yetkilisi":
-                st.markdown("""
-                <div class="form-header">
-                    <p class="form-title">Hoş Geldiniz</p>
-                    <p class="form-subtitle">Laboratuvar yönetim paneline erişmek için giriş yapın</p>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown("<div class=\"form-header\"><p class=\"form-title\">Hoş Geldiniz</p><p class=\"form-subtitle\">Laboratuvar yönetim paneline erişmek için giriş yapın</p></div>", unsafe_allow_html=True)
                 kullanici_giris = st.text_input("Kullanıcı Adı / E-posta", placeholder="Kullanıcı adınızı girin")
                 sifre_giris = st.text_input("Şifre", type="password", placeholder="••••••••")
                 st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
@@ -1800,12 +1793,7 @@ if not st.session_state["giris_yapildi"]:
                     else:
                         st.error("Erişim Reddedildi! Kullanıcı adı veya şifre hatalı.")
             else:
-                st.markdown("""
-                <div class="form-header">
-                    <p class="form-title">Hekim Portalı</p>
-                    <p class="form-subtitle">Klinik sipariş ve takip sistemine erişmek için giriş yapın</p>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown("<div class=\"form-header\"><p class=\"form-title\">Hekim Portalı</p><p class=\"form-subtitle\">Klinik sipariş ve takip sistemine erişmek için giriş yapın</p></div>", unsafe_allow_html=True)
                 
                 asistan_girisi_mi = st.checkbox("👩‍💻 Asistan Girişi (Alt Hesap)")
                 
@@ -1845,48 +1833,46 @@ if not st.session_state["giris_yapildi"]:
                             st.rerun()
                         else: st.error("Klinik Adı (Kullanıcı Adı) veya Şifre Hatalı!")
     
-    st.markdown("""
-        <style>
-        .footer-meta {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding-top: 10px;
-            padding-bottom: 12px;
-            background: rgba(4, 8, 18, 0.75);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border-top: 1px solid rgba(255, 255, 255, 0.10);
-            text-align: center;
-            font-size: 12px;
-            color: rgba(226, 232, 240, 0.65);
-            z-index: 9999;
-        }
-        .footer-meta a {
-            color: rgba(226, 232, 240, 0.75);
-            text-decoration: none;
-            margin: 0 10px;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-        .footer-meta a:hover {
-            color: #e8622c;
-            text-decoration: underline;
-        }
-        </style>
-        <div class="footer-meta">
-            <div>
-                <a href="https://dentmesher.com" target="_blank">DentMesher Ana Platform</a> •
-                <a href="#">Gizlilik Politikası</a> •
-                <a href="#">Kullanım Koşulları</a> •
-                <a href="#">Yardım & Destek</a>
-            </div>
-            <div style="font-size: 11px; margin-top: 4px; color: rgba(226, 232, 240, 0.45);">
-                © 2026 DentMesher Dijital Diş Laboratuvarı Ekosistemi — Tüm Hakları Saklıdır.
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<style>
+.footer-meta {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding-top: 10px;
+    padding-bottom: 12px;
+    background: rgba(4, 8, 18, 0.75);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    text-align: center;
+    font-size: 12px;
+    color: rgba(226, 232, 240, 0.65);
+    z-index: 9999;
+}
+.footer-meta a {
+    color: rgba(226, 232, 240, 0.75);
+    text-decoration: none;
+    margin: 0 10px;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.footer-meta a:hover {
+    color: #e8622c;
+    text-decoration: underline;
+}
+</style>
+<div class="footer-meta">
+    <div>
+        <a href="https://dentmesher.com" target="_blank">DentMesher Ana Platform</a> •
+        <a href="#">Gizlilik Politikası</a> •
+        <a href="#">Kullanım Koşulları</a> •
+        <a href="#">Yardım & Destek</a>
+    </div>
+    <div style="font-size: 11px; margin-top: 4px; color: rgba(226, 232, 240, 0.45);">
+        © 2026 DentMesher Dijital Diş Laboratuvarı Ekosistemi — Tüm Hakları Saklıdır.
+    </div>
+</div>""", unsafe_allow_html=True)
     st.stop()
 
 # --- 🚀 MENÜ YÖNLENDİRMESİ VE GÜVENLİ ROTA KONTROLÜ ---
