@@ -2438,6 +2438,141 @@ else:
 
 sayfa = st.session_state.aktif_sayfa
 
+# --- 🌟 ÜST HEADER BANNER (DENTMESHER HUB TOP NAVBAR) ---
+if sayfa not in ["📺 Lobi / TV Ekranı", "🛵 Kurye Mobil Terminali"]:
+    okunmamis_mesaj = 0
+    try:
+        okunmamis_mesaj = c.execute("SELECT COUNT(*) FROM mesajlar WHERE Alici=? AND Okundu=0", (kullanici_adi,)).fetchone()[0]
+    except:
+        pass
+    
+    avatar_harf = (kullanici_adi[:2]).upper() if len(kullanici_adi) >= 2 else "DM"
+    mesaj_badge = f" ({okunmamis_mesaj})" if okunmamis_mesaj > 0 else ""
+    
+    st.markdown("""<style>
+    .dm-banner-logo {
+        font-family: 'Manrope', 'Inter', sans-serif;
+        font-weight: 900;
+        font-size: 1.25rem;
+        letter-spacing: -0.03em;
+        color: #f8fafc;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+    .dm-banner-logo span {
+        color: #e8622c;
+        text-shadow: 0 0 12px rgba(232, 98, 44, 0.5);
+    }
+    .dm-avatar-circle {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e8622c 0%, #38bdf8 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Manrope', sans-serif;
+        font-weight: 800;
+        font-size: 13px;
+        color: #ffffff;
+        box-shadow: 0 0 12px rgba(232, 98, 44, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.25);
+    }
+    .dm-profile-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 3px 12px 3px 4px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .dm-profile-info {
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+        overflow: hidden;
+    }
+    .dm-profile-name {
+        font-size: 12px;
+        font-weight: 700;
+        color: #ffffff;
+        line-height: 1.2;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    .dm-profile-role {
+        font-size: 10px;
+        color: #38bdf8;
+        font-weight: 600;
+    }
+    </style>""", unsafe_allow_html=True)
+    
+    h_col1, h_col2, h_col3, h_col4, h_col5, h_col6 = st.columns([2.4, 3.8, 0.9, 0.9, 0.9, 2.3])
+    
+    with h_col1:
+        st.markdown('<div style="padding-top: 6px;"><div class="dm-banner-logo">DENTMESHER <span>HUB</span></div></div>', unsafe_allow_html=True)
+    
+    with h_col2:
+        top_arama = st.text_input("Arama", placeholder="🔍 Hasta, vaka, klinik veya barkod ara...", label_visibility="collapsed", key="dm_top_search_query")
+    
+    with h_col3:
+        if st.button(f"💬{mesaj_badge}", help="Mesajlar / İletişim", key="btn_top_msg", use_container_width=True):
+            st.session_state.aktif_sayfa = "💬 Mobil İletişim"
+            st.query_params["page"] = "💬 Mobil İletişim"
+            st.rerun()
+            
+    with h_col4:
+        with st.popover("🔔", help="Bildirimler & Sistem Durumu", use_container_width=True):
+            st.markdown("##### 🔔 Bildirim & Sistem Merkezi")
+            try:
+                son_bildirimler = c.execute("SELECT Tarih_Saat, Aksiyon FROM sistem_loglari ORDER BY rowid DESC LIMIT 4").fetchall()
+                if son_bildirimler:
+                    for b_tarih, b_aks in son_bildirimler:
+                        st.caption(f"⏱️ {b_tarih}")
+                        st.markdown(f"• {b_aks}")
+                else:
+                    st.info("Okunmamış yeni bildirim bulunmuyor.")
+            except:
+                st.info("Sistem hazır ve aktif.")
+                
+    with h_col5:
+        tema_icon = "🌙" if st.session_state.get("aktif_tema", "dark") == "dark" else "☀️"
+        if st.button(tema_icon, help="Koyu / Açık Mod Değiştir", key="btn_top_theme", use_container_width=True):
+            yeni_tema = "light" if st.session_state.get("aktif_tema", "dark") == "dark" else "dark"
+            st.session_state["aktif_tema"] = yeni_tema
+            st.rerun()
+            
+    with h_col6:
+        st.markdown(f"""
+        <div class="dm-profile-box">
+            <div class="dm-avatar-circle">{avatar_harf}</div>
+            <div class="dm-profile-info">
+                <span class="dm-profile-name">{kullanici_adi[:14]}</span>
+                <span class="dm-profile-role">{rol}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    if top_arama and len(top_arama.strip()) >= 2:
+        with st.expander(f"🔍 '{top_arama}' Arama Sonuçları", expanded=True):
+            q_str = f"%{top_arama.strip()}%"
+            try:
+                bulunan_isler = c.execute("SELECT rowid, Hasta_Adi, Klinik_Unvani, Is_Turu, Asama, Tarih FROM isler WHERE Hasta_Adi LIKE ? OR Klinik_Unvani LIKE ? OR Barkod LIKE ? LIMIT 6", (q_str, q_str, q_str)).fetchall()
+                if bulunan_isler:
+                    st.markdown("**Bulunan Vaka ve İşler:**")
+                    for is_id, h_adi, k_unv, is_turu, asama, tarih in bulunan_isler:
+                        st.markdown(f"🦷 **#{is_id} - {h_adi}** ({k_unv}) | *{is_turu}* — Aşama: `{asama}` (Tarih: {tarih})")
+                else:
+                    st.info(f"'{top_arama}' için eşleşen vaka kaydı bulunamadı.")
+            except Exception as e:
+                st.info("Arama yapılırken sonuç alınamadı.")
+    
+    st.markdown("<hr style='border-color: rgba(255, 255, 255, 0.08); margin: 4px 0 18px 0;'>", unsafe_allow_html=True)
+
 # =====================================================================
 # --- # =====================================================================
 # --- 🦷 KLİNİK (HEKİM & ASİSTAN) ARAYÜZÜ ---
