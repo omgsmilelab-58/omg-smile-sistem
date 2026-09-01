@@ -210,7 +210,7 @@ if not os.path.exists("uploads/personel/fotolar"): os.makedirs("uploads/personel
 if not os.path.exists("uploads/personel/cvler"): os.makedirs("uploads/personel/cvler")
 
 # --- Sayfa Ayarları ---
-st.set_page_config(page_title="Omg Smile - Dijital Ekosistem", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="DentmesherHub - Dijital Diş Laboratuvarı Ekosistemi", page_icon="🦷", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
 # 🧠 DENTFLOW VERİTABANI MOTORU 🧠
@@ -1509,11 +1509,11 @@ if not st.session_state["giris_yapildi"]:
         giris_logo = kalici_logo_getir("Giris_Logosu", "-")
             
         if giris_logo != "-" and os.path.exists(giris_logo):
-            img_c1, img_c2, img_c3 = st.columns([1, 2, 1])
-            with img_c2:
-                st.image(giris_logo, use_container_width=True)
+            st.image(giris_logo, use_container_width=True)
+        elif os.path.exists("dentmesherhub_logo.jpg"):
+            st.image("dentmesherhub_logo.jpg", use_container_width=True)
         else:
-            st.markdown("""<div style='text-align: center; margin-bottom: 20px;'><div style='font-size: 90px; line-height: 1; margin-bottom: 10px; text-shadow: 0 0 30px rgba(56, 189, 248, 0.8);'>🦷</div><h1 style='color: #fff; margin: 0; font-size: 48px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 15px rgba(255,255,255,0.3);'>OMG SMILE ERP</h1><h4 style='color: #38bdf8; margin: 0; font-weight: 600; letter-spacing: 3px;'>Dijital Ekosistem</h4></div>""", unsafe_allow_html=True)
+            st.markdown("""<div style='text-align: center; margin-bottom: 20px;'><h1 style='color: #fff; margin: 0; font-size: 36px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 15px rgba(255,255,255,0.3);'>DentmesherHub</h1><h4 style='color: #38bdf8; margin: 0; font-weight: 600; letter-spacing: 2px;'>Connect • Collaborate • Grow</h4></div>""", unsafe_allow_html=True)
         giris_tipi = st.radio(" ", ["👨‍🔬 Sisteme Giriş", "🏥 Klinik Portalı"], horizontal=True, label_visibility="collapsed")
         
         with st.form("giris_formu"):
@@ -1823,8 +1823,10 @@ elif abonelik_tipi == "Business":
 
 if logo_yolu != "-" and os.path.exists(logo_yolu):
     st.sidebar.image(logo_yolu, use_container_width=True)
+elif os.path.exists("dentmesherhub_logo.jpg"):
+    st.sidebar.image("dentmesherhub_logo.jpg", use_container_width=True)
 else:
-    st.sidebar.markdown("<div style='text-align:center; margin-bottom:20px;'><span style='font-size:40px;'>🦷</span><h2 style='margin:0; letter-spacing:2px;'>OMG SMILE</h2></div>", unsafe_allow_html=True)
+    st.sidebar.markdown("<div style='text-align:center; margin-bottom:20px;'><h2 style='margin:0; letter-spacing:2px; color:#38bdf8;'>DentmesherHub</h2></div>", unsafe_allow_html=True)
 
 alt_baslik = f"{rol} Yetkisi" if rol != "Klinik_Asistan" else f"{ana_klinik} Asistanı"
 st.sidebar.markdown(f"""<div class='glass-card' style='padding: 15px; text-align:center; margin-bottom:20px;'><h4 class='neon-text-blue' style='margin:0;'>{kullanici_adi.upper()}</h4><span style='color:#FFFFFF; font-size:12px;'>{alt_baslik}</span></div>""", unsafe_allow_html=True)
