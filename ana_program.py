@@ -1758,90 +1758,6 @@ div[data-testid="stCheckbox"] label span {
 div[data-testid="InputInstructions"] { display: none !important; }
 .block-container { padding-top: 2.5rem !important; padding-bottom: 2rem !important; position: relative !important; z-index: 5 !important; }
 
-/* ── HOLOGRAFİK DENTAL CAD/CAM GÖRSELLERİ VE LAZER TARAMA EFEKTİ ── */
-.dm-dental-hologram {
-    position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.85;
-    animation: dmDentalFloat 12s infinite ease-in-out alternate;
-}
-
-.dm-dental-left {
-    left: clamp(15px, 5vw, 110px);
-}
-
-.dm-dental-right {
-    right: clamp(15px, 5vw, 110px);
-    animation-delay: -6s;
-}
-
-@media (max-width: 1200px) {
-    .dm-dental-hologram {
-        opacity: 0.35;
-        scale: 0.75;
-    }
-}
-@media (max-width: 880px) {
-    .dm-dental-hologram {
-        display: none;
-    }
-}
-
-@keyframes dmDentalFloat {
-    0% { transform: translateY(-50%) translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-50%) translateY(-18px) rotate(2deg); }
-    100% { transform: translateY(-50%) translateY(14px) rotate(-2deg); }
-}
-
-.dm-dental-svg {
-    width: 260px;
-    height: 310px;
-    filter: drop-shadow(0 0 25px rgba(56, 189, 248, 0.25));
-}
-
-.dm-scan-laser {
-    position: absolute;
-    left: 8%;
-    width: 84%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #38bdf8, #e8622c, #38bdf8, transparent);
-    box-shadow: 0 0 15px #38bdf8, 0 0 30px #e8622c;
-    border-radius: 999px;
-    animation: dmScanBeam 5s infinite ease-in-out alternate;
-}
-
-@keyframes dmScanBeam {
-    0% { top: 12%; opacity: 0.2; }
-    50% { top: 82%; opacity: 0.95; }
-    100% { top: 12%; opacity: 0.2; }
-}
-
-.dm-dental-hud {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 12px;
-    margin-top: 10px;
-    background: rgba(8, 16, 32, 0.65);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    border-radius: 8px;
-    backdrop-filter: blur(10px);
-    font-family: 'Inter', monospace;
-    font-size: 10px;
-    letter-spacing: 0.08em;
-}
-.dm-hud-tag {
-    color: #38bdf8;
-    font-weight: 700;
-}
-.dm-hud-val {
-    color: #e8622c;
-    font-weight: 600;
-}
-
 /* ── HAREKETLİ ARKA PLAN TELEMETRİ VE ÖZELLİK EFEKTLERİ ── */
 .dm-telemetry-badge {
     position: fixed;
@@ -1850,10 +1766,10 @@ div[data-testid="InputInstructions"] { display: none !important; }
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
-    padding: 10px 14px;
+    padding: 12px 16px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     pointer-events: none;
     z-index: 1;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(21, 48, 91, 0.35);
@@ -1861,29 +1777,29 @@ div[data-testid="InputInstructions"] { display: none !important; }
 }
 
 .dm-badge-1 {
-    top: 18%;
-    left: clamp(20px, 6vw, 130px);
+    top: 22%;
+    left: clamp(20px, 7vw, 150px);
     border-left: 3px solid #38bdf8;
     animation-delay: 0s;
 }
 
 .dm-badge-2 {
-    bottom: 18%;
-    left: clamp(20px, 6vw, 130px);
+    bottom: 22%;
+    left: clamp(20px, 7vw, 150px);
     border-left: 3px solid #e8622c;
     animation-delay: -5s;
 }
 
 .dm-badge-3 {
-    top: 18%;
-    right: clamp(20px, 6vw, 130px);
+    top: 22%;
+    right: clamp(20px, 7vw, 150px);
     border-right: 3px solid #e8622c;
     animation-delay: -3s;
 }
 
 .dm-badge-4 {
-    bottom: 18%;
-    right: clamp(20px, 6vw, 130px);
+    bottom: 22%;
+    right: clamp(20px, 7vw, 150px);
     border-right: 3px solid #38bdf8;
     animation-delay: -8s;
 }
@@ -1895,23 +1811,23 @@ div[data-testid="InputInstructions"] { display: none !important; }
 }
 
 .dm-badge-icon {
-    font-size: 20px;
+    font-size: 22px;
     filter: drop-shadow(0 0 8px rgba(232, 98, 44, 0.6));
 }
 
 .dm-badge-text h5 {
     margin: 0;
     font-family: 'Manrope', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 800;
     color: #ffffff;
     letter-spacing: 0.02em;
 }
 
 .dm-badge-text p {
-    margin: 2px 0 0 0;
-    font-size: 10px;
-    color: rgba(226, 232, 240, 0.65);
+    margin: 3px 0 0 0;
+    font-size: 11px;
+    color: rgba(226, 232, 240, 0.70);
     font-family: 'Inter', monospace;
 }
 
@@ -1925,7 +1841,7 @@ div[data-testid="InputInstructions"] { display: none !important; }
     white-space: nowrap;
     pointer-events: none;
     z-index: 1;
-    opacity: 0.60;
+    opacity: 0.65;
 }
 
 .dm-stream-track {
@@ -1977,63 +1893,58 @@ div[data-testid="InputInstructions"] { display: none !important; }
 <div class="dm-particle-blue" style="width:6px;height:6px;left:58%;animation-duration:17s;animation-delay:-8s;"></div>
 </div>
 
-<!-- SOL DENTAL 3D ANATOMİ VE LAZER TARAMA HOLOGRAMI -->
-<div class="dm-dental-hologram dm-dental-left">
-<svg class="dm-dental-svg" viewBox="0 0 300 350" fill="none" xmlns="http://www.w3.org/2000/svg">
-<circle cx="150" cy="175" r="135" stroke="rgba(56, 189, 248, 0.15)" stroke-width="1" stroke-dasharray="4 6"/>
-<circle cx="150" cy="175" r="105" stroke="rgba(232, 98, 44, 0.18)" stroke-width="1"/>
-<line x1="150" y1="15" x2="150" y2="335" stroke="rgba(56, 189, 248, 0.12)" stroke-width="1"/>
-<line x1="15" y1="175" x2="285" y2="175" stroke="rgba(56, 189, 248, 0.12)" stroke-width="1"/>
-<polygon points="100,70 150,50 150,110 90,120" stroke="rgba(56, 189, 248, 0.75)" fill="rgba(56, 189, 248, 0.06)" stroke-width="1.5"/>
-<polygon points="150,50 200,70 210,120 150,110" stroke="rgba(232, 98, 44, 0.75)" fill="rgba(232, 98, 44, 0.06)" stroke-width="1.5"/>
-<polygon points="100,70 60,110 90,160 150,150 150,110" stroke="rgba(56, 189, 248, 0.65)" fill="rgba(56, 189, 248, 0.04)" stroke-width="1.5"/>
-<polygon points="200,70 240,110 210,160 150,150 150,110" stroke="rgba(232, 98, 44, 0.65)" fill="rgba(232, 98, 44, 0.04)" stroke-width="1.5"/>
-<polygon points="60,110 90,160 100,210 50,170" stroke="rgba(56, 189, 248, 0.55)" fill="rgba(56, 189, 248, 0.03)" stroke-width="1.2"/>
-<polygon points="90,160 150,150 150,220 100,210" stroke="rgba(56, 189, 248, 0.8)" fill="rgba(56, 189, 248, 0.06)" stroke-width="1.5"/>
-<polygon points="150,150 210,160 200,210 150,220" stroke="rgba(232, 98, 44, 0.8)" fill="rgba(232, 98, 44, 0.06)" stroke-width="1.5"/>
-<polygon points="210,160 240,110 250,170 200,210" stroke="rgba(232, 98, 44, 0.55)" fill="rgba(232, 98, 44, 0.03)" stroke-width="1.2"/>
-<polygon points="100,210 150,220 130,280 85,310 70,250" stroke="rgba(56, 189, 248, 0.7)" fill="rgba(56, 189, 248, 0.05)" stroke-width="1.4"/>
-<polygon points="70,250 85,310 95,335 60,280" stroke="rgba(56, 189, 248, 0.5)" fill="rgba(56, 189, 248, 0.02)" stroke-width="1.2"/>
-<polygon points="150,220 200,210 230,250 215,310 170,280" stroke="rgba(232, 98, 44, 0.7)" fill="rgba(232, 98, 44, 0.05)" stroke-width="1.4"/>
-<polygon points="230,250 215,310 205,335 240,280" stroke="rgba(232, 98, 44, 0.5)" fill="rgba(232, 98, 44, 0.02)" stroke-width="1.2"/>
-<polygon points="130,280 150,220 170,280 150,260" stroke="rgba(56, 189, 248, 0.6)" fill="rgba(56, 189, 248, 0.04)" stroke-width="1.2"/>
-<circle cx="150" cy="50" r="3.5" fill="#38bdf8"/>
-<circle cx="100" cy="70" r="3" fill="#38bdf8"/>
-<circle cx="200" cy="70" r="3" fill="#e8622c"/>
-<circle cx="150" cy="110" r="3.5" fill="#ffffff"/>
-<circle cx="150" cy="220" r="3.5" fill="#e8622c"/>
-<circle cx="95" cy="335" r="2.5" fill="#38bdf8"/>
-<circle cx="205" cy="335" r="2.5" fill="#e8622c"/>
-</svg>
-<div class="dm-scan-laser"></div>
-<div class="dm-dental-hud">
-<span class="dm-hud-tag">3D DENTAL SCAN</span>
-<span class="dm-hud-val">0.01mm CAD/CAM</span>
+<!-- SÜZÜLEN HOLOGRAFİK ÖZELLİK TELEMETRİ ROZETLERİ -->
+<div class="dm-telemetry-badge dm-badge-1">
+<div class="dm-badge-icon">⚙️</div>
+<div class="dm-badge-text">
+<h5>5-AXIS CAD/CAM</h5>
+<p>Exocad & STL Doğrudan Entegrasyon</p>
 </div>
 </div>
 
-<!-- SAĞ DENTAL KRON / KÖPRÜ VE FREZ TELEMETRİ HOLOGRAMI -->
-<div class="dm-dental-hologram dm-dental-right">
-<svg class="dm-dental-svg" viewBox="0 0 300 350" fill="none" xmlns="http://www.w3.org/2000/svg">
-<circle cx="150" cy="175" r="135" stroke="rgba(232, 98, 44, 0.15)" stroke-width="1" stroke-dasharray="6 4"/>
-<circle cx="150" cy="175" r="95" stroke="rgba(56, 189, 248, 0.18)" stroke-width="1"/>
-<polygon points="70,90 150,60 230,90 200,160 100,160" stroke="rgba(56, 189, 248, 0.7)" fill="rgba(56, 189, 248, 0.05)" stroke-width="1.5"/>
-<polygon points="100,160 150,140 200,160 180,240 120,240" stroke="rgba(232, 98, 44, 0.75)" fill="rgba(232, 98, 44, 0.06)" stroke-width="1.5"/>
-<line x1="120" y1="240" x2="150" y2="320" stroke="rgba(56, 189, 248, 0.7)" stroke-width="2"/>
-<line x1="180" y1="240" x2="150" y2="320" stroke="rgba(232, 98, 44, 0.7)" stroke-width="2"/>
-<circle cx="150" cy="320" r="4" fill="#e8622c"/>
-<circle cx="150" cy="60" r="3.5" fill="#38bdf8"/>
-<circle cx="70" cy="90" r="3" fill="#38bdf8"/>
-<circle cx="230" cy="90" r="3" fill="#e8622c"/>
-<circle cx="100" cy="160" r="3" fill="#38bdf8"/>
-<circle cx="200" cy="160" r="3" fill="#e8622c"/>
-<line x1="50" y1="130" x2="250" y2="130" stroke="rgba(56, 189, 248, 0.25)" stroke-dasharray="2 4"/>
-<line x1="50" y1="200" x2="250" y2="200" stroke="rgba(232, 98, 44, 0.25)" stroke-dasharray="2 4"/>
-</svg>
-<div class="dm-scan-laser" style="animation-delay: -2.5s;"></div>
-<div class="dm-dental-hud">
-<span class="dm-hud-tag">FREZ 5-AXIS</span>
-<span class="dm-hud-val">ZİRKONYUM / CAM</span>
+<div class="dm-telemetry-badge dm-badge-2">
+<div class="dm-badge-icon">🛵</div>
+<div class="dm-badge-text">
+<h5>GPS AKILLI KURYE</h5>
+<p>Canlı Rota & Vaka Sevkiyat Radarı</p>
+</div>
+</div>
+
+<div class="dm-telemetry-badge dm-badge-3">
+<div class="dm-badge-icon">🏥</div>
+<div class="dm-badge-text">
+<h5>HEKİM VIP PORTALI</h5>
+<p>3D Reçete & Canlı Aşama Takibi</p>
+</div>
+</div>
+
+<div class="dm-telemetry-badge dm-badge-4">
+<div class="dm-badge-icon">🤖</div>
+<div class="dm-badge-text">
+<h5>OMG AI ANALİTİK</h5>
+<p>Frez Ömür & Finansal Asistan</p>
+</div>
+</div>
+
+<!-- ARKA PLAN CANLI SİBER AKIŞ ŞERİDİ -->
+<div class="dm-stream-ticker" aria-hidden="true">
+<div class="dm-stream-track">
+<div class="dm-stream-item">⚙️ <span>5-EKSEN CAD/CAM</span> FREZLEME</div>
+<div class="dm-stream-item">🦷 <span>3D STL MODEL</span> TARAMA & SENKRONİZASYON</div>
+<div class="dm-stream-item">🛵 <span>GPS CANLI KURYE</span> LOJİSTİK AĞI</div>
+<div class="dm-stream-item">🔥 <span>ZİRKONYUM & E-MAX</span> SİNTERLEME FIRINI</div>
+<div class="dm-stream-item">🏥 <span>HEKİM VIP PORTAL</span> DİJİTAL REÇETE</div>
+<div class="dm-stream-item">🤖 <span>OMG AI</span> AKILLI LABORATUVAR ASİSTANI</div>
+<div class="dm-stream-item">💰 <span>ANLIK CARİ BAKİYE</span> & KÂR/ZARAR ANALİTİĞİ</div>
+<div class="dm-stream-item">📦 <span>BARKODLU LOT & SERTİFİKA</span> YÖNETİMİ</div>
+<div class="dm-stream-item">⚙️ <span>5-EKSEN CAD/CAM</span> FREZLEME</div>
+<div class="dm-stream-item">🦷 <span>3D STL MODEL</span> TARAMA & SENKRONİZASYON</div>
+<div class="dm-stream-item">🛵 <span>GPS CANLI KURYE</span> LOJİSTİK AĞI</div>
+<div class="dm-stream-item">🔥 <span>ZİRKONYUM & E-MAX</span> SİNTERLEME FIRINI</div>
+<div class="dm-stream-item">🏥 <span>HEKİM VIP PORTAL</span> DİJİTAL REÇETE</div>
+<div class="dm-stream-item">🤖 <span>OMG AI</span> AKILLI LABORATUVAR ASİSTANI</div>
+<div class="dm-stream-item">💰 <span>ANLIK CARİ BAKİYE</span> & KÂR/ZARAR ANALİTİĞİ</div>
+<div class="dm-stream-item">📦 <span>BARKODLU LOT & SERTİFİKA</span> YÖNETİMİ</div>
 </div>
 </div>
 
