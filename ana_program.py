@@ -1474,20 +1474,7 @@ if client_ip == kayitli_lobi_ip and kayitli_lobi_ip != "" and not st.session_sta
         "aktif_sayfa": "📺 Lobi / TV Ekranı",
         "ana_klinik": ""
     })
-# 🚨 FAZ 41: SİBER GÜVENLİK PROTOKOLÜ KONTROLÜ 🚨
-sistem_kilitli_mi = ayar_getir("Sistem_Kilitli", "Hayır")
-if sistem_kilitli_mi == "Evet" and st.session_state.get("kullanici_rolu", "") != "Admin":
-    st.markdown("""
-        <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: #0f172a;">
-            <div style="font-size: 100px;">🚨</div>
-            <h1 style="color: #f87171; font-weight: 900; letter-spacing: 5px; font-size: 50px; text-shadow: 0 0 20px rgba(248,113,113,0.8);">SİSTEM KİLİTLİ</h1>
-            <p style="color: #94a3b8; font-size: 20px; max-width: 600px;">Laboratuvarımızda uygulanan güvenlik protokolü veya bakım çalışması nedeniyle sistem şu an yetkisiz erişime kapatılmıştır. Lütfen yöneticinizle iletişime geçiniz.</p>
-        </div>
-    """, unsafe_allow_html=True)
-    if st.button("🚪 Sistemi Terk Et", use_container_width=True):
-        st.session_state.clear()
-        st.rerun()
-    st.stop()
+
 if not st.session_state["giris_yapildi"]:
     st.markdown("""
 <style>
@@ -1516,87 +1503,102 @@ if not st.session_state["giris_yapildi"]:
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
         }
 
-        /* ── DENTMESHER HERO BAŞLIK & MARKA ── */
-        .dm-hero-box {
-            text-align: center;
-            margin-bottom: 22px;
-            position: relative;
-        }
-        
-        .dm-brand-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 16px;
-            background: rgba(255, 237, 215, 0.08);
-            border: 1px solid var(--dm-cizgi);
-            border-radius: 999px;
-            color: var(--dm-vurgu);
-            font-family: 'Inter', sans-serif;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            margin-bottom: 14px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-        
-        .dm-brand-title {
+        /* ── SOL ÜST SABİT MARKA (DENTMESHER.COM GİBİ) ── */
+        .giris-marka {
+            position: fixed;
+            top: clamp(16px, 3vh, 28px);
+            left: clamp(18px, 3vw, 34px);
+            z-index: 99;
             font-family: 'Manrope', 'Inter', sans-serif;
             font-weight: 900;
-            font-size: clamp(2rem, 3.5vw, 2.6rem);
-            letter-spacing: -0.035em;
-            line-height: 1.1;
-            margin: 0 0 6px 0;
+            font-size: clamp(1.15rem, 2vw, 1.45rem);
+            letter-spacing: -0.03em;
+            color: var(--dm-metin);
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .dm-brand-title .brand-white {
-            color: #ffffff;
-            text-shadow: 0 2px 20px rgba(0,0,0,0.6);
-        }
-        .dm-brand-title .brand-orange {
+        .giris-marka span {
             color: var(--dm-vurgu);
-            text-shadow: 0 0 25px rgba(232, 98, 44, 0.55);
         }
-        
-        .dm-brand-subtitle {
+
+        /* ── SAĞ TARAFTA KARŞILAMA VE ROL SEÇİM PANELİ ── */
+        .giris-secim {
+            position: fixed;
+            z-index: 90;
+            top: 50%;
+            left: calc(50% + 230px + (50% - 230px) / 2);
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+        .secim-ust {
+            margin: 0 0 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
             color: var(--dm-metin-2);
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 0.04em;
-            margin-bottom: 14px;
         }
-        
-        .dm-pills-row {
+        .secim-marka {
+            margin: 0 0 14px;
+            font-family: 'Manrope', 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: clamp(1.7rem, 2.6vw, 2.4rem);
+            letter-spacing: -0.03em;
+            line-height: 1;
+            color: var(--dm-metin);
+        }
+        .secim-pilleri {
             display: flex;
             justify-content: center;
             gap: 8px;
-            flex-wrap: wrap;
         }
-        .dm-pill {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 5px 12px;
-            background: rgba(255, 237, 215, 0.05);
+        .secim-pil {
             border: 1px solid var(--dm-cizgi);
             border-radius: 999px;
+            background: rgba(255, 237, 215, 0.06);
             color: var(--dm-metin-2);
-            letter-spacing: 0.06em;
-            transition: all 0.2s ease;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            padding: 8px 14px;
+        }
+        @media (max-width: 1180px) {
+            .giris-secim { display: none; }
         }
 
         /* ── DENTMESHER KOYU CAM GİRİŞ KARTI (GLASSMORPHISM) ── */
         div[data-testid="stForm"] { 
-            max-width: 410px !important; 
+            max-width: 420px !important; 
             margin: 0 auto !important; 
-            background: rgba(24, 15, 8, 0.76) !important;
+            background: rgba(24, 15, 8, 0.78) !important;
             backdrop-filter: blur(24px) saturate(140%) !important;
             -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
             border: 1px solid var(--dm-cizgi) !important;
             border-radius: 22px !important;
-            padding: 26px 28px !important;
+            padding: 32px 30px !important;
             box-shadow: 0 1px 0 rgba(255, 237, 215, 0.10) inset,
                         0 30px 80px rgba(0, 0, 0, 0.65),
                         0 0 40px rgba(122, 60, 18, 0.25) !important;
+        }
+
+        .form-header {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-title {
+            font-family: 'Manrope', 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: 1.7rem;
+            letter-spacing: -0.03em;
+            color: var(--dm-metin);
+            margin: 0 0 4px;
+        }
+        .form-subtitle {
+            font-size: 0.86rem;
+            color: var(--dm-metin-2);
+            margin: 0;
         }
         
         /* GİRİŞ TÜRÜ SEÇİCİ (PİLLER) */
@@ -1607,15 +1609,15 @@ if not st.session_state["giris_yapildi"]:
             justify-content: center !important; 
             align-items: center !important; 
             margin: 0 auto !important; 
-            width: auto !important; 
-            padding: 6px 14px !important; 
-            gap: 10px !important; 
+            width: 100% !important; 
+            padding: 4px 6px !important; 
+            gap: 6px !important; 
             background: rgba(255, 237, 215, 0.06) !important; 
             backdrop-filter: blur(14px) !important; 
             -webkit-backdrop-filter: blur(14px) !important; 
             border: 1px solid var(--dm-cizgi) !important; 
-            border-radius: 999px !important; 
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important; 
+            border-radius: 12px !important; 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important; 
         }
         div[data-testid="stRadio"] label span {
             color: var(--dm-metin) !important;
@@ -1633,11 +1635,12 @@ if not st.session_state["giris_yapildi"]:
         .stTextInput > div > div > input {
             background-color: rgba(255, 237, 215, 0.07) !important;
             border: 1.5px solid var(--dm-cizgi) !important;
-            border-radius: 12px !important;
+            border-radius: 10px !important;
             color: var(--dm-metin) !important;
             font-size: 14px !important;
             font-weight: 500 !important;
             padding: 10px 14px !important;
+            height: 44px !important;
             transition: all 0.2s ease !important;
         }
         .stTextInput > div > div > input:focus {
@@ -1658,8 +1661,8 @@ if not st.session_state["giris_yapildi"]:
             font-weight: 700 !important;
             letter-spacing: 0.02em !important;
             border: none !important;
-            border-radius: 12px !important;
-            padding: 12px 0 !important;
+            border-radius: 10px !important;
+            height: 46px !important;
             box-shadow: 0 8px 22px rgba(232, 98, 44, 0.38) !important;
             transition: transform 0.15s ease, box-shadow 0.15s ease !important;
         }
@@ -1667,43 +1670,47 @@ if not st.session_state["giris_yapildi"]:
             transform: translateY(-2px) !important;
             box-shadow: 0 12px 28px rgba(232, 98, 44, 0.52) !important;
         }
-        div[data-testid="stForm"] button:active {
-            transform: translateY(0) !important;
-        }
         
-        /* DİĞER ELEMANLAR */
         div[data-testid="stCheckbox"] label span {
             color: var(--dm-metin-2) !important;
             font-size: 13px !important;
         }
         div[data-testid="InputInstructions"] { display: none !important; }
-        .block-container { padding-top: 1.5rem !important; padding-bottom: 1rem !important; }
+        .block-container { padding-top: 2rem !important; padding-bottom: 2rem !important; }
 </style>
+
+<div class="giris-marka">
+    <span>🦷</span> DENTMESHER <span>HUB</span>
+</div>
+
+<div class="giris-secim">
+    <p class="secim-ust">KENDİ SEÇİMİNİZİ YAPIN.</p>
+    <p class="secim-marka">DENTMESHER</p>
+    <div class="secim-pilleri">
+        <span class="secim-pil">KLİNİK</span>
+        <span class="secim-pil">LABORATUVAR</span>
+        <span class="secim-pil">TASARIMCI</span>
+    </div>
+</div>
     """, unsafe_allow_html=True)
-    col_space_left, col_login, col_space_right = st.columns([1, 1.3, 1])
+    
+    col_space_left, col_login, col_space_right = st.columns([1, 1.25, 1])
     with col_login:
-        st.markdown("""
-        <div class="dm-hero-box">
-            <div class="dm-brand-badge">✦ DIJITAL DIS LABORATUVARI PLATFORMU</div>
-            <h1 class="dm-brand-title"><span class="brand-white">DentMesher</span> <span class="brand-orange">Hub</span></h1>
-            <div class="dm-brand-subtitle">Laboratuvar, Klinik ve Tasarımcı İş Akışı Ekosistemi</div>
-            <div class="dm-pills-row">
-                <span class="dm-pill">🏥 Klinikler</span>
-                <span class="dm-pill">🧪 Laboratuvarlar</span>
-                <span class="dm-pill">💻 Tasarımcılar</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        giris_tipi = st.radio(" ", ["👨‍🔬 Sisteme Giriş", "🏥 Klinik Portalı"], horizontal=True, label_visibility="collapsed")
+        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+        giris_tipi = st.radio(" ", ["👨‍🔬 Laboratuvar Yetkilisi", "🏥 Hekim / Klinik Portalı"], horizontal=True, label_visibility="collapsed")
         
         with st.form("giris_formu"):
-            if giris_tipi == "👨‍🔬 Sisteme Giriş":
-                st.markdown("<h3 style='text-align:center; color:#ffedd7; font-family:\"Manrope\", sans-serif; font-weight:800; font-size:1.35rem; margin:0 0 16px 0; letter-spacing:-0.02em;'>Laboratuvar Yetkili Girişi</h3>", unsafe_allow_html=True)
-                kullanici_giris = st.text_input("Kullanıcı Adı")
-                sifre_giris = st.text_input("Şifre", type="password")
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.form_submit_button("Sistemi Giriş Yap", use_container_width=True):
+            if giris_tipi == "👨‍🔬 Laboratuvar Yetkilisi":
+                st.markdown("""
+                <div class="form-header">
+                    <p class="form-title">Hoş Geldiniz</p>
+                    <p class="form-subtitle">Laboratuvar yönetim paneline erişmek için giriş yapın</p>
+                </div>
+                """, unsafe_allow_html=True)
+                kullanici_giris = st.text_input("Kullanıcı Adı / E-posta", placeholder="Kullanıcı adınızı girin")
+                sifre_giris = st.text_input("Şifre", type="password", placeholder="••••••••")
+                st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+                if st.form_submit_button("Giriş Yap", use_container_width=True):
                     sorgu = c.execute("SELECT Rol, Kullanici_Adi FROM kullanicilar WHERE LOWER(Kullanici_Adi)=LOWER(?) AND Sifre=?", (kullanici_giris.strip(), sifre_giris.strip())).fetchone()
                     if sorgu:
                         st.session_state.update({"giris_yapildi": True, "kullanici_adi": sorgu[1], "kullanici_rolu": sorgu[0], "ana_klinik": ""})
@@ -1711,17 +1718,23 @@ if not st.session_state["giris_yapildi"]:
                     else:
                         st.error("Erişim Reddedildi! Kullanıcı adı veya şifre hatalı.")
             else:
-                st.markdown("<h3 style='text-align:center; color:#ffedd7; font-family:\"Manrope\", sans-serif; font-weight:800; font-size:1.35rem; margin:0 0 16px 0; letter-spacing:-0.02em;'>Hekim VIP Portal</h3>", unsafe_allow_html=True)
+                st.markdown("""
+                <div class="form-header">
+                    <p class="form-title">Hekim Portalı</p>
+                    <p class="form-subtitle">Klinik sipariş ve takip sistemine erişmek için giriş yapın</p>
+                </div>
+                """, unsafe_allow_html=True)
                 
                 asistan_girisi_mi = st.checkbox("👩‍💻 Asistan Girişi (Alt Hesap)")
                 
                 if asistan_girisi_mi:
-                    kullanici_giris = st.text_input("Asistan Kullanıcı Adı (Örn: OMG_Ayse)")
+                    kullanici_giris = st.text_input("Asistan Kullanıcı Adı", placeholder="Örn: OMG_Ayse")
                 else:
-                    kullanici_giris = st.text_input("Klinik Adı / Kullanıcı Adı")
+                    kullanici_giris = st.text_input("Klinik Adı / Kullanıcı Adı", placeholder="Örn: Dent 58")
                 
-                sifre_giris = st.text_input("Şifre", type="password")
-                if st.form_submit_button("Portala Giriş Yap", use_container_width=True):
+                sifre_giris = st.text_input("Şifre", type="password", placeholder="••••••••")
+                st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+                if st.form_submit_button("Giriş Yap", use_container_width=True):
                     if asistan_girisi_mi:
                         sorgu = c.execute("SELECT Klinik_Unvani, Sifre FROM klinik_asistanlari WHERE LOWER(Asistan_Kadi)=LOWER(?) AND Sifre=?", (kullanici_giris.strip(), sifre_giris.strip())).fetchone()
                         if sorgu:
