@@ -2450,19 +2450,42 @@ if sayfa not in ["📺 Lobi / TV Ekranı", "🛵 Kurye Mobil Terminali"]:
     mesaj_badge = f" ({okunmamis_mesaj})" if okunmamis_mesaj > 0 else ""
     
     st.markdown("""<style>
-    /* ── ŞERİT ŞEKLİNDE KAHVERENGİ GRADYAN ÜST BANNER (RIBBON STRIP) ── */
+    /* ── EN ÜSTE VE TÜM KENARLARA YAPIŞIK ŞERİT BANNER (FULL-WIDTH STICKY TOP) ── */
+    header[data-testid="stHeader"], [data-testid="stHeader"] {
+        display: none !important;
+    }
+    .block-container {
+        padding-top: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        max-width: 100% !important;
+    }
+    
     div[data-testid="stHorizontalBlock"]:has(div.dm-banner-logo) {
+        position: sticky !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        margin: 0 0 20px 0 !important;
+        padding: 12px clamp(16px, 3vw, 40px) !important;
         background: 
             radial-gradient(120% 90% at 8% 100%, #4a2818 0%, transparent 60%),
             radial-gradient(90% 70% at 100% 0%, #30180d 0%, transparent 55%),
             linear-gradient(90deg, #1c0e07 0%, #2e1509 35%, #421e0d 65%, #1c0e07 100%) !important;
-        border: 1px solid rgba(232, 98, 44, 0.28) !important;
-        border-radius: 16px !important;
-        padding: 10px 18px !important;
-        margin-bottom: 22px !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 25px rgba(232, 98, 44, 0.20) !important;
+        border: none !important;
+        border-bottom: 1.5px solid rgba(232, 98, 44, 0.40) !important;
+        border-radius: 0 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.70), 0 4px 20px rgba(232, 98, 44, 0.25) !important;
+        z-index: 995 !important;
         align-items: center !important;
     }
+    
+    .main div[data-testid="stVerticalBlock"] > div:not(:has(div.dm-banner-logo)) {
+        padding-left: clamp(14px, 2.5vw, 36px);
+        padding-right: clamp(14px, 2.5vw, 36px);
+    }
+    
     .dm-banner-logo {
         font-family: 'Manrope', 'Inter', sans-serif;
         font-weight: 900;
