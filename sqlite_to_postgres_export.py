@@ -37,9 +37,10 @@ def export_sqlite_to_sql():
                 if not rows:
                     continue
                     
-                f.write(f"-- Tablo: {table} ({len(rows)} satır)\n")
+                table_lower = table.lower()
+                cols_joined = ", ".join([f'"{c.lower()}"' for c in cols])
                 
-                cols_joined = ", ".join([f'"{c}"' for c in cols])
+                f.write(f"-- Tablo: {table_lower} ({len(rows)} satır)\n")
                 
                 for row in rows:
                     vals = []
@@ -55,12 +56,12 @@ def export_sqlite_to_sql():
                             clean_str = str(val).replace("'", "''")
                             vals.append(f"'{clean_str}'")
                     vals_joined = ", ".join(vals)
-                    f.write(f"INSERT INTO \"{table}\" ({cols_joined}) VALUES ({vals_joined}) ON CONFLICT DO NOTHING;\n")
+                    f.write(f"INSERT INTO \"{table_lower}\" ({cols_joined}) VALUES ({vals_joined}) ON CONFLICT DO NOTHING;\n")
                 
                 # Auto increment sequence düzeltme
                 has_id = any(c[1].lower() == 'id' for c in columns_info)
                 if has_id:
-                    f.write(f"SELECT setval(pg_get_serial_sequence('\"{table}\"', 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM \"{table}\";\n")
+                    f.write(f"SELECT setval(pg_get_serial_sequence('\"{table_lower}\"', 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM \"{table_lower}\";\n")
                 f.write("\n")
                 
         conn.close()
