@@ -1523,9 +1523,12 @@ if not st.session_state["giris_yapildi"]:
                 sifre_giris = st.text_input("Şifre", type="password")
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.form_submit_button("Sistemi Başlat", use_container_width=True):
-                    sorgu = c.execute("SELECT Rol FROM kullanicilar WHERE Kullanici_Adi=? AND Sifre=?", (kullanici_giris, sifre_giris)).fetchone()
-                    if sorgu: st.session_state.update({"giris_yapildi": True, "kullanici_adi": kullanici_giris, "kullanici_rolu": sorgu[0], "ana_klinik": ""}); st.rerun()
-                    else: st.error("Erişim Reddedildi!")
+                    sorgu = c.execute("SELECT Rol, Kullanici_Adi FROM kullanicilar WHERE LOWER(Kullanici_Adi)=LOWER(?) AND Sifre=?", (kullanici_giris.strip(), sifre_giris.strip())).fetchone()
+                    if sorgu:
+                        st.session_state.update({"giris_yapildi": True, "kullanici_adi": sorgu[1], "kullanici_rolu": sorgu[0], "ana_klinik": ""})
+                        st.rerun()
+                    else:
+                        st.error("Erişim Reddedildi! Kullanıcı adı veya şifre hatalı.")
             else:
                 st.markdown("<h3 style='text-align:center; color:#38bdf8;'>Hekim VIP Portal</h3>", unsafe_allow_html=True)
                 
@@ -1539,9 +1542,9 @@ if not st.session_state["giris_yapildi"]:
                 sifre_giris = st.text_input("Şifre", type="password")
                 if st.form_submit_button("Portala Gir", use_container_width=True):
                     if asistan_girisi_mi:
-                        sorgu = c.execute("SELECT Klinik_Unvani, Sifre FROM klinik_asistanlari WHERE Asistan_Kadi=? AND Sifre=?", (kullanici_giris, sifre_giris)).fetchone()
+                        sorgu = c.execute("SELECT Klinik_Unvani, Sifre FROM klinik_asistanlari WHERE LOWER(Asistan_Kadi)=LOWER(?) AND Sifre=?", (kullanici_giris.strip(), sifre_giris.strip())).fetchone()
                         if sorgu:
-                            st.session_state.update({"giris_yapildi": True, "kullanici_adi": kullanici_giris, "kullanici_rolu": "Klinik_Asistan", "ana_klinik": sorgu[0]})
+                            st.session_state.update({"giris_yapildi": True, "kullanici_adi": kullanici_giris.strip(), "kullanici_rolu": "Klinik_Asistan", "ana_klinik": sorgu[0]})
                             st.rerun()
                         else: st.error("Asistan bilgileri hatalı!")
                     else:
