@@ -2450,6 +2450,19 @@ if sayfa not in ["📺 Lobi / TV Ekranı", "🛵 Kurye Mobil Terminali"]:
     mesaj_badge = f" ({okunmamis_mesaj})" if okunmamis_mesaj > 0 else ""
     
     st.markdown("""<style>
+    /* ── ŞERİT ŞEKLİNDE KAHVERENGİ GRADYAN ÜST BANNER (RIBBON STRIP) ── */
+    div[data-testid="stHorizontalBlock"]:has(div.dm-banner-logo) {
+        background: 
+            radial-gradient(120% 90% at 8% 100%, #4a2818 0%, transparent 60%),
+            radial-gradient(90% 70% at 100% 0%, #30180d 0%, transparent 55%),
+            linear-gradient(90deg, #1c0e07 0%, #2e1509 35%, #421e0d 65%, #1c0e07 100%) !important;
+        border: 1px solid rgba(232, 98, 44, 0.28) !important;
+        border-radius: 16px !important;
+        padding: 10px 18px !important;
+        margin-bottom: 22px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 25px rgba(232, 98, 44, 0.20) !important;
+        align-items: center !important;
+    }
     .dm-banner-logo {
         font-family: 'Manrope', 'Inter', sans-serif;
         font-weight: 900;
@@ -2470,7 +2483,7 @@ if sayfa not in ["📺 Lobi / TV Ekranı", "🛵 Kurye Mobil Terminali"]:
         height: 36px;
         min-width: 36px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #e8622c 0%, #38bdf8 100%);
+        background: linear-gradient(135deg, #e8622c 0%, #f97316 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -2478,17 +2491,17 @@ if sayfa not in ["📺 Lobi / TV Ekranı", "🛵 Kurye Mobil Terminali"]:
         font-weight: 800;
         font-size: 13px;
         color: #ffffff;
-        box-shadow: 0 0 12px rgba(232, 98, 44, 0.4);
+        box-shadow: 0 0 12px rgba(232, 98, 44, 0.5);
         border: 2px solid rgba(255, 255, 255, 0.25);
     }
     .dm-profile-box {
         display: flex;
         align-items: center;
         gap: 10px;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(0, 0, 0, 0.25);
         padding: 3px 12px 3px 4px;
         border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
     }
     .dm-profile-info {
         display: flex;
@@ -2506,8 +2519,34 @@ if sayfa not in ["📺 Lobi / TV Ekranı", "🛵 Kurye Mobil Terminali"]:
     }
     .dm-profile-role {
         font-size: 10px;
-        color: #38bdf8;
+        color: #fb923c;
         font-weight: 600;
+    }
+    
+    div[data-testid="stHorizontalBlock"]:has(div.dm-banner-logo) button {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        color: #f8fafc !important;
+        border-radius: 10px !important;
+        height: 38px !important;
+        margin-top: 1px !important;
+        transition: all 0.2s ease !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(div.dm-banner-logo) button:hover {
+        background: rgba(232, 98, 44, 0.25) !important;
+        border-color: #e8622c !important;
+        box-shadow: 0 0 10px rgba(232, 98, 44, 0.3) !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(div.dm-banner-logo) input {
+        background: rgba(0, 0, 0, 0.35) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        border-radius: 10px !important;
+        color: #ffffff !important;
+        height: 38px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(div.dm-banner-logo) input:focus {
+        border-color: #e8622c !important;
+        box-shadow: 0 0 0 2px rgba(232, 98, 44, 0.25) !important;
     }
     </style>""", unsafe_allow_html=True)
     
