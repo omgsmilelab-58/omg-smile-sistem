@@ -1523,51 +1523,6 @@ if not st.session_state["giris_yapildi"]:
             color: var(--dm-vurgu);
         }
 
-        /* ── SAĞ TARAFTA KARŞILAMA VE ROL SEÇİM PANELİ ── */
-        .giris-secim {
-            position: fixed;
-            z-index: 90;
-            top: 50%;
-            left: calc(50% + 230px + (50% - 230px) / 2);
-            transform: translate(-50%, -50%);
-            text-align: center;
-            pointer-events: none;
-        }
-        .secim-ust {
-            margin: 0 0 4px;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            color: var(--dm-metin-2);
-        }
-        .secim-marka {
-            margin: 0 0 14px;
-            font-family: 'Manrope', 'Inter', sans-serif;
-            font-weight: 900;
-            font-size: clamp(1.7rem, 2.6vw, 2.4rem);
-            letter-spacing: -0.03em;
-            line-height: 1;
-            color: var(--dm-metin);
-        }
-        .secim-pilleri {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-        }
-        .secim-pil {
-            border: 1px solid var(--dm-cizgi);
-            border-radius: 999px;
-            background: rgba(255, 237, 215, 0.06);
-            color: var(--dm-metin-2);
-            font-size: 0.74rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            padding: 8px 14px;
-        }
-        @media (max-width: 1180px) {
-            .giris-secim { display: none; }
-        }
-
         /* ── DENTMESHER KOYU CAM GİRİŞ KARTI (GLASSMORPHISM) ── */
         div[data-testid="stForm"] { 
             max-width: 420px !important; 
@@ -1676,21 +1631,11 @@ if not st.session_state["giris_yapildi"]:
             font-size: 13px !important;
         }
         div[data-testid="InputInstructions"] { display: none !important; }
-        .block-container { padding-top: 2rem !important; padding-bottom: 2rem !important; }
+        .block-container { padding-top: 2.5rem !important; padding-bottom: 2rem !important; }
 </style>
 
 <div class="giris-marka">
-    <span>🦷</span> DENTMESHER <span>HUB</span>
-</div>
-
-<div class="giris-secim">
-    <p class="secim-ust">KENDİ SEÇİMİNİZİ YAPIN.</p>
-    <p class="secim-marka">DENTMESHER</p>
-    <div class="secim-pilleri">
-        <span class="secim-pil">KLİNİK</span>
-        <span class="secim-pil">LABORATUVAR</span>
-        <span class="secim-pil">TASARIMCI</span>
-    </div>
+    DENTMESHER <span>HUB</span>
 </div>
     """, unsafe_allow_html=True)
     
