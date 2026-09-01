@@ -11,7 +11,13 @@ USE_POSTGRES = os.environ.get("K_SERVICE") is not None or os.getenv("USE_POSTGRE
 if USE_POSTGRES:
     try:
         import psycopg2
-        from psycopg2 import pool
+        from psycopg2 import pool, extensions
+        DECIMAL2FLOAT = extensions.new_type(
+            extensions.DECIMAL.values,
+            'DECIMAL2FLOAT',
+            lambda value, curs: float(value) if value is not None else None
+        )
+        extensions.register_type(DECIMAL2FLOAT)
     except ImportError:
         st.error("psycopg2 yüklü değil. Bulut bağlantısı çalışmaz.")
 

@@ -1975,16 +1975,16 @@ if rol in ["Klinik", "Klinik_Asistan"]:
             m1.markdown(f"""<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Laboratuvardaki İşler</span><br><span class='neon-text-blue' style='font-size:32px;'>{len(df_isler[df_isler["Asama"] != "Teslim Edildi"])}</span></div>""", unsafe_allow_html=True)
             m2.markdown(f"""<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Teslim Edilenler</span><br><span class='neon-text-green' style='font-size:32px;'>{len(df_isler[df_isler["Asama"] == "Teslim Edildi"])}</span></div>""", unsafe_allow_html=True)
         else:
-            _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu != 'İptal'", (ana_klinik,)).fetchone()[0] or 0.0
+            _toplam_is = float(c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu != 'İptal'", (ana_klinik,)).fetchone()[0] or 0.0)
             _kdv = float(ayar_getir("KDV_Orani", "20"))
             try:
                 df_tahs_ak = pd.read_sql(f"SELECT Tarih, Odeme_Turu, Tutar FROM tahsilatlar WHERE Klinik_Unvani='{ana_klinik}'", conn)
                 if not df_tahs_ak.empty:
-                    _tahs_net = df_tahs_ak['Tutar'].sum()
+                    _tahs_net = float(df_tahs_ak['Tutar'].sum())
                 else: _tahs_net = 0.0
             except:
-                _tahs_net = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (ana_klinik,)).fetchone()[0] or 0.0
-            anlik_bakiye = _toplam_is - _tahs_net
+                _tahs_net = float(c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (ana_klinik,)).fetchone()[0] or 0.0)
+            anlik_bakiye = float(_toplam_is) - float(_tahs_net)
             para_birimi = ayar_getir("Para_Birimi", "TL")
             m1, m2, m3 = st.columns(3)
             m1.markdown(f"""<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Laboratuvardaki İşler</span><br><span class='neon-text-blue' style='font-size:32px;'>{len(df_isler[df_isler["Asama"] != "Teslim Edildi"])}</span></div>""", unsafe_allow_html=True)
@@ -2223,16 +2223,16 @@ if rol in ["Klinik", "Klinik_Asistan"]:
         
     elif sayfa == "🧾 Detaylı Ekstre" and rol == "Klinik":
         banner_olustur("🧾", "Detaylı Hesap Ekstresi", "Borç ve ödeme geçmişinizi takip edin.")
-        _toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu != 'İptal'", (kullanici_adi,)).fetchone()[0] or 0.0
+        _toplam_is = float(c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Klinik_Unvani=? AND Bakiye_Durumu != 'İptal'", (kullanici_adi,)).fetchone()[0] or 0.0)
         _kdv = float(ayar_getir("KDV_Orani", "20"))
         try:
             df_tahs_ak = pd.read_sql(f"SELECT Tarih, Odeme_Turu, Tutar FROM tahsilatlar WHERE Klinik_Unvani='{ana_klinik}'", conn)
             if not df_tahs_ak.empty:
-                _tahs_net = df_tahs_ak['Tutar'].sum()
+                _tahs_net = float(df_tahs_ak['Tutar'].sum())
             else: _tahs_net = 0.0
         except:
-            _tahs_net = c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (ana_klinik,)).fetchone()[0] or 0.0
-        anlik_bakiye = _toplam_is - _tahs_net
+            _tahs_net = float(c.execute("SELECT SUM(Tutar) FROM tahsilatlar WHERE Klinik_Unvani=?", (ana_klinik,)).fetchone()[0] or 0.0)
+        anlik_bakiye = float(_toplam_is) - float(_tahs_net)
         para_birimi = ayar_getir("Para_Birimi", "TL")
         st.markdown(f"<div class='glass-card' style='text-align:center;'><h2 style='color:#FFFFFF;'>Güncel Borcunuz</h2><h1 class='neon-text-red'>{anlik_bakiye:,.2f} {para_birimi}</h1></div>", unsafe_allow_html=True)
         
@@ -2483,16 +2483,16 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             para_birimi = ayar_getir("Para_Birimi", "TL")
             
             # Gerçek zamanlı global bakiye hesaplaması
-            _g_toplam_is = c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Bakiye_Durumu != 'İptal'").fetchone()[0] or 0.0
+            _g_toplam_is = float(c.execute("SELECT SUM(Tutar_TL) FROM isler WHERE Bakiye_Durumu != 'İptal'").fetchone()[0] or 0.0)
             _g_kdv = float(ayar_getir("KDV_Orani", "20"))
             try:
                 df_tahs_g = pd.read_sql("SELECT id, Tarih, Tutar, Odeme_Turu, Klinik_Unvani FROM tahsilatlar", conn)
                 if not df_tahs_g.empty:
-                    _g_tahs_net = df_tahs_g['Tutar'].sum()
+                    _g_tahs_net = float(df_tahs_g['Tutar'].sum())
                 else: _g_tahs_net = 0.0
             except:
-                _g_tahs_net = c.execute("SELECT SUM(Tutar) FROM tahsilatlar").fetchone()[0] or 0.0
-            global_piyasa_alacak = _g_toplam_is - _g_tahs_net
+                _g_tahs_net = float(c.execute("SELECT SUM(Tutar) FROM tahsilatlar").fetchone()[0] or 0.0)
+            global_piyasa_alacak = float(_g_toplam_is) - float(_g_tahs_net)
 
             f1, f2, f3, f4 = st.columns(4)
             f1.markdown(f"<div class='glass-card' style='text-align:center;'><span style='color:#FFFFFF;'>Gerçekleşen Ciro</span><br><span class='neon-text-green' style='font-size:30px;'>{toplam_gelir:,.0f} {para_birimi}</span></div>", unsafe_allow_html=True)
