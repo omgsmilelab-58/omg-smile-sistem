@@ -1491,172 +1491,206 @@ if sistem_kilitli_mi == "Evet" and st.session_state.get("kullanici_rolu", "") !=
 if not st.session_state["giris_yapildi"]:
     st.markdown("""
 <style>
-        /* CANLI VE AMBİYANS ARKA PLAN */
+        /* ── DENTMESHER.COM GÖRSEL KİMLİĞİ VE TASARIM SİSTEMİ ── */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800;900&display=swap');
+        
+        :root {
+            --dm-zemin-1: #150d07;
+            --dm-zemin-2: #241609;
+            --dm-isik:    #7a3c12;
+            --dm-metin:   #ffedd7;
+            --dm-metin-2: rgba(255, 237, 215, 0.70);
+            --dm-vurgu:   #e8622c;
+            --dm-vurgu-hover: #f2703a;
+            --dm-cizgi:   rgba(255, 237, 215, 0.14);
+        }
+
+        /* CANLI VE SICAK KAHVE/AMBER ARKA PLAN */
         .stApp {
-            background: radial-gradient(circle at 50% 15%, rgba(2, 132, 199, 0.22) 0%, rgba(15, 23, 42, 1) 75%) !important;
+            background:
+                radial-gradient(120% 90% at 8% 100%, var(--dm-isik) 0%, transparent 58%),
+                radial-gradient(90% 70% at 100% 0%, #3a1f0c 0%, transparent 55%),
+                linear-gradient(160deg, var(--dm-zemin-2) 0%, var(--dm-zemin-1) 60%) !important;
+            background-attachment: fixed !important;
+            color: var(--dm-metin) !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
         }
-        
-        /* CANLI LOGO & HERO BAŞLIK */
-        .hub-hero-box {
+
+        /* ── DENTMESHER HERO BAŞLIK & MARKA ── */
+        .dm-hero-box {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
             position: relative;
         }
         
-        .hub-badge-top {
-            display: inline-block;
-            padding: 4px 14px;
-            background: rgba(56, 189, 248, 0.12);
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            border-radius: 30px;
-            color: #38bdf8;
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
-        }
-        
-        .hub-icon-wrap {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 12px auto;
-            display: flex;
+        .dm-brand-badge {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, rgba(2, 132, 199, 0.3), rgba(56, 189, 248, 0.08));
-            border: 1.5px solid rgba(56, 189, 248, 0.5);
-            border-radius: 50%;
-            box-shadow: 0 0 35px rgba(56, 189, 248, 0.45), inset 0 0 15px rgba(56, 189, 248, 0.3);
-            animation: hub-pulse 3s infinite alternate ease-in-out;
-        }
-        
-        @keyframes hub-pulse {
-            0% { transform: scale(1); box-shadow: 0 0 25px rgba(56, 189, 248, 0.35); }
-            100% { transform: scale(1.06); box-shadow: 0 0 45px rgba(56, 189, 248, 0.7); }
-        }
-        
-        .hub-icon {
-            font-size: 38px;
-            filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.8));
-        }
-        
-        .hub-title {
-            font-size: 38px;
-            font-weight: 900;
-            letter-spacing: 1.5px;
-            margin: 0 0 4px 0;
-            line-height: 1.2;
-        }
-        .hub-title .white-part {
-            color: #ffffff;
-            text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-        }
-        .hub-title .cyan-part {
-            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 18px rgba(56, 189, 248, 0.6));
-        }
-        
-        .hub-slogan {
-            color: #94a3b8;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 2.5px;
+            gap: 6px;
+            padding: 5px 16px;
+            background: rgba(255, 237, 215, 0.08);
+            border: 1px solid var(--dm-cizgi);
+            border-radius: 999px;
+            color: var(--dm-vurgu);
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
         
-        .hub-network-pills {
+        .dm-brand-title {
+            font-family: 'Manrope', 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: clamp(2rem, 3.5vw, 2.6rem);
+            letter-spacing: -0.035em;
+            line-height: 1.1;
+            margin: 0 0 6px 0;
+        }
+        .dm-brand-title .brand-white {
+            color: #ffffff;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.6);
+        }
+        .dm-brand-title .brand-orange {
+            color: var(--dm-vurgu);
+            text-shadow: 0 0 25px rgba(232, 98, 44, 0.55);
+        }
+        
+        .dm-brand-subtitle {
+            color: var(--dm-metin-2);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            margin-bottom: 14px;
+        }
+        
+        .dm-pills-row {
             display: flex;
             justify-content: center;
             gap: 8px;
             flex-wrap: wrap;
-            margin-bottom: 5px;
         }
-        .hub-pill {
-            font-size: 10px;
+        .dm-pill {
+            font-size: 11px;
             font-weight: 700;
-            padding: 4px 10px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            color: #cbd5e1;
-            letter-spacing: 1px;
+            padding: 5px 12px;
+            background: rgba(255, 237, 215, 0.05);
+            border: 1px solid var(--dm-cizgi);
+            border-radius: 999px;
+            color: var(--dm-metin-2);
+            letter-spacing: 0.06em;
+            transition: all 0.2s ease;
         }
 
-        /* FORMU DARALTMA VE MODERN CAM EFEKTİ */
+        /* ── DENTMESHER KOYU CAM GİRİŞ KARTI (GLASSMORPHISM) ── */
         div[data-testid="stForm"] { 
-            max-width: 390px !important; 
+            max-width: 410px !important; 
             margin: 0 auto !important; 
-            background: rgba(30, 41, 59, 0.7) !important;
-            backdrop-filter: blur(16px) !important;
-            -webkit-backdrop-filter: blur(16px) !important;
-            border: 1px solid rgba(56, 189, 248, 0.25) !important;
-            border-radius: 24px !important;
-            padding: 24px !important;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(2, 132, 199, 0.15) !important;
+            background: rgba(24, 15, 8, 0.76) !important;
+            backdrop-filter: blur(24px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
+            border: 1px solid var(--dm-cizgi) !important;
+            border-radius: 22px !important;
+            padding: 26px 28px !important;
+            box-shadow: 0 1px 0 rgba(255, 237, 215, 0.10) inset,
+                        0 30px 80px rgba(0, 0, 0, 0.65),
+                        0 0 40px rgba(122, 60, 18, 0.25) !important;
         }
         
-        /* GİRİŞ TÜRÜ RADYO SEÇİCİ */
+        /* GİRİŞ TÜRÜ SEÇİCİ (PİLLER) */
         div[data-testid="stElementContainer"]:has(div[data-testid="stRadio"]), 
-        div[data-testid="stRadio"] { display: flex !important; justify-content: center !important; align-items: center !important; width: 100% !important; margin-bottom: 12px !important;}
-        div[data-testid="stRadio"] > div[role="radiogroup"] { display: inline-flex !important; justify-content: center !important; align-items: center !important; margin: 0 auto !important; width: auto !important; padding: 8px 16px !important; gap: 12px !important; background: rgba(255, 255, 255, 0.06) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(56, 189, 248, 0.25) !important; border-radius: 40px !important; box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4) !important; }
+        div[data-testid="stRadio"] { display: flex !important; justify-content: center !important; align-items: center !important; width: 100% !important; margin-bottom: 14px !important;}
+        div[data-testid="stRadio"] > div[role="radiogroup"] { 
+            display: inline-flex !important; 
+            justify-content: center !important; 
+            align-items: center !important; 
+            margin: 0 auto !important; 
+            width: auto !important; 
+            padding: 6px 14px !important; 
+            gap: 10px !important; 
+            background: rgba(255, 237, 215, 0.06) !important; 
+            backdrop-filter: blur(14px) !important; 
+            -webkit-backdrop-filter: blur(14px) !important; 
+            border: 1px solid var(--dm-cizgi) !important; 
+            border-radius: 999px !important; 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important; 
+        }
+        div[data-testid="stRadio"] label span {
+            color: var(--dm-metin) !important;
+            font-weight: 600 !important;
+            font-size: 13px !important;
+        }
         
-        /* İNPUTLAR VE BUTON */
+        /* GİRİŞ ALANLARI (INPUTLAR) */
+        .stTextInput > label, .stTextInput > label > div > p {
+            color: var(--dm-metin-2) !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            margin-bottom: 4px !important;
+        }
         .stTextInput > div > div > input {
-            background-color: rgba(15, 23, 42, 0.7) !important;
-            border: 1px solid rgba(56, 189, 248, 0.2) !important;
+            background-color: rgba(255, 237, 215, 0.07) !important;
+            border: 1.5px solid var(--dm-cizgi) !important;
             border-radius: 12px !important;
-            color: #ffffff !important;
+            color: var(--dm-metin) !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            padding: 10px 14px !important;
+            transition: all 0.2s ease !important;
         }
         .stTextInput > div > div > input:focus {
-            border-color: #38bdf8 !important;
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.35) !important;
+            background-color: rgba(255, 237, 215, 0.12) !important;
+            border-color: var(--dm-vurgu) !important;
+            box-shadow: 0 0 0 3px rgba(232, 98, 44, 0.22) !important;
+            color: #ffffff !important;
         }
         
+        /* VURGU BUTONU (DENTMESHER TURUNCUSU) */
         div[data-testid="stForm"] button[kind="primary"],
         div[data-testid="stForm"] button[kind="secondary"],
         div[data-testid="stForm"] button {
-            background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%) !important;
+            background: linear-gradient(135deg, var(--dm-vurgu) 0%, var(--dm-vurgu-hover) 100%) !important;
             color: #ffffff !important;
-            font-weight: 800 !important;
-            letter-spacing: 1px !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.02em !important;
             border: none !important;
             border-radius: 12px !important;
-            padding: 10px 0 !important;
-            box-shadow: 0 4px 20px rgba(56, 189, 248, 0.4) !important;
-            transition: all 0.3s ease !important;
+            padding: 12px 0 !important;
+            box-shadow: 0 8px 22px rgba(232, 98, 44, 0.38) !important;
+            transition: transform 0.15s ease, box-shadow 0.15s ease !important;
         }
         div[data-testid="stForm"] button:hover {
             transform: translateY(-2px) !important;
-            box-shadow: 0 8px 30px rgba(56, 189, 248, 0.6) !important;
+            box-shadow: 0 12px 28px rgba(232, 98, 44, 0.52) !important;
+        }
+        div[data-testid="stForm"] button:active {
+            transform: translateY(0) !important;
         }
         
-        /* 🚨 SİNİR BOZUCU "PRESS ENTER" YAZISINI GİZLEYEN ZIRH 🚨 */
+        /* DİĞER ELEMANLAR */
+        div[data-testid="stCheckbox"] label span {
+            color: var(--dm-metin-2) !important;
+            font-size: 13px !important;
+        }
         div[data-testid="InputInstructions"] { display: none !important; }
-        
-        /* Ekranı daraltıp scroll'u engelleme */
         .block-container { padding-top: 1.5rem !important; padding-bottom: 1rem !important; }
 </style>
     """, unsafe_allow_html=True)
     col_space_left, col_login, col_space_right = st.columns([1, 1.3, 1])
     with col_login:
         st.markdown("""
-        <div class="hub-hero-box">
-            <div class="hub-badge-top">✨ DENTAL LAB ECOSYSTEM</div>
-            <div class="hub-icon-wrap">
-                <span class="hub-icon">🦷</span>
-            </div>
-            <h1 class="hub-title"><span class="white-part">Dentmesher</span><span class="cyan-part">Hub</span></h1>
-            <div class="hub-slogan">Connect • Collaborate • Grow</div>
-            <div class="hub-network-pills">
-                <span class="hub-pill">🏥 CLINICS</span>
-                <span class="hub-pill">🧪 LABORATORIES</span>
-                <span class="hub-pill">💻 DESIGNERS</span>
+        <div class="dm-hero-box">
+            <div class="dm-brand-badge">✦ DIJITAL DIS LABORATUVARI PLATFORMU</div>
+            <h1 class="dm-brand-title"><span class="brand-white">DentMesher</span> <span class="brand-orange">Hub</span></h1>
+            <div class="dm-brand-subtitle">Laboratuvar, Klinik ve Tasarımcı İş Akışı Ekosistemi</div>
+            <div class="dm-pills-row">
+                <span class="dm-pill">🏥 Klinikler</span>
+                <span class="dm-pill">🧪 Laboratuvarlar</span>
+                <span class="dm-pill">💻 Tasarımcılar</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1665,11 +1699,11 @@ if not st.session_state["giris_yapildi"]:
         
         with st.form("giris_formu"):
             if giris_tipi == "👨‍🔬 Sisteme Giriş":
-                st.markdown("<h3 style='text-align:center; color:#38bdf8;'>Laboratuvar Yetkili Girişi</h3>", unsafe_allow_html=True)
+                st.markdown("<h3 style='text-align:center; color:#ffedd7; font-family:\"Manrope\", sans-serif; font-weight:800; font-size:1.35rem; margin:0 0 16px 0; letter-spacing:-0.02em;'>Laboratuvar Yetkili Girişi</h3>", unsafe_allow_html=True)
                 kullanici_giris = st.text_input("Kullanıcı Adı")
                 sifre_giris = st.text_input("Şifre", type="password")
                 st.markdown("<br>", unsafe_allow_html=True)
-                if st.form_submit_button("Sistemi Başlat", use_container_width=True):
+                if st.form_submit_button("Sistemi Giriş Yap", use_container_width=True):
                     sorgu = c.execute("SELECT Rol, Kullanici_Adi FROM kullanicilar WHERE LOWER(Kullanici_Adi)=LOWER(?) AND Sifre=?", (kullanici_giris.strip(), sifre_giris.strip())).fetchone()
                     if sorgu:
                         st.session_state.update({"giris_yapildi": True, "kullanici_adi": sorgu[1], "kullanici_rolu": sorgu[0], "ana_klinik": ""})
@@ -1677,7 +1711,7 @@ if not st.session_state["giris_yapildi"]:
                     else:
                         st.error("Erişim Reddedildi! Kullanıcı adı veya şifre hatalı.")
             else:
-                st.markdown("<h3 style='text-align:center; color:#38bdf8;'>Hekim VIP Portal</h3>", unsafe_allow_html=True)
+                st.markdown("<h3 style='text-align:center; color:#ffedd7; font-family:\"Manrope\", sans-serif; font-weight:800; font-size:1.35rem; margin:0 0 16px 0; letter-spacing:-0.02em;'>Hekim VIP Portal</h3>", unsafe_allow_html=True)
                 
                 asistan_girisi_mi = st.checkbox("👩‍💻 Asistan Girişi (Alt Hesap)")
                 
@@ -1687,7 +1721,7 @@ if not st.session_state["giris_yapildi"]:
                     kullanici_giris = st.text_input("Klinik Adı / Kullanıcı Adı")
                 
                 sifre_giris = st.text_input("Şifre", type="password")
-                if st.form_submit_button("Portala Gir", use_container_width=True):
+                if st.form_submit_button("Portala Giriş Yap", use_container_width=True):
                     if asistan_girisi_mi:
                         sorgu = c.execute("SELECT Klinik_Unvani, Sifre FROM klinik_asistanlari WHERE LOWER(Asistan_Kadi)=LOWER(?) AND Sifre=?", (kullanici_giris.strip(), sifre_giris.strip())).fetchone()
                         if sorgu:
@@ -1721,49 +1755,38 @@ if not st.session_state["giris_yapildi"]:
             bottom: 0;
             left: 0;
             width: 100%;
-            padding-top: 15px;
-            padding-bottom: 20px;
-            background-color: transparent;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 10px;
+            padding-bottom: 12px;
+            background: rgba(18, 11, 5, 0.65);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-top: 1px solid rgba(255, 237, 215, 0.12);
             text-align: center;
-            font-size: 13px;
-            color: #9ca3af;
-            line-height: 2.0;
+            font-size: 12px;
+            color: rgba(255, 237, 215, 0.65);
             z-index: 9999;
         }
         .footer-meta a {
-            color: #9ca3af;
+            color: rgba(255, 237, 215, 0.75);
             text-decoration: none;
-            margin: 0 8px;
+            margin: 0 10px;
+            font-weight: 500;
             transition: color 0.2s;
         }
         .footer-meta a:hover {
-            color: #e5e7eb;
+            color: #e8622c;
             text-decoration: underline;
         }
         </style>
         <div class="footer-meta">
             <div>
-                <a href="#">Türkçe</a>
-                <a href="#">Kurdî (Kurmancî)</a>
-                <a href="#">العربية</a>
-                <a href="#">English (UK)</a>
-                <a href="#">Zaza</a>
-                <a href="#">Deutsch</a>
-                <a href="#">Русский</a>
+                <a href="https://dentmesher.com" target="_blank">DentMesher Ana Platform</a> •
+                <a href="#">Gizlilik Politikası</a> •
+                <a href="#">Kullanım Koşulları</a> •
+                <a href="#">Yardım & Destek</a>
             </div>
-            <div style="margin-top: 10px;">
-                <a href="#">Gizlilik İlkesi</a>
-                <a href="#">Gizlilik Merkezi</a>
-                <a href="#">Hakkımızda</a>
-                <a href="#">Geliştiriciler</a>
-                <a href="#">Kariyer Olanakları</a>
-                <a href="#">Çerezler</a>
-                <a href="#">Koşullar</a>
-                <a href="#">Yardım</a>
-            </div>
-            <div style="margin-top: 20px; font-size: 12px; margin-bottom: 20px;">
-                OMG SMILE ERP © 2026
+            <div style="font-size: 11px; margin-top: 4px; color: rgba(255, 237, 215, 0.45);">
+                © 2026 DentMesher Dijital Diş Laboratuvarı Ekosistemi — Tüm Hakları Saklıdır.
             </div>
         </div>
     """, unsafe_allow_html=True)
