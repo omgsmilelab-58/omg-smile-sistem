@@ -1842,64 +1842,125 @@ div[data-testid="InputInstructions"] { display: none !important; }
     font-weight: 600;
 }
 
-/* ── PROGRAM ÖZELLİK KARTLARI (FEATURE GRID) ── */
-.dm-features-wrap {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 14px;
-    max-width: 980px;
-    margin: 28px auto 70px auto;
-    position: relative;
-    z-index: 10;
-    padding: 0 12px;
-}
-.dm-feat-card {
-    background: rgba(8, 16, 32, 0.78);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 16px;
-    padding: 16px 18px;
-    transition: all 0.25s ease-in-out;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-}
-.dm-feat-card:hover {
-    transform: translateY(-4px);
-    background: rgba(12, 24, 48, 0.90);
-    border-color: rgba(232, 98, 44, 0.45);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), 0 0 25px rgba(232, 98, 44, 0.22);
-}
-.dm-feat-icon {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    border-radius: 10px;
+/* ── HAREKETLİ ARKA PLAN TELEMETRİ VE ÖZELLİK EFEKTLERİ ── */
+.dm-telemetry-badge {
+    position: fixed;
+    background: rgba(8, 16, 32, 0.72);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 10px 14px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    background: linear-gradient(135deg, rgba(232, 98, 44, 0.2), rgba(56, 189, 248, 0.1));
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    gap: 10px;
+    pointer-events: none;
+    z-index: 1;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(21, 48, 91, 0.35);
+    animation: dmBadgeFloat 14s infinite ease-in-out alternate;
 }
-.dm-feat-content {
-    flex: 1;
+
+.dm-badge-1 {
+    top: 18%;
+    left: clamp(20px, 6vw, 130px);
+    border-left: 3px solid #38bdf8;
+    animation-delay: 0s;
 }
-.dm-feat-title {
-    font-family: 'Manrope', 'Inter', sans-serif;
-    font-weight: 800;
-    font-size: 0.90rem;
-    color: #ffedd7;
-    margin: 0 0 4px 0;
-    letter-spacing: -0.01em;
+
+.dm-badge-2 {
+    bottom: 18%;
+    left: clamp(20px, 6vw, 130px);
+    border-left: 3px solid #e8622c;
+    animation-delay: -5s;
 }
-.dm-feat-desc {
-    font-size: 0.76rem;
-    color: rgba(226, 232, 240, 0.70);
+
+.dm-badge-3 {
+    top: 18%;
+    right: clamp(20px, 6vw, 130px);
+    border-right: 3px solid #e8622c;
+    animation-delay: -3s;
+}
+
+.dm-badge-4 {
+    bottom: 18%;
+    right: clamp(20px, 6vw, 130px);
+    border-right: 3px solid #38bdf8;
+    animation-delay: -8s;
+}
+
+@keyframes dmBadgeFloat {
+    0% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-14px) scale(1.02); }
+    100% { transform: translateY(12px) scale(0.98); }
+}
+
+.dm-badge-icon {
+    font-size: 20px;
+    filter: drop-shadow(0 0 8px rgba(232, 98, 44, 0.6));
+}
+
+.dm-badge-text h5 {
     margin: 0;
-    line-height: 1.45;
+    font-family: 'Manrope', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.02em;
+}
+
+.dm-badge-text p {
+    margin: 2px 0 0 0;
+    font-size: 10px;
+    color: rgba(226, 232, 240, 0.65);
+    font-family: 'Inter', monospace;
+}
+
+/* ── ARKA PLAN SİBER AKIŞ ŞERİDİ (CYBER MARQUEE STREAM) ── */
+.dm-stream-ticker {
+    position: fixed;
+    bottom: 44px;
+    left: 0;
+    width: 100vw;
+    overflow: hidden;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.60;
+}
+
+.dm-stream-track {
+    display: inline-block;
+    animation: dmMarquee 32s linear infinite;
+}
+
+.dm-stream-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 36px;
+    font-size: 11px;
+    font-family: 'Inter', monospace;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: rgba(226, 232, 240, 0.80);
+    background: rgba(8, 16, 32, 0.50);
+    padding: 5px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.dm-stream-item span {
+    color: #e8622c;
+}
+
+@keyframes dmMarquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+@media (max-width: 1050px) {
+    .dm-telemetry-badge {
+        display: none;
+    }
 }
 </style>
 <div class="dm-aurora-wrap">
@@ -1976,6 +2037,61 @@ div[data-testid="InputInstructions"] { display: none !important; }
 </div>
 </div>
 
+<!-- SÜZÜLEN HOLOGRAFİK ÖZELLİK TELEMETRİ ROZETLERİ -->
+<div class="dm-telemetry-badge dm-badge-1">
+<div class="dm-badge-icon">⚙️</div>
+<div class="dm-badge-text">
+<h5>5-AXIS CAD/CAM</h5>
+<p>Exocad & STL Doğrudan Entegrasyon</p>
+</div>
+</div>
+
+<div class="dm-telemetry-badge dm-badge-2">
+<div class="dm-badge-icon">🛵</div>
+<div class="dm-badge-text">
+<h5>GPS AKILLI KURYE</h5>
+<p>Canlı Rota & Vaka Sevkiyat Radarı</p>
+</div>
+</div>
+
+<div class="dm-telemetry-badge dm-badge-3">
+<div class="dm-badge-icon">🏥</div>
+<div class="dm-badge-text">
+<h5>HEKİM VIP PORTALI</h5>
+<p>3D Reçete & Canlı Aşama Takibi</p>
+</div>
+</div>
+
+<div class="dm-telemetry-badge dm-badge-4">
+<div class="dm-badge-icon">🤖</div>
+<div class="dm-badge-text">
+<h5>OMG AI ANALİTİK</h5>
+<p>Frez Ömür & Finansal Asistan</p>
+</div>
+</div>
+
+<!-- ARKA PLAN CANLI SİBER AKIŞ ŞERİDİ -->
+<div class="dm-stream-ticker" aria-hidden="true">
+<div class="dm-stream-track">
+<div class="dm-stream-item">⚙️ <span>5-EKSEN CAD/CAM</span> FREZLEME</div>
+<div class="dm-stream-item">🦷 <span>3D STL MODEL</span> TARAMA & SENKRONİZASYON</div>
+<div class="dm-stream-item">🛵 <span>GPS CANLI KURYE</span> LOJİSTİK AĞI</div>
+<div class="dm-stream-item">🔥 <span>ZİRKONYUM & E-MAX</span> SİNTERLEME FIRINI</div>
+<div class="dm-stream-item">🏥 <span>HEKİM VIP PORTAL</span> DİJİTAL REÇETE</div>
+<div class="dm-stream-item">🤖 <span>OMG AI</span> AKILLI LABORATUVAR ASİSTANI</div>
+<div class="dm-stream-item">💰 <span>ANLIK CARİ BAKİYE</span> & KÂR/ZARAR ANALİTİĞİ</div>
+<div class="dm-stream-item">📦 <span>BARKODLU LOT & SERTİFİKA</span> YÖNETİMİ</div>
+<div class="dm-stream-item">⚙️ <span>5-EKSEN CAD/CAM</span> FREZLEME</div>
+<div class="dm-stream-item">🦷 <span>3D STL MODEL</span> TARAMA & SENKRONİZASYON</div>
+<div class="dm-stream-item">🛵 <span>GPS CANLI KURYE</span> LOJİSTİK AĞI</div>
+<div class="dm-stream-item">🔥 <span>ZİRKONYUM & E-MAX</span> SİNTERLEME FIRINI</div>
+<div class="dm-stream-item">🏥 <span>HEKİM VIP PORTAL</span> DİJİTAL REÇETE</div>
+<div class="dm-stream-item">🤖 <span>OMG AI</span> AKILLI LABORATUVAR ASİSTANI</div>
+<div class="dm-stream-item">💰 <span>ANLIK CARİ BAKİYE</span> & KÂR/ZARAR ANALİTİĞİ</div>
+<div class="dm-stream-item">📦 <span>BARKODLU LOT & SERTİFİKA</span> YÖNETİMİ</div>
+</div>
+</div>
+
 <div class="giris-marka">DENTMESHER <span>HUB</span></div>""", unsafe_allow_html=True)
     
     col_space_left, col_login, col_space_right = st.columns([1, 1.25, 1])
@@ -2037,37 +2153,6 @@ div[data-testid="InputInstructions"] { display: none !important; }
                             st.session_state.update({"giris_yapildi": True, "kullanici_adi": gercek_unvan, "kullanici_rolu": "Klinik", "ana_klinik": gercek_unvan})
                             st.rerun()
                         else: st.error("Klinik Adı (Kullanıcı Adı) veya Şifre Hatalı!")
-    
-    st.markdown("""<div class="dm-features-wrap">
-<div class="dm-feat-card">
-<div class="dm-feat-icon">⚙️</div>
-<div class="dm-feat-content">
-<h4 class="dm-feat-title">CAD/CAM & 3D Üretim</h4>
-<p class="dm-feat-desc">Exocad & STL entegrasyonu, 5-eksen zirkonyum frezleme ve fırın sinterleme aşama takibi.</p>
-</div>
-</div>
-<div class="dm-feat-card">
-<div class="dm-feat-icon">🏥</div>
-<div class="dm-feat-content">
-<h4 class="dm-feat-title">Hekim VIP Portalı</h4>
-<p class="dm-feat-desc">Dijital reçete oluşturma, 3D vaka modeli yükleme ve canlı vaka üretim radarı.</p>
-</div>
-</div>
-<div class="dm-feat-card">
-<div class="dm-feat-icon">🛵</div>
-<div class="dm-feat-content">
-<h4 class="dm-feat-title">Akıllı Kurye & Lojistik</h4>
-<p class="dm-feat-desc">GPS harita yönlendirmeli rota takibi, teslim alma/bırakma ve anlık sevkiyat bildirimi.</p>
-</div>
-</div>
-<div class="dm-feat-card">
-<div class="dm-feat-icon">🤖</div>
-<div class="dm-feat-content">
-<h4 class="dm-feat-title">Yapay Zeka & Finans</h4>
-<p class="dm-feat-desc">OMG AI akıllı laboratuvar asistanı, frez ömür maliyet analitiği ve net kâr/zarar raporları.</p>
-</div>
-</div>
-</div>""", unsafe_allow_html=True)
     
     st.markdown("""<style>
 .footer-meta {
