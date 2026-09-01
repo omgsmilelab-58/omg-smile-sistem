@@ -1491,29 +1491,176 @@ if sistem_kilitli_mi == "Evet" and st.session_state.get("kullanici_rolu", "") !=
 if not st.session_state["giris_yapildi"]:
     st.markdown("""
 <style>
-        /* FORMU DARALTMA VE ORTALAMA */
-        div[data-testid="stForm"] { max-width: 360px !important; margin: 0 auto !important; }
+        /* CANLI VE AMBİYANS ARKA PLAN */
+        .stApp {
+            background: radial-gradient(circle at 50% 15%, rgba(2, 132, 199, 0.22) 0%, rgba(15, 23, 42, 1) 75%) !important;
+        }
+        
+        /* CANLI LOGO & HERO BAŞLIK */
+        .hub-hero-box {
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .hub-badge-top {
+            display: inline-block;
+            padding: 4px 14px;
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 30px;
+            color: #38bdf8;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+        
+        .hub-icon-wrap {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 12px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.3), rgba(56, 189, 248, 0.08));
+            border: 1.5px solid rgba(56, 189, 248, 0.5);
+            border-radius: 50%;
+            box-shadow: 0 0 35px rgba(56, 189, 248, 0.45), inset 0 0 15px rgba(56, 189, 248, 0.3);
+            animation: hub-pulse 3s infinite alternate ease-in-out;
+        }
+        
+        @keyframes hub-pulse {
+            0% { transform: scale(1); box-shadow: 0 0 25px rgba(56, 189, 248, 0.35); }
+            100% { transform: scale(1.06); box-shadow: 0 0 45px rgba(56, 189, 248, 0.7); }
+        }
+        
+        .hub-icon {
+            font-size: 38px;
+            filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.8));
+        }
+        
+        .hub-title {
+            font-size: 38px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            margin: 0 0 4px 0;
+            line-height: 1.2;
+        }
+        .hub-title .white-part {
+            color: #ffffff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+        }
+        .hub-title .cyan-part {
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 18px rgba(56, 189, 248, 0.6));
+        }
+        
+        .hub-slogan {
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+        
+        .hub-network-pills {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 5px;
+        }
+        .hub-pill {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: #cbd5e1;
+            letter-spacing: 1px;
+        }
+
+        /* FORMU DARALTMA VE MODERN CAM EFEKTİ */
+        div[data-testid="stForm"] { 
+            max-width: 390px !important; 
+            margin: 0 auto !important; 
+            background: rgba(30, 41, 59, 0.7) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(56, 189, 248, 0.25) !important;
+            border-radius: 24px !important;
+            padding: 24px !important;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(2, 132, 199, 0.15) !important;
+        }
+        
+        /* GİRİŞ TÜRÜ RADYO SEÇİCİ */
         div[data-testid="stElementContainer"]:has(div[data-testid="stRadio"]), 
-        div[data-testid="stRadio"] { display: flex !important; justify-content: center !important; align-items: center !important; width: 100% !important; margin-bottom: 10px !important;}
-        div[data-testid="stRadio"] > div[role="radiogroup"] { display: inline-flex !important; justify-content: center !important; align-items: center !important; margin: 0 auto !important; width: auto !important; padding: 10px 20px !important; gap: 15px !important; background: rgba(255, 255, 255, 0.05) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 40px !important; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5) !important; }
+        div[data-testid="stRadio"] { display: flex !important; justify-content: center !important; align-items: center !important; width: 100% !important; margin-bottom: 12px !important;}
+        div[data-testid="stRadio"] > div[role="radiogroup"] { display: inline-flex !important; justify-content: center !important; align-items: center !important; margin: 0 auto !important; width: auto !important; padding: 8px 16px !important; gap: 12px !important; background: rgba(255, 255, 255, 0.06) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(56, 189, 248, 0.25) !important; border-radius: 40px !important; box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4) !important; }
+        
+        /* İNPUTLAR VE BUTON */
+        .stTextInput > div > div > input {
+            background-color: rgba(15, 23, 42, 0.7) !important;
+            border: 1px solid rgba(56, 189, 248, 0.2) !important;
+            border-radius: 12px !important;
+            color: #ffffff !important;
+        }
+        .stTextInput > div > div > input:focus {
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.35) !important;
+        }
+        
+        div[data-testid="stForm"] button[kind="primary"],
+        div[data-testid="stForm"] button[kind="secondary"],
+        div[data-testid="stForm"] button {
+            background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%) !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            letter-spacing: 1px !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 10px 0 !important;
+            box-shadow: 0 4px 20px rgba(56, 189, 248, 0.4) !important;
+            transition: all 0.3s ease !important;
+        }
+        div[data-testid="stForm"] button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 30px rgba(56, 189, 248, 0.6) !important;
+        }
         
         /* 🚨 SİNİR BOZUCU "PRESS ENTER" YAZISINI GİZLEYEN ZIRH 🚨 */
         div[data-testid="InputInstructions"] { display: none !important; }
         
         /* Ekranı daraltıp scroll'u engelleme */
-        .block-container { padding-top: 2rem !important; padding-bottom: 1rem !important; }
+        .block-container { padding-top: 1.5rem !important; padding-bottom: 1rem !important; }
 </style>
     """, unsafe_allow_html=True)
-    col_space_left, col_login, col_space_right = st.columns([1, 1.2, 1])
+    col_space_left, col_login, col_space_right = st.columns([1, 1.3, 1])
     with col_login:
-        if os.path.exists("dentmesherhub_logo.jpg"):
-            st.image("dentmesherhub_logo.jpg", use_container_width=True)
-        else:
-            giris_logo = kalici_logo_getir("Giris_Logosu", "-")
-            if giris_logo != "-" and os.path.exists(giris_logo):
-                st.image(giris_logo, use_container_width=True)
-            else:
-                st.markdown("""<div style='text-align: center; margin-bottom: 20px;'><h1 style='color: #fff; margin: 0; font-size: 36px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 15px rgba(255,255,255,0.3);'>DentmesherHub</h1><h4 style='color: #38bdf8; margin: 0; font-weight: 600; letter-spacing: 2px;'>Connect • Collaborate • Grow</h4></div>""", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="hub-hero-box">
+            <div class="hub-badge-top">✨ DENTAL LAB ECOSYSTEM</div>
+            <div class="hub-icon-wrap">
+                <span class="hub-icon">🦷</span>
+            </div>
+            <h1 class="hub-title"><span class="white-part">Dentmesher</span><span class="cyan-part">Hub</span></h1>
+            <div class="hub-slogan">Connect • Collaborate • Grow</div>
+            <div class="hub-network-pills">
+                <span class="hub-pill">🏥 CLINICS</span>
+                <span class="hub-pill">🧪 LABORATORIES</span>
+                <span class="hub-pill">💻 DESIGNERS</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
         giris_tipi = st.radio(" ", ["👨‍🔬 Sisteme Giriş", "🏥 Klinik Portalı"], horizontal=True, label_visibility="collapsed")
         
         with st.form("giris_formu"):
