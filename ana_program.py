@@ -1841,6 +1841,66 @@ div[data-testid="InputInstructions"] { display: none !important; }
     color: #e8622c;
     font-weight: 600;
 }
+
+/* ── PROGRAM ÖZELLİK KARTLARI (FEATURE GRID) ── */
+.dm-features-wrap {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    max-width: 980px;
+    margin: 28px auto 70px auto;
+    position: relative;
+    z-index: 10;
+    padding: 0 12px;
+}
+.dm-feat-card {
+    background: rgba(8, 16, 32, 0.78);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 16px;
+    padding: 16px 18px;
+    transition: all 0.25s ease-in-out;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.dm-feat-card:hover {
+    transform: translateY(-4px);
+    background: rgba(12, 24, 48, 0.90);
+    border-color: rgba(232, 98, 44, 0.45);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), 0 0 25px rgba(232, 98, 44, 0.22);
+}
+.dm-feat-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    background: linear-gradient(135deg, rgba(232, 98, 44, 0.2), rgba(56, 189, 248, 0.1));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.dm-feat-content {
+    flex: 1;
+}
+.dm-feat-title {
+    font-family: 'Manrope', 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 0.90rem;
+    color: #ffedd7;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+}
+.dm-feat-desc {
+    font-size: 0.76rem;
+    color: rgba(226, 232, 240, 0.70);
+    margin: 0;
+    line-height: 1.45;
+}
 </style>
 <div class="dm-aurora-wrap">
 <div class="dm-orb dm-orb-1"></div>
@@ -1977,6 +2037,37 @@ div[data-testid="InputInstructions"] { display: none !important; }
                             st.session_state.update({"giris_yapildi": True, "kullanici_adi": gercek_unvan, "kullanici_rolu": "Klinik", "ana_klinik": gercek_unvan})
                             st.rerun()
                         else: st.error("Klinik Adı (Kullanıcı Adı) veya Şifre Hatalı!")
+    
+    st.markdown("""<div class="dm-features-wrap">
+<div class="dm-feat-card">
+<div class="dm-feat-icon">⚙️</div>
+<div class="dm-feat-content">
+<h4 class="dm-feat-title">CAD/CAM & 3D Üretim</h4>
+<p class="dm-feat-desc">Exocad & STL entegrasyonu, 5-eksen zirkonyum frezleme ve fırın sinterleme aşama takibi.</p>
+</div>
+</div>
+<div class="dm-feat-card">
+<div class="dm-feat-icon">🏥</div>
+<div class="dm-feat-content">
+<h4 class="dm-feat-title">Hekim VIP Portalı</h4>
+<p class="dm-feat-desc">Dijital reçete oluşturma, 3D vaka modeli yükleme ve canlı vaka üretim radarı.</p>
+</div>
+</div>
+<div class="dm-feat-card">
+<div class="dm-feat-icon">🛵</div>
+<div class="dm-feat-content">
+<h4 class="dm-feat-title">Akıllı Kurye & Lojistik</h4>
+<p class="dm-feat-desc">GPS harita yönlendirmeli rota takibi, teslim alma/bırakma ve anlık sevkiyat bildirimi.</p>
+</div>
+</div>
+<div class="dm-feat-card">
+<div class="dm-feat-icon">🤖</div>
+<div class="dm-feat-content">
+<h4 class="dm-feat-title">Yapay Zeka & Finans</h4>
+<p class="dm-feat-desc">OMG AI akıllı laboratuvar asistanı, frez ömür maliyet analitiği ve net kâr/zarar raporları.</p>
+</div>
+</div>
+</div>""", unsafe_allow_html=True)
     
     st.markdown("""<style>
 .footer-meta {
