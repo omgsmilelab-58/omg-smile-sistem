@@ -2424,56 +2424,104 @@ st.markdown("""<style>
     transform: none !important;
 }
 
-/* 2. Seviye Alt Modül Butonları - Üst Butonlarla Birebir Uyumlu Tasarım */
-div[data-testid="stHorizontalBlock"] button {
+/* ── 2. SEVİYE VEKTÖREL ALT MODÜL ŞERİDİ (ANA BANNER TASARIMI İLE BİREBİR) ── */
+.dm-sub-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    padding: 6px 10px !important;
+    margin-top: 10px !important;
+    margin-bottom: 16px !important;
+    background: rgba(13, 27, 54, 0.45) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 14px !important;
+    overflow-x: auto !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dm-sub-bar::-webkit-scrollbar {
+    height: 4px !important;
+}
+.dm-sub-bar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 4px !important;
+}
+
+.dm-sub-vector-btn {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 96px !important;
+    height: 56px !important;
     border-radius: 10px !important;
     border: none !important;
     outline: none !important;
     background-color: transparent !important;
-    background: transparent !important;
-    min-height: 44px !important;
-    height: 44px !important;
-    padding: 6px 12px !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
     box-shadow: none !important;
     transform: none !important;
-    transition: color 0.15s ease, background-color 0.15s ease !important;
-    font-family: 'Inter', sans-serif !important;
-    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    box-sizing: border-box !important;
+    padding: 6px 8px !important;
+    flex-shrink: 0 !important;
 }
-div[data-testid="stHorizontalBlock"] button p {
-    font-size: 12px !important;
+
+.dm-sub-vector-btn .dm-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 22px !important;
+    margin-bottom: 3px !important;
+    transform: none !important;
+}
+
+.dm-sub-vector-btn .dm-icon svg {
+    fill: #d2d7e1 !important;
+    transition: fill 0.15s ease !important;
+}
+
+.dm-sub-vector-btn .dm-label {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 11px !important;
     font-weight: 600 !important;
-    color: rgb(210, 215, 225) !important;
-    margin: 0 !important;
+    color: #d2d7e1 !important;
+    text-align: center !important;
     white-space: nowrap !important;
-    letter-spacing: 0.01em !important;
+    letter-spacing: 0.1px !important;
     text-shadow: none !important;
     transform: none !important;
     transition: color 0.15s ease !important;
 }
-div[data-testid="stHorizontalBlock"] button:hover {
+
+.dm-sub-vector-btn:hover {
     background-color: transparent !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    transform: none !important;
 }
-div[data-testid="stHorizontalBlock"] button:hover p {
+
+.dm-sub-vector-btn:hover .dm-icon svg {
+    fill: #e8622c !important;
+}
+
+.dm-sub-vector-btn:hover .dm-label {
     color: #e8622c !important;
-    text-shadow: none !important;
-    transform: none !important;
 }
-div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+
+.dm-sub-vector-btn.active {
     background-color: rgba(56, 189, 248, 0.16) !important;
     box-shadow: inset 0 -3px 0 #38bdf8 !important;
-    border: none !important;
-    transform: none !important;
 }
-div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
+
+.dm-sub-vector-btn.active .dm-icon svg {
+    fill: #ffffff !important;
+}
+
+.dm-sub-vector-btn.active .dm-label {
     color: #ffffff !important;
     font-weight: 700 !important;
-    text-shadow: none !important;
-    transform: none !important;
 }
 
 /* ── TIKLAYINCA AÇILAN PROFİL MENÜSÜ (<details> / <summary>) ── */
@@ -2794,6 +2842,34 @@ slug_to_kat = {
     "profil": (None, "👤 Profil Bilgileri"),
 }
 
+import urllib.parse
+
+# SUB-MODÜL BEYAZ VEKTÖREL SVG İKON HARİTASI
+sub_svg_map = {
+    "🏠 Komuta Merkezi": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>""",
+    "📅 Görev & Planlama": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>""",
+    "⚙️ İş Akışı": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>""",
+    "📱 Teknisyen Terminali": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>""",
+    "📺 Lobi / TV Ekranı": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>""",
+    "🦷 Klinik Paneli": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 2C9.5 2 7.5 3.5 7 5.5c-.8 3.2-1 6.5-.5 9.5.4 2.4 1.5 5 2.5 5 .8 0 1.2-1.2 1.5-3 .3-1.8.8-3 1.5-3s1.2 1.2 1.5 3c.3 1.8.7 3 1.5 3 1 0 2.1-2.6 2.5-5 .5-3 .3-6.3-.5-9.5C16.5 3.5 14.5 2 12 2z"/></svg>""",
+    "🤝 Hekim ve Cari Kayıt": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>""",
+    "📱 WhatsApp Entegrasyonu": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 18.08c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.03 8.03 0 0 1-1.23-4.31c0-4.47 3.64-8.11 8.12-8.11 2.17 0 4.21.85 5.74 2.38 1.54 1.54 2.38 3.58 2.38 5.75 0 4.47-3.64 8.11-8.12 8.11z"/></svg>""",
+    "🛵 Kurye Lojistik": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19.5 14c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zm-15 0C3.12 14 2 15.12 2 16.5S3.12 19 4.5 19 7 17.88 7 16.5 5.88 14 4.5 14zm14.65-4.78l-2.02-3.03A2.008 2.008 0 0 0 15.47 5.2H12V3H7v3.2H4.5c-.83 0-1.5.67-1.5 1.5v3.8h2.09c.7-1.08 1.9-1.8 3.26-1.8 1.36 0 2.56.72 3.26 1.8H15v-1.5h2.15l2 3zm-3.15.28h-3v-2.5h2.33l1 2.5z"/></svg>""",
+    "📤 Yeni Sipariş (Reçete)": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>""",
+    "🛵 Kurye Mobil Terminali": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19.5 14c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zm-15 0C3.12 14 2 15.12 2 16.5S3.12 19 4.5 19 7 17.88 7 16.5 5.88 14 4.5 14zM18 10h-3V7.5h2.33l1 2.5z"/></svg>""",
+    "📅 Doktor Takvimi": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>""",
+    "💰 Finans & Analitik": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>""",
+    "📉 Maliyet Yönetimi": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>""",
+    "📦 Stok Yönetimi": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M20 2H4c-1 0-2 .9-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1.1-1-2-2-2zm-1 18H5V9h14v11zm1-13H4V4h16v3z"/></svg>""",
+    "🏭 Tedarikçi Yönetimi": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M22 22H2V10l7-3v4l5-3v4l6-3v10zM12 9.95l-3 1.8V8.26l-5 2.14V20h16v-7.86l-4 2V9.95l-4 1.8z"/></svg>""",
+    "🧾 Detaylı Ekstre": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>""",
+    "🔧 Makine Parkuru ve Bakımı": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>""",
+    "🏢 Varlık Yönetimi": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>""",
+    "👥 Personel Yönetimi": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>""",
+    "🔐 Kullanıcı & Yetki Yönetimi": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>""",
+    "🏢 Kurumsal Bilgi": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>""",
+}
+
 # Link Navigasyon Router'ı
 if "nav_kat" in st.query_params:
     k_slug = st.query_params.get("nav_kat", "").lower().strip()
@@ -2803,6 +2879,16 @@ if "nav_kat" in st.query_params:
             st.session_state.secili_kategori = target_kat
         st.session_state.aktif_sayfa = target_sayfa
     
+    st.query_params.clear()
+    if current_auth:
+        st.query_params["auth"] = current_auth
+    st.query_params["page"] = st.session_state.aktif_sayfa
+    st.rerun()
+
+if "nav_sub" in st.query_params:
+    t_sub = urllib.parse.unquote(st.query_params.get("nav_sub", "")).strip()
+    if t_sub:
+        st.session_state.aktif_sayfa = t_sub
     st.query_params.clear()
     if current_auth:
         st.query_params["auth"] = current_auth
@@ -2988,20 +3074,23 @@ header_html = f'<div class="dm-sticky-header"><div style="font-family:Manrope,sa
 
 st.markdown(header_html, unsafe_allow_html=True)
 
-# --- 2. SEVİYE: BANNER'DAN AYRILMIŞ ALT MODÜL ŞERİDİ ---
+# --- 2. SEVİYE: BANNER'DAN AYRILMIŞ VEKTÖREL ALT MODÜL ŞERİDİ ---
 secili_moduller = gecerli_kategoriler.get(st.session_state.secili_kategori, [])
 if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletişim", "🤖 OMG AI Asistan", "⚙️ Ayarlar", "👤 Profil Bilgileri"]:
-    sub_cols = st.columns(len(secili_moduller))
-    for s_idx, mod_adi in enumerate(secili_moduller):
+    sub_btns_html = ""
+    for mod_adi in secili_moduller:
         m_active = (mod_adi == st.session_state.aktif_sayfa)
-        m_type = "primary" if m_active else "secondary"
-        with sub_cols[s_idx]:
-            if st.button(mod_adi, key=f"sub_mod_{mod_adi}", use_container_width=True, type=m_type):
-                st.session_state.aktif_sayfa = mod_adi
-                st.query_params["auth"] = current_auth
-                st.query_params["page"] = mod_adi
-                st.rerun()
-    st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
+        act_cls = "active" if m_active else ""
+        s_icon = sub_svg_map.get(mod_adi, sub_svg_map.get("🏠 Komuta Merkezi", ""))
+        
+        clean_lbl = mod_adi
+        for prefix in ["🏠 ", "📅 ", "⚙️ ", "📱 ", "📺 ", "🦷 ", "🤝 ", "🛵 ", "📤 ", "💰 ", "📉 ", "📦 ", "🏭 ", "🧾 ", "🔧 ", "🏢 ", "👥 ", "🔐 ", "💬 ", "🤖 "]:
+            clean_lbl = clean_lbl.replace(prefix, "")
+            
+        enc_sub = urllib.parse.quote(mod_adi)
+        sub_btns_html += f'<a href="?nav_sub={enc_sub}&auth={current_auth}" target="_self" class="dm-sub-vector-btn {act_cls}" title="{clean_lbl}"><div class="dm-icon">{s_icon}</div><div class="dm-label">{clean_lbl}</div></a>'
+        
+    st.markdown(f'<div class="dm-sub-bar">{sub_btns_html}</div>', unsafe_allow_html=True)
 
 
 
