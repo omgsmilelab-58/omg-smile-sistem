@@ -577,10 +577,71 @@ st.markdown("""
         div[data-testid="stBottom"], div[data-testid="stBottom"] > div, div[data-testid="stBottomBlockContainer"] { background-color: transparent !important; background: transparent !important; }
         html, body { background-color: #0f172a !important; }
         
-        /* Sidebar Ayarları */
-        [data-testid="stSidebar"] { background-color: rgba(15, 23, 42, 0.85) !important; backdrop-filter: blur(15px); border-right: 1px solid rgba(56, 189, 248, 0.15) !important; }
-        [data-testid="stSidebarNav"] {display: none;}
-        [data-testid="collapsedControl"] svg, [data-testid="stSidebarCollapseButton"] svg { fill: #FFFFFF !important; color: #FFFFFF !important; }
+        /* ── OTOMATİK KAPANAN & HOVER İLE AÇILAN İKON KENAR ÇUBUĞU (SLIM MINI SIDEBAR) ── */
+        [data-testid="stSidebar"] {
+            width: 76px !important;
+            min-width: 76px !important;
+            max-width: 76px !important;
+            transition: width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.28s ease, background 0.28s ease !important;
+            overflow-x: hidden !important;
+            z-index: 1000 !important;
+            background: rgba(8, 16, 32, 0.95) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-right: 1px solid rgba(56, 189, 248, 0.20) !important;
+        }
+
+        [data-testid="stSidebar"]:hover {
+            width: 285px !important;
+            min-width: 285px !important;
+            max-width: 285px !important;
+            box-shadow: 12px 0 40px rgba(0, 0, 0, 0.80), 0 0 30px rgba(21, 48, 91, 0.35) !important;
+            background: rgba(6, 12, 24, 0.98) !important;
+        }
+
+        [data-testid="stSidebarCollapseButton"], 
+        [data-testid="collapsedControl"] {
+            display: none !important;
+        }
+
+        [data-testid="stSidebarNav"] { display: none !important; }
+
+        /* Butonlar: Kapalıyken ilk ikon net görünür, açılınca tam metin */
+        [data-testid="stSidebar"] button {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            text-align: left !important;
+            font-size: 13.5px !important;
+            padding: 9px 12px !important;
+            border-radius: 10px !important;
+            transition: all 0.2s ease !important;
+        }
+
+        /* Expander başlıkları */
+        [data-testid="stSidebar"] [data-testid="stExpander"] {
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 10px !important;
+            margin-bottom: 6px !important;
+            background: rgba(255, 255, 255, 0.02) !important;
+            overflow: hidden !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            padding: 8px 10px !important;
+            font-size: 13px !important;
+        }
+
+        /* Kullanıcı Kartı */
+        [data-testid="stSidebar"] .glass-card {
+            padding: 10px 8px !important;
+            margin-bottom: 14px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
         
         /* 🚀 Glassmorphism Kartları (GPU Optimize Edilmiş - Ghosting Giderildi) */
         .glass-card {
@@ -2285,14 +2346,13 @@ if "🏢 Kurumsal Bilgi" in menu:
 
 st.sidebar.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 5px 0;'>", unsafe_allow_html=True)
 if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
-    c1, c2 = st.sidebar.columns(2)
-    if c1.button("🚪 Çıkış", help="Sistemden Çıkış Yap", use_container_width=True):
-        st.query_params.clear()
-        st.session_state.clear()
-        st.rerun()
-    if c2.button("⚙️ Ayarlar", help="Sistem ve Güvenlik Ayarları", use_container_width=True):
+    if st.sidebar.button("⚙️ Ayarlar", help="Sistem ve Güvenlik Ayarları", use_container_width=True):
         st.session_state.aktif_sayfa = "⚙️ Ayarlar"
         st.query_params["page"] = "⚙️ Ayarlar"
+        st.rerun()
+    if st.sidebar.button("🚪 Çıkış Yap", help="Sistemden Çıkış Yap", use_container_width=True):
+        st.query_params.clear()
+        st.session_state.clear()
         st.rerun()
 else:
     if st.sidebar.button("🚪 Çıkış Yap", help="Sistemden Çıkış Yap", use_container_width=True):
