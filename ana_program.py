@@ -2453,30 +2453,35 @@ svg_map = {
 # Aktif oturum anahtarını al (oturumun asla düşmemesi için linklerde taşınır)
 current_auth = st.query_params.get("auth") or create_session_token(st.session_state.get("kullanici_adi", "tamer"), st.session_state.get("kullanici_rolu", "Admin"), st.session_state.get("ana_klinik", ""))
 
+kat_slug_map = {
+    "🛠️ Operasyon": ("Operasyon", "operasyon"),
+    "🤝 Müşteri & CRM": ("Müşteri & CRM", "crm"),
+    "💰 Finans": ("Finans", "finans"),
+    "🏢 Yönetim": ("Yönetim", "yonetim")
+}
+slug_to_kat = {
+    "operasyon": ("🛠️ Operasyon", "🏠 Komuta Merkezi"),
+    "crm": ("🤝 Müşteri & CRM", "🤝 Hekim ve Cari Kayıt"),
+    "finans": ("💰 Finans", "💰 Finans & Analitik"),
+    "yonetim": ("🏢 Yönetim", "🔧 Makine Parkuru ve Bakımı"),
+    "iletisim": (None, "💬 Mobil İletişim"),
+    "omg_ai": (None, "🤖 OMG AI Asistan"),
+    "ai": (None, "🤖 OMG AI Asistan"),
+    "ayarlar": (None, "⚙️ Ayarlar"),
+}
+
 # Link Navigasyon Router'ı
 if "nav_kat" in st.query_params:
-    k_val = st.query_params.get("nav_kat")
-    if k_val == "Operasyon":
-        st.session_state.secili_kategori = "🛠️ Operasyon"
-        st.session_state.aktif_sayfa = "🏠 Komuta Merkezi"
-    elif k_val == "Müşteri & CRM":
-        st.session_state.secili_kategori = "🤝 Müşteri & CRM"
-        st.session_state.aktif_sayfa = "🤝 Hekim ve Cari Kayıt"
-    elif k_val == "Finans":
-        st.session_state.secili_kategori = "💰 Finans"
-        st.session_state.aktif_sayfa = "💰 Finans & Analitik"
-    elif k_val == "Yönetim":
-        st.session_state.secili_kategori = "🏢 Yönetim"
-        st.session_state.aktif_sayfa = "🔧 Makine Parkuru ve Bakımı"
-    elif k_val == "İletişim":
-        st.session_state.aktif_sayfa = "💬 Mobil İletişim"
-    elif k_val == "OMG AI":
-        st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"
-    elif k_val == "Ayarlar":
-        st.session_state.aktif_sayfa = "⚙️ Ayarlar"
+    k_slug = st.query_params.get("nav_kat", "").lower().strip()
+    if k_slug in slug_to_kat:
+        target_kat, target_sayfa = slug_to_kat[k_slug]
+        if target_kat:
+            st.session_state.secili_kategori = target_kat
+        st.session_state.aktif_sayfa = target_sayfa
     
     st.query_params.clear()
-    st.query_params["auth"] = current_auth
+    if current_auth:
+        st.query_params["auth"] = current_auth
     st.query_params["page"] = st.session_state.aktif_sayfa
     st.rerun()
 
@@ -2522,15 +2527,15 @@ for kat_k, kat_v in gecerli_kategoriler.items():
 # --- 1. SEVİYE: SAĞA YASLANMIŞ EŞİT BOYUTLU BEYAZ VEKTÖREL İKONLU ANA BANNER ---
 btn_list = []
 for kat_adi in gecerli_kategoriler.keys():
-    k_clean = kat_adi.replace("🛠️ ", "").replace("🤝 ", "").replace("💰 ", "").replace("🏢 ", "")
-    btn_list.append((k_clean, f"?nav_kat={k_clean}&auth={current_auth}", st.session_state.secili_kategori == kat_adi))
+    label, slug = kat_slug_map.get(kat_adi, (kat_adi, "operasyon"))
+    btn_list.append((label, f"?nav_kat={slug}&auth={current_auth}", st.session_state.secili_kategori == kat_adi))
 
 if "💬 Mobil İletişim" in menu:
-    btn_list.append(("İletişim", f"?nav_kat=İletişim&auth={current_auth}", st.session_state.aktif_sayfa == "💬 Mobil İletişim"))
+    btn_list.append(("İletişim", f"?nav_kat=iletisim&auth={current_auth}", st.session_state.aktif_sayfa == "💬 Mobil İletişim"))
 if rol in ["Admin", "Yönetici", "Sekreter"]:
-    btn_list.append(("OMG AI", f"?nav_kat=OMG AI&auth={current_auth}", st.session_state.aktif_sayfa == "🤖 OMG AI Asistan"))
+    btn_list.append(("OMG AI", f"?nav_kat=omg_ai&auth={current_auth}", st.session_state.aktif_sayfa == "🤖 OMG AI Asistan"))
 if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
-    btn_list.append(("Ayarlar", f"?nav_kat=Ayarlar&auth={current_auth}", st.session_state.aktif_sayfa == "⚙️ Ayarlar"))
+    btn_list.append(("Ayarlar", f"?nav_kat=ayarlar&auth={current_auth}", st.session_state.aktif_sayfa == "⚙️ Ayarlar"))
 btn_list.append(("Çıkış", "?logout=true", False))
 
 buttons_html = ""
