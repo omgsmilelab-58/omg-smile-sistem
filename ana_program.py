@@ -2185,24 +2185,7 @@ if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
     st.stop()
 
 # --- STANDART MENÜ ---
-# --- SİDEBAR (LOGO DESTEKLİ VE ÜYELİK SEVİYESİ) ---
 abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
-logo_standart = kalici_logo_getir("Logo_Standart", "-")
-logo_profesyonel = kalici_logo_getir("Logo_Profesyonel", "-")
-logo_business = kalici_logo_getir("Logo_Business", "-")
-
-logo_yolu = logo_standart
-if abonelik_tipi == "Profesyonel":
-    logo_yolu = logo_profesyonel if logo_profesyonel != "-" else logo_standart
-elif abonelik_tipi == "Business":
-    logo_yolu = logo_business if logo_business != "-" else logo_standart
-
-if os.path.exists("dentmesherhub_logo.jpg"):
-    st.sidebar.image("dentmesherhub_logo.jpg", use_container_width=True)
-elif logo_yolu != "-" and os.path.exists(logo_yolu):
-    st.sidebar.image(logo_yolu, use_container_width=True)
-else:
-    st.sidebar.markdown("<div style='text-align:center; margin-bottom:20px;'><h2 style='margin:0; letter-spacing:2px; color:#38bdf8;'>DentmesherHub</h2></div>", unsafe_allow_html=True)
 
 alt_baslik = f"{rol} Yetkisi" if rol != "Klinik_Asistan" else f"{ana_klinik} Asistanı"
 st.sidebar.markdown(f"""<div class='glass-card' style='padding: 15px; text-align:center; margin-bottom:20px;'><h4 class='neon-text-blue' style='margin:0;'>{kullanici_adi.upper()}</h4><span style='color:#FFFFFF; font-size:12px;'>{alt_baslik}</span></div>""", unsafe_allow_html=True)
