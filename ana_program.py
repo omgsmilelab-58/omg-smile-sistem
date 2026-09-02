@@ -1831,48 +1831,6 @@ div[data-testid="InputInstructions"] { display: none !important; }
     font-family: 'Inter', monospace;
 }
 
-/* ── ARKA PLAN SİBER AKIŞ ŞERİDİ (CYBER MARQUEE STREAM) ── */
-.dm-stream-ticker {
-    position: fixed;
-    bottom: 44px;
-    left: 0;
-    width: 100vw;
-    overflow: hidden;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.65;
-}
-
-.dm-stream-track {
-    display: inline-block;
-    animation: dmMarquee 32s linear infinite;
-}
-
-.dm-stream-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-right: 36px;
-    font-size: 11px;
-    font-family: 'Inter', monospace;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    color: rgba(226, 232, 240, 0.80);
-    background: rgba(8, 16, 32, 0.50);
-    padding: 5px 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.dm-stream-item span {
-    color: #e8622c;
-}
-
-@keyframes dmMarquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-}
-
 @media (max-width: 1050px) {
     .dm-telemetry-badge {
         display: none;
@@ -1923,83 +1881,6 @@ div[data-testid="InputInstructions"] { display: none !important; }
 <div class="dm-badge-text">
 <h5>OMG AI ANALİTİK</h5>
 <p>Frez Ömür & Finansal Asistan</p>
-</div>
-</div>
-
-<!-- ARKA PLAN CANLI SİBER AKIŞ ŞERİDİ -->
-<div class="dm-stream-ticker" aria-hidden="true">
-<div class="dm-stream-track">
-<div class="dm-stream-item">⚙️ <span>5-EKSEN CAD/CAM</span> FREZLEME</div>
-<div class="dm-stream-item">🦷 <span>3D STL MODEL</span> TARAMA & SENKRONİZASYON</div>
-<div class="dm-stream-item">🛵 <span>GPS CANLI KURYE</span> LOJİSTİK AĞI</div>
-<div class="dm-stream-item">🔥 <span>ZİRKONYUM & E-MAX</span> SİNTERLEME FIRINI</div>
-<div class="dm-stream-item">🏥 <span>HEKİM VIP PORTAL</span> DİJİTAL REÇETE</div>
-<div class="dm-stream-item">🤖 <span>OMG AI</span> AKILLI LABORATUVAR ASİSTANI</div>
-<div class="dm-stream-item">💰 <span>ANLIK CARİ BAKİYE</span> & KÂR/ZARAR ANALİTİĞİ</div>
-<div class="dm-stream-item">📦 <span>BARKODLU LOT & SERTİFİKA</span> YÖNETİMİ</div>
-<div class="dm-stream-item">⚙️ <span>5-EKSEN CAD/CAM</span> FREZLEME</div>
-<div class="dm-stream-item">🦷 <span>3D STL MODEL</span> TARAMA & SENKRONİZASYON</div>
-<div class="dm-stream-item">🛵 <span>GPS CANLI KURYE</span> LOJİSTİK AĞI</div>
-<div class="dm-stream-item">🔥 <span>ZİRKONYUM & E-MAX</span> SİNTERLEME FIRINI</div>
-<div class="dm-stream-item">🏥 <span>HEKİM VIP PORTAL</span> DİJİTAL REÇETE</div>
-<div class="dm-stream-item">🤖 <span>OMG AI</span> AKILLI LABORATUVAR ASİSTANI</div>
-<div class="dm-stream-item">💰 <span>ANLIK CARİ BAKİYE</span> & KÂR/ZARAR ANALİTİĞİ</div>
-<div class="dm-stream-item">📦 <span>BARKODLU LOT & SERTİFİKA</span> YÖNETİMİ</div>
-</div>
-</div>
-
-<!-- SÜZÜLEN HOLOGRAFİK ÖZELLİK TELEMETRİ ROZETLERİ -->
-<div class="dm-telemetry-badge dm-badge-1">
-<div class="dm-badge-icon">⚙️</div>
-<div class="dm-badge-text">
-<h5>5-AXIS CAD/CAM</h5>
-<p>Exocad & STL Doğrudan Entegrasyon</p>
-</div>
-</div>
-
-<div class="dm-telemetry-badge dm-badge-2">
-<div class="dm-badge-icon">🛵</div>
-<div class="dm-badge-text">
-<h5>GPS AKILLI KURYE</h5>
-<p>Canlı Rota & Vaka Sevkiyat Radarı</p>
-</div>
-</div>
-
-<div class="dm-telemetry-badge dm-badge-3">
-<div class="dm-badge-icon">🏥</div>
-<div class="dm-badge-text">
-<h5>HEKİM VIP PORTALI</h5>
-<p>3D Reçete & Canlı Aşama Takibi</p>
-</div>
-</div>
-
-<div class="dm-telemetry-badge dm-badge-4">
-<div class="dm-badge-icon">🤖</div>
-<div class="dm-badge-text">
-<h5>OMG AI ANALİTİK</h5>
-<p>Frez Ömür & Finansal Asistan</p>
-</div>
-</div>
-
-<!-- ARKA PLAN CANLI SİBER AKIŞ ŞERİDİ -->
-<div class="dm-stream-ticker" aria-hidden="true">
-<div class="dm-stream-track">
-<div class="dm-stream-item">⚙️ <span>5-EKSEN CAD/CAM</span> FREZLEME</div>
-<div class="dm-stream-item">🦷 <span>3D STL MODEL</span> TARAMA & SENKRONİZASYON</div>
-<div class="dm-stream-item">🛵 <span>GPS CANLI KURYE</span> LOJİSTİK AĞI</div>
-<div class="dm-stream-item">🔥 <span>ZİRKONYUM & E-MAX</span> SİNTERLEME FIRINI</div>
-<div class="dm-stream-item">🏥 <span>HEKİM VIP PORTAL</span> DİJİTAL REÇETE</div>
-<div class="dm-stream-item">🤖 <span>OMG AI</span> AKILLI LABORATUVAR ASİSTANI</div>
-<div class="dm-stream-item">💰 <span>ANLIK CARİ BAKİYE</span> & KÂR/ZARAR ANALİTİĞİ</div>
-<div class="dm-stream-item">📦 <span>BARKODLU LOT & SERTİFİKA</span> YÖNETİMİ</div>
-<div class="dm-stream-item">⚙️ <span>5-EKSEN CAD/CAM</span> FREZLEME</div>
-<div class="dm-stream-item">🦷 <span>3D STL MODEL</span> TARAMA & SENKRONİZASYON</div>
-<div class="dm-stream-item">🛵 <span>GPS CANLI KURYE</span> LOJİSTİK AĞI</div>
-<div class="dm-stream-item">🔥 <span>ZİRKONYUM & E-MAX</span> SİNTERLEME FIRINI</div>
-<div class="dm-stream-item">🏥 <span>HEKİM VIP PORTAL</span> DİJİTAL REÇETE</div>
-<div class="dm-stream-item">🤖 <span>OMG AI</span> AKILLI LABORATUVAR ASİSTANI</div>
-<div class="dm-stream-item">💰 <span>ANLIK CARİ BAKİYE</span> & KÂR/ZARAR ANALİTİĞİ</div>
-<div class="dm-stream-item">📦 <span>BARKODLU LOT & SERTİFİKA</span> YÖNETİMİ</div>
 </div>
 </div>
 
