@@ -2313,7 +2313,7 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
-/* ── EŞİT BOYUTLU, ÇERÇEVESİZ & BEYAZ VEKTÖREL İKONLU SAĞA YASLI MENÜ BUTONLARI ── */
+/* ── EŞİT BOYUTLU, ÇERÇEVESİZ & BEYAZ VEKTÖREL İKONLU SAĞA YASLI SABİT MENÜ BUTONLARI ── */
 .dm-vector-btn {
     display: flex !important;
     flex-direction: column !important;
@@ -2332,7 +2332,8 @@ st.markdown("""<style>
     text-decoration: none !important;
     cursor: pointer !important;
     box-shadow: none !important;
-    transition: all 0.2s ease !important;
+    transform: none !important;
+    transition: color 0.15s ease !important;
     box-sizing: border-box !important;
     padding: 6px 2px !important;
 }
@@ -2351,7 +2352,8 @@ st.markdown("""<style>
     height: 20px !important;
     fill: #ffffff !important;
     filter: none !important;
-    transition: fill 0.2s ease !important;
+    transform: none !important;
+    transition: fill 0.15s ease !important;
 }
 
 .dm-vector-btn .dm-label {
@@ -2364,39 +2366,44 @@ st.markdown("""<style>
     white-space: nowrap !important;
     letter-spacing: 0.01em !important;
     text-shadow: none !important;
-    transition: color 0.2s ease !important;
+    transform: none !important;
+    transition: color 0.15s ease !important;
 }
 
-/* 🌟 MOUSE ÜZERİNE GELDİĞİNDE: NET VE SADE TURUNCU RENK (NEON IŞIMA YOK) 🌟 */
+/* 🌟 MOUSE ÜZERİNE GELDİĞİNDE: TAMAMEN SABİT, KAYMASIZ, SADECE TURUNCU RENK DEĞİŞİMİ 🌟 */
 .dm-vector-btn:hover {
     background-color: transparent !important;
     background: transparent !important;
     box-shadow: none !important;
-    transform: translateY(-2px) !important;
+    transform: none !important;
 }
 
 .dm-vector-btn:hover .dm-icon svg {
     fill: #e8622c !important;
     filter: none !important;
+    transform: none !important;
 }
 
 .dm-vector-btn:hover .dm-label {
     color: #e8622c !important;
     text-shadow: none !important;
+    transform: none !important;
 }
 
 .dm-vector-btn.active {
     background-color: rgba(56, 189, 248, 0.16) !important;
     box-shadow: inset 0 -3px 0 #38bdf8 !important;
+    transform: none !important;
 }
 
 .dm-vector-btn.active .dm-label {
     color: #ffffff !important;
     font-weight: 700 !important;
     text-shadow: none !important;
+    transform: none !important;
 }
 
-/* 2. Seviye Alt Modül Butonları - Banner'dan Ayrı Şerit */
+/* 2. Seviye Alt Modül Butonları - Sabit ve Kaymasız */
 div[data-testid="stHorizontalBlock"] button {
     border-radius: 8px !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -2406,7 +2413,8 @@ div[data-testid="stHorizontalBlock"] button {
     height: 40px !important;
     padding: 4px 10px !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
-    transition: all 0.2s ease !important;
+    transform: none !important;
+    transition: color 0.15s ease, border-color 0.15s ease !important;
     font-family: 'Inter', sans-serif !important;
 }
 div[data-testid="stHorizontalBlock"] button p {
@@ -2416,28 +2424,32 @@ div[data-testid="stHorizontalBlock"] button p {
     margin: 0 !important;
     white-space: nowrap !important;
     text-shadow: none !important;
-    transition: color 0.2s ease !important;
+    transform: none !important;
+    transition: color 0.15s ease !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover {
     background-color: transparent !important;
     background: transparent !important;
     border-color: rgba(232, 98, 44, 0.4) !important;
     box-shadow: none !important;
-    transform: translateY(-2px) !important;
+    transform: none !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover p {
     color: #e8622c !important;
     text-shadow: none !important;
+    transform: none !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] {
     background: rgba(56, 189, 248, 0.16) !important;
     border: 1px solid rgba(56, 189, 248, 0.6) !important;
     box-shadow: none !important;
+    transform: none !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     color: #ffffff !important;
     font-weight: 700 !important;
     text-shadow: none !important;
+    transform: none !important;
 }
 </style>""", unsafe_allow_html=True)
 
