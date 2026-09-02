@@ -2472,6 +2472,38 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     text-shadow: none !important;
     transform: none !important;
 }
+
+/* ── SAĞ ÜST PROFİL ÇEMBERİ (TURUNCU ÇERÇEVELİ) ── */
+.dm-profile-circle {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    border-radius: 50% !important;
+    border: 2px solid #e8622c !important;
+    background: rgba(232, 98, 44, 0.15) !important;
+    color: #ffffff !important;
+    font-family: 'Manrope', 'Inter', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px !important;
+    user-select: none !important;
+    margin-left: 8px !important;
+    box-shadow: 0 0 10px rgba(232, 98, 44, 0.35) !important;
+    cursor: default !important;
+    transition: all 0.2s ease !important;
+}
+
+.dm-profile-circle:hover {
+    border-color: #f2703a !important;
+    background: rgba(232, 98, 44, 0.28) !important;
+    box-shadow: 0 0 14px rgba(232, 98, 44, 0.55) !important;
+}
 </style>""", unsafe_allow_html=True)
 
 # BEYAZ VEKTÖREL SVG İKON HARİTASI
@@ -2580,7 +2612,38 @@ for b_name, b_link, b_active in btn_list:
     act_class = "active" if b_active else ""
     buttons_html += f'<a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}"><div class="dm-icon">{svg_code}</div><div class="dm-label">{b_name}</div></a>'
 
-header_html = f'<div class="dm-sticky-header"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}</div></div>'
+def get_user_initials(kadi, u_rol, klinik=""):
+    full_name = ""
+    try:
+        if u_rol in ["Admin", "Teknisyen", "Sekreter", "Yönetici"]:
+            res = c.execute("SELECT isim FROM kullanicilar WHERE LOWER(kullanici_adi)=LOWER(?)", (kadi.strip(),)).fetchone()
+            if res and res[0]:
+                full_name = res[0]
+        elif u_rol in ["Klinik", "Klinik_Asistan"]:
+            if klinik:
+                res = c.execute("SELECT Yetkili_Kisi, Klinik_Unvani FROM cariler WHERE LOWER(Klinik_Unvani)=LOWER(?)", (klinik.strip(),)).fetchone()
+                if res and res[0] and res[0] != "-":
+                    full_name = res[0]
+                elif res and res[1]:
+                    full_name = res[1]
+    except Exception:
+        pass
+    
+    name_to_use = full_name if full_name else kadi
+    clean = name_to_use.replace("Dt.", "").replace("Dt", "").replace("Dr.", "").replace("Dr", "").strip()
+    words = clean.split()
+    if len(words) >= 2:
+        return (words[0][0] + words[-1][0]).upper()
+    elif len(words) == 1 and len(words[0]) >= 2:
+        return words[0][:2].upper()
+    elif len(words) == 1 and len(words[0]) == 1:
+        return words[0][0].upper()
+    return "DM"
+
+user_initials = get_user_initials(kullanici_adi, rol, ana_klinik)
+profile_html = f'<div class="dm-profile-circle" title="Kullanıcı: {kullanici_adi} | Yetki: {rol}">{user_initials}</div>'
+
+header_html = f'<div class="dm-sticky-header"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}{profile_html}</div></div>'
 
 st.markdown(header_html, unsafe_allow_html=True)
 
