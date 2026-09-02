@@ -2360,11 +2360,12 @@ st.markdown("""<style>
     transition: all 0.25s ease !important;
 }
 
-/* 🌟 MOUSE ÜZERİNE GELDİĞİNDE (HOVER) CANLI TURUNCU NEON IŞIMA 🌟 */
+/* 🌟 MOUSE ÜZERİNE GELDİĞİNDE: SADECE İKON VE YAZILAR TURUNCU NEON (ARKA PLAN ŞEFFAF) 🌟 */
 .dm-vector-btn:hover {
-    background-color: rgba(255, 123, 0, 0.14) !important;
-    box-shadow: 0 0 18px rgba(255, 123, 0, 0.35), inset 0 0 10px rgba(255, 123, 0, 0.15) !important;
-    transform: translateY(-2px) scale(1.02) !important;
+    background-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: translateY(-2px) !important;
 }
 
 .dm-vector-btn:hover .dm-icon svg {
@@ -2394,6 +2395,7 @@ div[data-testid="stHorizontalBlock"] button {
     border: none !important;
     outline: none !important;
     background-color: transparent !important;
+    background: transparent !important;
     min-height: 44px !important;
     height: 44px !important;
     padding: 4px 8px !important;
@@ -2409,8 +2411,9 @@ div[data-testid="stHorizontalBlock"] button p {
     transition: all 0.25s ease !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover {
-    background-color: rgba(255, 123, 0, 0.14) !important;
-    box-shadow: 0 0 14px rgba(255, 123, 0, 0.3) !important;
+    background-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
     transform: translateY(-2px) !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover p {
