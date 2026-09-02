@@ -22,7 +22,7 @@ class DeployHandler(BaseHTTPRequestHandler):
             return
             
         try:
-            cmd = "cd /var/www/omg-smile-sistem && git pull origin main && systemctl restart omgsmile"
+            cmd = "cd /var/www/omg-smile-sistem && git fetch origin main && git reset --hard origin/main && systemctl restart omgsmile"
             out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, timeout=60).decode('utf-8', errors='ignore')
             
             self.send_response(200)
