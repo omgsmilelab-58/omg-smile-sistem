@@ -2758,7 +2758,9 @@ details.dm-profile-details[open] summary {
 
 # BEYAZ VEKTÖREL SVG İKON HARİTASI
 svg_map = {
+    "Üretim": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>""",
     "Operasyon": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>""",
+    "Müşteri": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>""",
     "Müşteri & CRM": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>""",
     "Finans": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>""",
     "Yönetim": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>""",
@@ -2770,13 +2772,15 @@ svg_map = {
 current_auth = st.query_params.get("auth") or create_session_token(st.session_state.get("kullanici_adi", "tamer"), st.session_state.get("kullanici_rolu", "Admin"), st.session_state.get("ana_klinik", ""))
 
 kat_slug_map = {
-    "🛠️ Operasyon": ("Operasyon", "operasyon"),
-    "🤝 Müşteri & CRM": ("Müşteri & CRM", "crm"),
+    "🛠️ Operasyon": ("Üretim", "uretim"),
+    "🤝 Müşteri & CRM": ("Müşteri", "musteri"),
     "💰 Finans": ("Finans", "finans"),
     "🏢 Yönetim": ("Yönetim", "yonetim")
 }
 slug_to_kat = {
+    "uretim": ("🛠️ Operasyon", "🏠 Komuta Merkezi"),
     "operasyon": ("🛠️ Operasyon", "🏠 Komuta Merkezi"),
+    "musteri": ("🤝 Müşteri & CRM", "🤝 Hekim ve Cari Kayıt"),
     "crm": ("🤝 Müşteri & CRM", "🤝 Hekim ve Cari Kayıt"),
     "finans": ("💰 Finans", "💰 Finans & Analitik"),
     "yonetim": ("🏢 Yönetim", "🔧 Makine Parkuru ve Bakımı"),
@@ -2844,7 +2848,7 @@ for kat_k, kat_v in gecerli_kategoriler.items():
 # --- 1. SEVİYE: SAĞA YASLANMIŞ EŞİT BOYUTLU BEYAZ VEKTÖREL İKONLU ANA BANNER ---
 btn_list = []
 for kat_adi in gecerli_kategoriler.keys():
-    label, slug = kat_slug_map.get(kat_adi, (kat_adi, "operasyon"))
+    label, slug = kat_slug_map.get(kat_adi, (kat_adi, "uretim"))
     btn_list.append((label, f"?nav_kat={slug}&auth={current_auth}", st.session_state.secili_kategori == kat_adi))
 
 if "💬 Mobil İletişim" in menu:
@@ -2854,7 +2858,7 @@ if rol in ["Admin", "Yönetici", "Sekreter"]:
 
 buttons_html = ""
 for b_name, b_link, b_active in btn_list:
-    svg_code = svg_map.get(b_name, svg_map["Operasyon"])
+    svg_code = svg_map.get(b_name, svg_map.get("Üretim", ""))
     act_class = "active" if b_active else ""
     buttons_html += f'<a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}"><div class="dm-icon">{svg_code}</div><div class="dm-label">{b_name}</div></a>'
 
