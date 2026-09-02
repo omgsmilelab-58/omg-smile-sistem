@@ -2134,7 +2134,7 @@ if st.query_params.get("logout") == "true":
     st.session_state.clear()
     st.rerun()
 
-if st.session_state.aktif_sayfa not in menu and st.session_state.aktif_sayfa not in ["⚙️ Ayarlar", "🤖 OMG AI Asistan"]:
+if st.session_state.aktif_sayfa not in menu and st.session_state.aktif_sayfa not in ["⚙️ Ayarlar", "🤖 OMG AI Asistan", "👤 Profil Bilgileri"]:
     st.session_state.aktif_sayfa = menu[0]
 
 # Aktif sayfayı tarayıcı URL'sine senkronize et (F5 durumunda aynı sayfada kalması için)
@@ -2473,7 +2473,13 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     transform: none !important;
 }
 
-/* ── SAĞ ÜST PROFİL ÇEMBERİ (TURUNCU ÇERÇEVELİ) ── */
+/* ── SAĞ ÜST PROFİL ÇEMBERİ VE DROPDOWN MENÜ ── */
+.dm-profile-wrapper {
+    position: relative !important;
+    display: inline-block !important;
+    margin-left: 8px !important;
+}
+
 .dm-profile-circle {
     display: flex !important;
     align-items: center !important;
@@ -2493,16 +2499,107 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     font-weight: 800 !important;
     letter-spacing: 0.5px !important;
     user-select: none !important;
-    margin-left: 8px !important;
+    cursor: pointer !important;
     box-shadow: 0 0 10px rgba(232, 98, 44, 0.35) !important;
-    cursor: default !important;
     transition: all 0.2s ease !important;
+    outline: none !important;
 }
 
-.dm-profile-circle:hover {
-    border-color: #f2703a !important;
-    background: rgba(232, 98, 44, 0.28) !important;
-    box-shadow: 0 0 14px rgba(232, 98, 44, 0.55) !important;
+.dm-profile-wrapper:hover .dm-profile-circle,
+.dm-profile-wrapper:focus-within .dm-profile-circle {
+    border-color: #ffaa44 !important;
+    background: rgba(232, 98, 44, 0.30) !important;
+    box-shadow: 0 0 14px rgba(232, 98, 44, 0.6) !important;
+}
+
+.dm-profile-menu {
+    position: absolute !important;
+    top: calc(100% + 10px) !important;
+    right: 0 !important;
+    width: 220px !important;
+    background: rgba(8, 17, 34, 0.96) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(232, 98, 44, 0.2) !important;
+    padding: 10px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transform: translateY(-6px) !important;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s !important;
+    pointer-events: none !important;
+    z-index: 1000000 !important;
+}
+
+.dm-profile-wrapper:hover .dm-profile-menu,
+.dm-profile-wrapper:focus-within .dm-profile-menu {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
+    pointer-events: auto !important;
+}
+
+.dm-profile-header {
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    margin-bottom: 8px !important;
+}
+
+.dm-profile-name {
+    font-family: 'Manrope', 'Inter', sans-serif !important;
+    font-weight: 800 !important;
+    font-size: 13.5px !important;
+    color: #f8fafc !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.dm-profile-role {
+    font-size: 11px !important;
+    color: #e8622c !important;
+    font-weight: 600 !important;
+    margin-top: 2px !important;
+    letter-spacing: 0.3px !important;
+}
+
+.dm-profile-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px 10px !important;
+    border-radius: 8px !important;
+    color: #e2e8f0 !important;
+    text-decoration: none !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    font-family: 'Inter', sans-serif !important;
+    transition: all 0.15s ease !important;
+    margin-bottom: 2px !important;
+}
+
+.dm-profile-item:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+}
+
+.dm-profile-item.settings:hover {
+    color: #38bdf8 !important;
+    background: rgba(56, 189, 248, 0.12) !important;
+}
+
+.dm-profile-item.logout {
+    color: #f87171 !important;
+    margin-top: 6px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding-top: 8px !important;
+}
+
+.dm-profile-item.logout:hover {
+    background: rgba(239, 68, 68, 0.14) !important;
+    color: #ef4444 !important;
 }
 </style>""", unsafe_allow_html=True)
 
@@ -2513,9 +2610,7 @@ svg_map = {
     "Finans": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>""",
     "Yönetim": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>""",
     "İletişim": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>""",
-    "OMG AI": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>""",
-    "Ayarlar": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>""",
-    "Çıkış": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>"""
+    "OMG AI": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>"""
 }
 
 # Aktif oturum anahtarını al (oturumun asla düşmemesi için linklerde taşınır)
@@ -2536,6 +2631,7 @@ slug_to_kat = {
     "omg_ai": (None, "🤖 OMG AI Asistan"),
     "ai": (None, "🤖 OMG AI Asistan"),
     "ayarlar": (None, "⚙️ Ayarlar"),
+    "profil": (None, "👤 Profil Bilgileri"),
 }
 
 # Link Navigasyon Router'ı
@@ -2602,17 +2698,14 @@ if "💬 Mobil İletişim" in menu:
     btn_list.append(("İletişim", f"?nav_kat=iletisim&auth={current_auth}", st.session_state.aktif_sayfa == "💬 Mobil İletişim"))
 if rol in ["Admin", "Yönetici", "Sekreter"]:
     btn_list.append(("OMG AI", f"?nav_kat=omg_ai&auth={current_auth}", st.session_state.aktif_sayfa == "🤖 OMG AI Asistan"))
-if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
-    btn_list.append(("Ayarlar", f"?nav_kat=ayarlar&auth={current_auth}", st.session_state.aktif_sayfa == "⚙️ Ayarlar"))
-btn_list.append(("Çıkış", "?logout=true", False))
 
 buttons_html = ""
 for b_name, b_link, b_active in btn_list:
-    svg_code = svg_map.get(b_name, svg_map["Ayarlar"])
+    svg_code = svg_map.get(b_name, svg_map["Operasyon"])
     act_class = "active" if b_active else ""
     buttons_html += f'<a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}"><div class="dm-icon">{svg_code}</div><div class="dm-label">{b_name}</div></a>'
 
-def get_user_initials(kadi, u_rol, klinik=""):
+def get_user_info(kadi, u_rol, klinik=""):
     full_name = ""
     try:
         if u_rol in ["Admin", "Teknisyen", "Sekreter", "Yönetici"]:
@@ -2629,19 +2722,41 @@ def get_user_initials(kadi, u_rol, klinik=""):
     except Exception:
         pass
     
-    name_to_use = full_name if full_name else kadi
-    clean = name_to_use.replace("Dt.", "").replace("Dt", "").replace("Dr.", "").replace("Dr", "").strip()
+    display_name = full_name if full_name else kadi
+    clean = display_name.replace("Dt.", "").replace("Dt", "").replace("Dr.", "").replace("Dr", "").strip()
     words = clean.split()
     if len(words) >= 2:
-        return (words[0][0] + words[-1][0]).upper()
+        initials = (words[0][0] + words[-1][0]).upper()
     elif len(words) == 1 and len(words[0]) >= 2:
-        return words[0][:2].upper()
+        initials = words[0][:2].upper()
     elif len(words) == 1 and len(words[0]) == 1:
-        return words[0][0].upper()
-    return "DM"
+        initials = words[0][0].upper()
+    else:
+        initials = "DM"
+    return display_name, initials
 
-user_initials = get_user_initials(kullanici_adi, rol, ana_klinik)
-profile_html = f'<div class="dm-profile-circle" title="Kullanıcı: {kullanici_adi} | Yetki: {rol}">{user_initials}</div>'
+u_display_name, u_initials = get_user_info(kullanici_adi, rol, ana_klinik)
+
+profile_html = f'''
+<div class="dm-profile-wrapper" tabindex="0">
+    <div class="dm-profile-circle" title="Kullanıcı Menüsü: {u_display_name}">{u_initials}</div>
+    <div class="dm-profile-menu">
+        <div class="dm-profile-header">
+            <div class="dm-profile-name">{u_display_name}</div>
+            <div class="dm-profile-role">🛡️ {rol}</div>
+        </div>
+        <a href="?nav_kat=profil&auth={current_auth}" target="_self" class="dm-profile-item">
+            <span style="font-size:14px;">👤</span> Profil Bilgileri
+        </a>
+        <a href="?nav_kat=ayarlar&auth={current_auth}" target="_self" class="dm-profile-item settings">
+            <span style="font-size:14px;">⚙️</span> Sistem Ayarları
+        </a>
+        <a href="?logout=true" target="_self" class="dm-profile-item logout">
+            <span style="font-size:14px;">🚪</span> Güvenli Çıkış
+        </a>
+    </div>
+</div>
+'''
 
 header_html = f'<div class="dm-sticky-header"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}{profile_html}</div></div>'
 
@@ -2649,7 +2764,7 @@ st.markdown(header_html, unsafe_allow_html=True)
 
 # --- 2. SEVİYE: BANNER'DAN AYRILMIŞ ALT MODÜL ŞERİDİ ---
 secili_moduller = gecerli_kategoriler.get(st.session_state.secili_kategori, [])
-if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletişim", "🤖 OMG AI Asistan", "⚙️ Ayarlar"]:
+if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletişim", "🤖 OMG AI Asistan", "⚙️ Ayarlar", "👤 Profil Bilgileri"]:
     sub_cols = st.columns(len(secili_moduller))
     for s_idx, mod_adi in enumerate(secili_moduller):
         m_active = (mod_adi == st.session_state.aktif_sayfa)
@@ -8479,6 +8594,63 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                 st.error(f"Veritabanı hatası: {e}")
                     else:
                         st.warning("Lütfen kullanıcı adı ve şifre alanlarını boş bırakmayın!")
+
+    elif sayfa == "👤 Profil Bilgileri":
+        banner_olustur("👤", "Kullanıcı Profilim & Hesap Bilgileri", "Oturum ve kullanıcı detaylarınızı buradan görüntüleyebilir, şifrenizi güncelleyebilirsiniz.")
+        
+        col_p1, col_p2 = st.columns([1.2, 2])
+        with col_p1:
+            with st.container(border=True):
+                st.markdown(f"""
+                <div style="text-align:center; padding:15px 0;">
+                    <div style="width:72px; height:72px; border-radius:50%; border:3px solid #e8622c; background:rgba(232,98,44,0.15); display:inline-flex; align-items:center; justify-content:center; font-size:26px; font-weight:900; color:#ffffff; box-shadow:0 0 20px rgba(232,98,44,0.4); margin-bottom:12px;">
+                        {u_initials}
+                    </div>
+                    <div style="font-size:18px; font-weight:800; color:#f8fafc;">{u_display_name}</div>
+                    <div style="font-size:12px; font-weight:700; color:#e8622c; margin-top:4px;">🛡️ {rol}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown("---")
+                st.markdown(f"**🏢 Bağlı Klinik / Kurum:** `{ana_klinik if ana_klinik else 'OMG Smile Sistem'}`")
+                st.markdown(f"**🔑 Oturum Tipi:** `{rol}`")
+                st.markdown(f"**🌐 Güvenlik Durumu:** `SSL / Şifreli Bağlantı Aktif`")
+                if st.button("🚪 Oturumu Kapat (Çıkış)", key="profil_cikis_btn", type="primary", use_container_width=True):
+                    st.query_params.clear()
+                    st.session_state.clear()
+                    st.rerun()
+        
+        with col_p2:
+            with st.container(border=True):
+                st.markdown("### 🔑 Şifre Değiştir")
+                with st.form("profil_sifre_degistir_form"):
+                    p_eski = st.text_input("Mevcut Şifre", type="password")
+                    p_yeni = st.text_input("Yeni Şifre", type="password")
+                    p_yeni_tekrar = st.text_input("Yeni Şifre (Tekrar)", type="password")
+                    if st.form_submit_button("💾 Şifremi Güncelle", type="primary", use_container_width=True):
+                        if not p_eski or not p_yeni:
+                            st.warning("Lütfen tüm alanları doldurun.")
+                        elif p_yeni != p_yeni_tekrar:
+                            st.error("Yeni şifreler birbiriyle uyuşmuyor!")
+                        else:
+                            try:
+                                if rol in ["Admin", "Teknisyen", "Sekreter", "Yönetici"]:
+                                    gercek_sifre = c.execute("SELECT Sifre FROM kullanicilar WHERE Kullanici_Adi=?", (kullanici_adi,)).fetchone()
+                                    if gercek_sifre and gercek_sifre[0] == p_eski:
+                                        c.execute("UPDATE kullanicilar SET Sifre=? WHERE Kullanici_Adi=?", (p_yeni, kullanici_adi))
+                                        conn.commit()
+                                        st.success("✅ Şifreniz başarıyla güncellendi!")
+                                    else:
+                                        st.error("Mevcut şifreniz hatalı!")
+                                elif rol in ["Klinik", "Klinik_Asistan"]:
+                                    gercek_sifre = c.execute("SELECT Sifre FROM cariler WHERE Klinik_Unvani=?", (ana_klinik,)).fetchone()
+                                    if gercek_sifre and gercek_sifre[0] == p_eski:
+                                        c.execute("UPDATE cariler SET Sifre=? WHERE Klinik_Unvani=?", (p_yeni, ana_klinik))
+                                        conn.commit()
+                                        st.success("✅ Şifreniz başarıyla güncellendi!")
+                                    else:
+                                        st.error("Mevcut şifreniz hatalı!")
+                            except Exception as pe:
+                                st.error(f"Hata oluştu: {pe}")
 
     elif sayfa == "⚙️ Ayarlar":
         banner_olustur("⚙️", "Sistem Ayarları", "Laboratuvarınızın siber ekosistemini, otonom kurallarını ve güvenliğini buradan yapılandırın.")
