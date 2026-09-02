@@ -2934,90 +2934,47 @@ def get_profile_card_data(kadi, u_rol, klinik=""):
 
 p_data = get_profile_card_data(kullanici_adi, rol, ana_klinik)
 
-profile_html = f'''
-<div class="dm-profile-wrapper" tabindex="0">
-    <div class="dm-profile-circle" title="Kullanıcı Menüsü: {p_data['full_name']}">{p_data['initials']}</div>
-    <div class="dm-profile-dropdown-card">
-        <!-- HEADER BLUE GRADIENT -->
-        <div class="dm-card-header">
-            <div class="dm-card-header-top">
-                <div class="dm-card-avatar">
-                    <div style="font-size:10px; line-height:1.1; text-align:center; font-weight:800; font-family:'Manrope',sans-serif;">{p_data['logo_text']}</div>
-                </div>
-                <div class="dm-card-header-info">
-                    <div class="dm-card-title-row">
-                        <span class="dm-card-title">{p_data['title_name']}</span>
-                        <span class="dm-card-vip-pill">{p_data['vip_badge']}</span>
-                    </div>
-                    <div class="dm-card-role-pill">{p_data['role_badge']}</div>
-                    <div class="dm-card-code">{p_data['code_str']}</div>
-                </div>
-            </div>
-            <div class="dm-card-progress-row">
-                <div class="dm-card-progress-bar">
-                    <div class="dm-card-progress-fill" style="width: {p_data['percent']}%;"></div>
-                </div>
-                <span class="dm-card-progress-text">Profil %{p_data['percent']}</span>
-            </div>
-        </div>
-        
-        <!-- USER DETAILS LIST -->
-        <div class="dm-card-details">
-            <div class="dm-detail-item">
-                <span class="dm-detail-icon">👤</span>
-                <span class="dm-detail-text">{p_data['full_name']}</span>
-            </div>
-            <div class="dm-detail-item">
-                <span class="dm-detail-icon">✉️</span>
-                <span class="dm-detail-text">{p_data['email']}</span>
-            </div>
-            <div class="dm-detail-item">
-                <span class="dm-detail-icon">📍</span>
-                <span class="dm-detail-text">{p_data['city']}</span>
-            </div>
-            <div class="dm-detail-item">
-                <span class="dm-detail-icon">🕒</span>
-                <span class="dm-detail-text">Son giriş {p_data['last_login']}</span>
-            </div>
-            <div class="dm-detail-item">
-                <span class="dm-detail-icon">📅</span>
-                <span class="dm-detail-text">Üyelik {p_data['reg_date']}</span>
-            </div>
-        </div>
-        
-        <div class="dm-card-divider"></div>
-        
-        <!-- ACTION LINKS -->
-        <div class="dm-card-actions">
-            <a href="?nav_kat=profil&auth={current_auth}" target="_self" class="dm-action-item">
-                <span class="dm-action-icon">🪪</span>
-                <span class="dm-action-label">Klinik Kartım</span>
-            </a>
-            <a href="?nav_kat=yonetim&auth={current_auth}" target="_self" class="dm-action-item">
-                <span class="dm-action-icon">👥</span>
-                <span class="dm-action-label">Asistanlarım</span>
-            </a>
-            
-            <!-- VIP ÜYELİK HIGHLIGHT CARD -->
-            <div class="dm-vip-card">
-                <div class="dm-vip-card-title">
-                    <span style="font-size:14px;">⭐</span> VIP Üyelik
-                </div>
-                <div class="dm-vip-card-date">11.09.2026</div>
-            </div>
-            
-            <a href="?nav_kat=ayarlar&auth={current_auth}" target="_self" class="dm-action-item">
-                <span class="dm-action-icon">⚙️</span>
-                <span class="dm-action-label">Ayarlar</span>
-            </a>
-            <a href="?logout=true" target="_self" class="dm-action-item logout">
-                <span class="dm-action-icon">🚪</span>
-                <span class="dm-action-label">Çıkış</span>
-            </a>
-        </div>
-    </div>
-</div>
-'''
+profile_html = (
+    f'<div class="dm-profile-wrapper" tabindex="0">'
+    f'<div class="dm-profile-circle" title="Kullanıcı Menüsü: {p_data["full_name"]}">{p_data["initials"]}</div>'
+    f'<div class="dm-profile-dropdown-card">'
+    f'<div class="dm-card-header">'
+    f'<div class="dm-card-header-top">'
+    f'<div class="dm-card-avatar">'
+    f'<div style="font-size:10px;line-height:1.1;text-align:center;font-weight:800;font-family:\'Manrope\',sans-serif;">{p_data["logo_text"]}</div>'
+    f'</div>'
+    f'<div class="dm-card-header-info">'
+    f'<div class="dm-card-title-row">'
+    f'<span class="dm-card-title">{p_data["title_name"]}</span>'
+    f'<span class="dm-card-vip-pill">{p_data["vip_badge"]}</span>'
+    f'</div>'
+    f'<div class="dm-card-role-pill">{p_data["role_badge"]}</div>'
+    f'<div class="dm-card-code">{p_data["code_str"]}</div>'
+    f'</div>'
+    f'</div>'
+    f'<div class="dm-card-progress-row">'
+    f'<div class="dm-card-progress-bar"><div class="dm-card-progress-fill" style="width:{p_data["percent"]}%;"></div></div>'
+    f'<span class="dm-card-progress-text">Profil %{p_data["percent"]}</span>'
+    f'</div>'
+    f'</div>'
+    f'<div class="dm-card-details">'
+    f'<div class="dm-detail-item"><span class="dm-detail-icon">👤</span><span class="dm-detail-text">{p_data["full_name"]}</span></div>'
+    f'<div class="dm-detail-item"><span class="dm-detail-icon">✉️</span><span class="dm-detail-text">{p_data["email"]}</span></div>'
+    f'<div class="dm-detail-item"><span class="dm-detail-icon">📍</span><span class="dm-detail-text">{p_data["city"]}</span></div>'
+    f'<div class="dm-detail-item"><span class="dm-detail-icon">🕒</span><span class="dm-detail-text">Son giriş {p_data["last_login"]}</span></div>'
+    f'<div class="dm-detail-item"><span class="dm-detail-icon">📅</span><span class="dm-detail-text">Üyelik {p_data["reg_date"]}</span></div>'
+    f'</div>'
+    f'<div class="dm-card-divider"></div>'
+    f'<div class="dm-card-actions">'
+    f'<a href="?nav_kat=profil&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">🪪</span><span class="dm-action-label">Klinik Kartım</span></a>'
+    f'<a href="?nav_kat=yonetim&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">👥</span><span class="dm-action-label">Asistanlarım</span></a>'
+    f'<div class="dm-vip-card"><div class="dm-vip-card-title"><span style="font-size:14px;">⭐</span> VIP Üyelik</div><div class="dm-vip-card-date">11.09.2026</div></div>'
+    f'<a href="?nav_kat=ayarlar&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">⚙️</span><span class="dm-action-label">Ayarlar</span></a>'
+    f'<a href="?logout=true" target="_self" class="dm-action-item logout"><span class="dm-action-icon">🚪</span><span class="dm-action-label">Çıkış</span></a>'
+    f'</div>'
+    f'</div>'
+    f'</div>'
+)
 
 header_html = f'<div class="dm-sticky-header"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}{profile_html}</div></div>'
 
