@@ -2473,14 +2473,18 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     transform: none !important;
 }
 
-/* ── SAĞ ÜST PROFİL ÇEMBERİ VE DROPDOWN KART (TAM REFERANS TASARIM) ── */
-.dm-profile-wrapper {
+/* ── TIKLAYINCA AÇILAN PROFİL MENÜSÜ (<details> / <summary>) ── */
+details.dm-profile-details {
     position: relative !important;
     display: inline-block !important;
     margin-left: 8px !important;
+    user-select: none !important;
 }
 
-.dm-profile-circle {
+details.dm-profile-details summary {
+    list-style: none !important;
+    outline: none !important;
+    cursor: pointer !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -2498,17 +2502,21 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     font-size: 13px !important;
     font-weight: 800 !important;
     letter-spacing: 0.5px !important;
-    user-select: none !important;
-    cursor: pointer !important;
     box-shadow: 0 0 10px rgba(232, 98, 44, 0.35) !important;
     transition: all 0.2s ease !important;
-    outline: none !important;
 }
 
-.dm-profile-wrapper:hover .dm-profile-circle,
-.dm-profile-wrapper:focus-within .dm-profile-circle {
+details.dm-profile-details summary::-webkit-details-marker {
+    display: none !important;
+}
+details.dm-profile-details summary::marker {
+    display: none !important;
+}
+
+details.dm-profile-details summary:hover,
+details.dm-profile-details[open] summary {
     border-color: #ffaa44 !important;
-    background: rgba(232, 98, 44, 0.30) !important;
+    background: rgba(232, 98, 44, 0.32) !important;
     box-shadow: 0 0 14px rgba(232, 98, 44, 0.6) !important;
 }
 
@@ -2521,22 +2529,15 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     border-radius: 18px !important;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45) !important;
     overflow: hidden !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    transform: translateY(-8px) !important;
-    transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s !important;
-    pointer-events: none !important;
     z-index: 1000000 !important;
     font-family: 'Inter', sans-serif !important;
     text-align: left !important;
+    animation: dmFadeIn 0.18s ease-out !important;
 }
 
-.dm-profile-wrapper:hover .dm-profile-dropdown-card,
-.dm-profile-wrapper:focus-within .dm-profile-dropdown-card {
-    opacity: 1 !important;
-    visibility: visible !important;
-    transform: translateY(0) !important;
-    pointer-events: auto !important;
+@keyframes dmFadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* HEADER BLUE GRADIENT */
@@ -2935,8 +2936,8 @@ def get_profile_card_data(kadi, u_rol, klinik=""):
 p_data = get_profile_card_data(kullanici_adi, rol, ana_klinik)
 
 profile_html = (
-    f'<div class="dm-profile-wrapper" tabindex="0">'
-    f'<div class="dm-profile-circle" title="Kullanıcı Menüsü: {p_data["full_name"]}">{p_data["initials"]}</div>'
+    f'<details class="dm-profile-details">'
+    f'<summary class="dm-profile-circle" title="Kullanıcı Menüsü: {p_data["full_name"]}">{p_data["initials"]}</summary>'
     f'<div class="dm-profile-dropdown-card">'
     f'<div class="dm-card-header">'
     f'<div class="dm-card-header-top">'
@@ -2973,7 +2974,7 @@ profile_html = (
     f'<a href="?logout=true" target="_self" class="dm-action-item logout"><span class="dm-action-icon">🚪</span><span class="dm-action-label">Çıkış</span></a>'
     f'</div>'
     f'</div>'
-    f'</div>'
+    f'</details>'
 )
 
 header_html = f'<div class="dm-sticky-header"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}{profile_html}</div></div>'
