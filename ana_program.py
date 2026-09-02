@@ -2310,7 +2310,7 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
-/* ── From Uiverse.io by vinodjangid07: ÇERÇEVESİZ MENÜ BUTONLARI ── */
+/* ── ÇERÇEVESİZ & BANNER İLE AYNI ARKA PLANA SAHİP MENÜ BUTONLARI ── */
 div[data-testid="stHorizontalBlock"] button {
     border-radius: 10px !important;
     display: flex !important;
@@ -2319,11 +2319,10 @@ div[data-testid="stHorizontalBlock"] button {
     border: none !important;
     outline: none !important;
     cursor: pointer !important;
-    box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.20) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    box-shadow: none !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background-color: transparent !important;
+    background: transparent !important;
     min-height: 56px !important;
     padding: 6px 12px !important;
     text-align: center !important;
@@ -2333,33 +2332,33 @@ div[data-testid="stHorizontalBlock"] button {
 div[data-testid="stHorizontalBlock"] button p {
     font-size: 11.5px !important;
     font-weight: 600 !important;
-    color: rgb(180, 185, 195) !important;
+    color: rgb(200, 205, 215) !important;
     line-height: 1.35 !important;
     letter-spacing: 0.02em !important;
     margin: 0 !important;
     white-space: pre-line !important;
-    transition: all 0.3s ease !important;
+    transition: all 0.25s ease !important;
 }
 
-/* HOVER: background-color: rgb(59, 59, 59); box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.35); color: white; */
+/* HOVER: Banner ile uyumlu hafif aydınlatma & beyaz metin */
 div[data-testid="stHorizontalBlock"] button:hover {
-    box-shadow: 0px 10px 18px rgba(0, 0, 0, 0.45) !important;
-    background-color: rgb(59, 59, 59) !important;
+    box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.35) !important;
+    background-color: rgba(255, 255, 255, 0.10) !important;
     border: none !important;
     outline: none !important;
     transform: translateY(-2px) !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover p {
     color: #ffffff !important;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.7) !important;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8) !important;
 }
 
-/* AKTİF SEÇİLİ BUTON (PRIMARY) - ÇERÇEVESİZ VURGU */
+/* AKTİF SEÇİLİ BUTON (PRIMARY) */
 div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-    background-color: rgb(59, 59, 59) !important;
+    background-color: rgba(56, 189, 248, 0.16) !important;
     border: none !important;
     outline: none !important;
-    box-shadow: inset 0 -3px 0 #38bdf8, 0px 10px 15px rgba(0, 0, 0, 0.35) !important;
+    box-shadow: inset 0 -3px 0 #38bdf8, 0px 6px 14px rgba(0, 0, 0, 0.25) !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     color: #ffffff !important;
