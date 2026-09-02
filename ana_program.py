@@ -2300,45 +2300,56 @@ st.markdown("""<style>
 }
 .block-container {
     padding-top: 1.2rem !important;
-    padding-left: clamp(1rem, 2.5vw, 2.5rem) !important;
-    padding-right: clamp(1rem, 2.5vw, 2.5rem) !important;
+    padding-left: clamp(1rem, 2vw, 2.5rem) !important;
+    padding-right: clamp(1rem, 2vw, 2.5rem) !important;
     max-width: 100% !important;
+}
+
+/* EMOJİ VE İKONLARIN KUSURSUZ GÖRÜNMESİ */
+div[data-testid="stPopover"] button, 
+div[data-testid="stPopover"] button *,
+div.stButton > button,
+div.stButton > button * {
+    font-family: 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
 }
 
 /* Yatay Üst Menü Popover Buton Stilleri */
 div[data-testid="stPopover"] > button {
-    background: rgba(15, 23, 42, 0.85) !important;
-    border: 1px solid rgba(56, 189, 248, 0.28) !important;
-    color: #f8fafc !important;
+    background: rgba(15, 23, 42, 0.88) !important;
+    border: 1px solid rgba(56, 189, 248, 0.32) !important;
+    color: #ffffff !important;
     border-radius: 10px !important;
-    font-size: 13.5px !important;
-    font-weight: 700 !important;
-    padding: 8px 12px !important;
+    padding: 8px 10px !important;
     min-height: 42px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
     transition: all 0.2s ease !important;
 }
 div[data-testid="stPopover"] > button:hover {
-    background: rgba(56, 189, 248, 0.20) !important;
+    background: rgba(56, 189, 248, 0.25) !important;
     border-color: #38bdf8 !important;
-    box-shadow: 0 0 14px rgba(56, 189, 248, 0.35) !important;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.45) !important;
 }
 
 /* Popover Açılır Menü Gövdesi */
 div[data-testid="stPopoverBody"] {
     background: rgba(8, 16, 32, 0.98) !important;
     backdrop-filter: blur(25px) !important;
-    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+    border: 1px solid rgba(56, 189, 248, 0.40) !important;
     border-radius: 14px !important;
     padding: 12px !important;
     box-shadow: 0 14px 45px rgba(0, 0, 0, 0.85) !important;
-    min-width: 240px !important;
+    min-width: 250px !important;
 }
 div[data-testid="stPopoverBody"] button {
     text-align: left !important;
-    margin-bottom: 5px !important;
+    margin-bottom: 6px !important;
     border-radius: 8px !important;
-    padding: 8px 12px !important;
-    font-size: 13px !important;
+    padding: 9px 14px !important;
+    font-size: 13.5px !important;
 }
 </style>""", unsafe_allow_html=True)
 
@@ -2371,15 +2382,17 @@ for kat_adi, moduller in kategoriler.items():
     if izinli:
         gecerli_kategoriler[kat_adi] = izinli
 
-# Ek butonlar
-ek_butonlar = []
+# Kolon genişliklerini orantılı ayarla
+col_weights = [1.8]
+for _ in gecerli_kategoriler:
+    col_weights.append(1.4)
 if "💬 Mobil İletişim" in menu:
-    ek_butonlar.append("💬 İletişim")
+    col_weights.append(1.1)
 if rol in ["Admin", "Yönetici", "Sekreter"]:
-    ek_butonlar.append("🤖 AI")
+    col_weights.append(1.0)
+col_weights.append(1.6)
 
-toplam_kolon = 1 + len(gecerli_kategoriler) + len(ek_butonlar) + 1
-top_cols = st.columns(toplam_kolon)
+top_cols = st.columns(col_weights)
 c_idx = 0
 
 # 1. Logo
@@ -2390,7 +2403,7 @@ c_idx += 1
 # 2. Açılır Kategori Menüleri (Popovers)
 for kat_adi, moduller in gecerli_kategoriler.items():
     kat_aktif = any(m == st.session_state.aktif_sayfa for m in moduller)
-    btn_label = f"{kat_adi} {'🔷' if kat_aktif else '▼'}"
+    btn_label = f"{kat_adi}"
     with top_cols[c_idx]:
         with st.popover(btn_label, use_container_width=True):
             st.markdown(f"**{kat_adi}**")
