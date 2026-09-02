@@ -2310,151 +2310,149 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
-/* ── ÇERÇEVESİZ & BANNER İLE AYNI ARKA PLANA SAHİP MENÜ BUTONLARI ── */
-div[data-testid="stHorizontalBlock"] button {
-    border-radius: 10px !important;
+/* ── EŞİT BOYUTLU, ÇERÇEVESİZ & BEYAZ VEKTÖREL İKONLU MENÜ BUTONLARI ── */
+.dm-vector-btn {
     display: flex !important;
+    flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
+    width: 100% !important;
+    height: 60px !important;
+    min-height: 60px !important;
+    max-height: 60px !important;
+    border-radius: 10px !important;
     border: none !important;
     outline: none !important;
+    background-color: transparent !important;
+    text-decoration: none !important;
     cursor: pointer !important;
     box-shadow: none !important;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    background-color: transparent !important;
-    background: transparent !important;
-    min-height: 56px !important;
-    padding: 6px 12px !important;
-    text-align: center !important;
-    font-family: 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
+    box-sizing: border-box !important;
+    padding: 6px 4px !important;
 }
 
+.dm-vector-btn .dm-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 22px !important;
+    height: 22px !important;
+    margin-bottom: 3px !important;
+}
+
+.dm-vector-btn .dm-icon svg {
+    width: 20px !important;
+    height: 20px !important;
+    fill: #ffffff !important;
+}
+
+.dm-vector-btn .dm-label {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: rgb(210, 215, 225) !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+    font-family: 'Inter', sans-serif !important;
+    white-space: nowrap !important;
+    letter-spacing: 0.01em !important;
+    transition: all 0.25s ease !important;
+}
+
+.dm-vector-btn:hover {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    transform: translateY(-2px) !important;
+}
+
+.dm-vector-btn:hover .dm-label {
+    color: #ffffff !important;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.9) !important;
+}
+
+.dm-vector-btn.active {
+    background-color: rgba(56, 189, 248, 0.16) !important;
+    box-shadow: inset 0 -3px 0 #38bdf8 !important;
+}
+
+.dm-vector-btn.active .dm-label {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 8px #38bdf8 !important;
+}
+
+/* 2. Seviye Alt Modül Butonları */
+div[data-testid="stHorizontalBlock"] button {
+    border-radius: 8px !important;
+    border: none !important;
+    outline: none !important;
+    background-color: transparent !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    padding: 4px 8px !important;
+    box-shadow: none !important;
+    transition: all 0.25s ease !important;
+    font-family: 'Inter', sans-serif !important;
+}
 div[data-testid="stHorizontalBlock"] button p {
     font-size: 11.5px !important;
     font-weight: 600 !important;
     color: rgb(200, 205, 215) !important;
-    line-height: 1.35 !important;
-    letter-spacing: 0.02em !important;
     margin: 0 !important;
-    white-space: pre-line !important;
-    transition: all 0.25s ease !important;
 }
-
-/* HOVER: Banner ile uyumlu hafif aydınlatma & beyaz metin */
 div[data-testid="stHorizontalBlock"] button:hover {
-    box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.35) !important;
     background-color: rgba(255, 255, 255, 0.10) !important;
-    border: none !important;
-    outline: none !important;
     transform: translateY(-2px) !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover p {
     color: #ffffff !important;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8) !important;
 }
-
-/* AKTİF SEÇİLİ BUTON (PRIMARY) */
 div[data-testid="stHorizontalBlock"] button[kind="primary"] {
     background-color: rgba(56, 189, 248, 0.16) !important;
-    border: none !important;
-    outline: none !important;
-    box-shadow: inset 0 -3px 0 #38bdf8, 0px 6px 14px rgba(0, 0, 0, 0.25) !important;
+    box-shadow: inset 0 -3px 0 #38bdf8 !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     color: #ffffff !important;
     font-weight: 700 !important;
     text-shadow: 0 0 8px #38bdf8 !important;
 }
-
-/* ── From Uiverse.io by kennyotsu-monochromia: ÇIKIŞ BUTONU ── */
-.Btn {
-  --black: #000000;
-  --ch-black: #141414;
-  --eer-black: #1b1b1b;
-  --night-rider: #2e2e2e;
-  --white: #ffffff;
-  --af-white: #f3f3f3;
-  --ch-white: #e1e1e1;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  width: 45px !important;
-  height: 45px !important;
-  border: none !important;
-  border-radius: 8px !important;
-  cursor: pointer !important;
-  position: relative !important;
-  overflow: hidden !important;
-  transition-duration: .3s !important;
-  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.25) !important;
-  background-color: var(--af-white) !important;
-  text-decoration: none !important;
-  margin: 10px auto 0 auto !important;
-}
-
-/* plus sign */
-.sign {
-  width: 100% !important;
-  transition-duration: .3s !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.sign svg {
-  width: 17px !important;
-  height: 17px !important;
-}
-
-.sign svg path {
-  fill: var(--night-rider) !important;
-}
-/* text */
-.text {
-  position: absolute !important;
-  right: 0% !important;
-  width: 0% !important;
-  opacity: 0 !important;
-  color: var(--night-rider) !important;
-  font-size: 1.15em !important;
-  font-weight: 700 !important;
-  transition-duration: .3s !important;
-  white-space: nowrap !important;
-  font-family: 'Inter', sans-serif !important;
-}
-/* hover effect on button width */
-.Btn:hover {
-  width: 115px !important;
-  border-radius: 8px !important;
-  transition-duration: .3s !important;
-  background-color: #ffffff !important;
-  box-shadow: 0 0 16px rgba(255, 255, 255, 0.5) !important;
-}
-
-.Btn:hover .sign {
-  width: 30% !important;
-  transition-duration: .3s !important;
-  padding-left: 10px !important;
-}
-/* hover effect button's text */
-.Btn:hover .text {
-  opacity: 1 !important;
-  width: 70% !important;
-  transition-duration: .3s !important;
-  padding-right: 10px !important;
-}
-/* button click effect*/
-.Btn:active {
-  transform: translate(2px ,2px) !important;
-}
 </style>""", unsafe_allow_html=True)
 
-def dikey_buton_metni(metin):
-    metin = metin.strip()
-    parcalar = metin.split(" ", 1)
-    if len(parcalar) == 2:
-        return f"{parcalar[0]}\n{parcalar[1]}"
-    return metin
+# BEYAZ VEKTÖREL SVG İKON HARİTASI
+svg_map = {
+    "Operasyon": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>""",
+    "Müşteri & CRM": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>""",
+    "Finans": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>""",
+    "Yönetim": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>""",
+    "İletişim": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>""",
+    "OMG AI": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>""",
+    "Ayarlar": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>""",
+    "Çıkış": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>"""
+}
+
+# Link Navigasyon Router'ı
+if "nav_kat" in st.query_params:
+    k_val = st.query_params.get("nav_kat")
+    if k_val == "Operasyon":
+        st.session_state.secili_kategori = "🛠️ Operasyon"
+        st.session_state.aktif_sayfa = "🏠 Komuta Merkezi"
+    elif k_val == "Müşteri & CRM":
+        st.session_state.secili_kategori = "🤝 Müşteri & CRM"
+        st.session_state.aktif_sayfa = "🤝 Hekim ve Cari Kayıt"
+    elif k_val == "Finans":
+        st.session_state.secili_kategori = "💰 Finans"
+        st.session_state.aktif_sayfa = "💰 Finans & Analitik"
+    elif k_val == "Yönetim":
+        st.session_state.secili_kategori = "🏢 Yönetim"
+        st.session_state.aktif_sayfa = "🔧 Makine Parkuru ve Bakımı"
+    elif k_val == "İletişim":
+        st.session_state.aktif_sayfa = "💬 Mobil İletişim"
+    elif k_val == "OMG AI":
+        st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"
+    elif k_val == "Ayarlar":
+        st.session_state.aktif_sayfa = "⚙️ Ayarlar"
+    st.query_params.clear()
+    st.query_params["page"] = st.session_state.aktif_sayfa
+    st.rerun()
 
 kategoriler = {
     "🛠️ Operasyon": [
@@ -2495,92 +2493,57 @@ for kat_k, kat_v in gecerli_kategoriler.items():
         st.session_state.secili_kategori = kat_k
         break
 
-# --- 1. SEVİYE: ANA KATEGORİ ÇUBUĞU ---
-col_count = len(gecerli_kategoriler)
-col_weights = [1.6] + [1.3] * col_count
-if "💬 Mobil İletişim" in menu:
-    col_weights.append(1.0)
-if rol in ["Admin", "Yönetici", "Sekreter"]:
-    col_weights.append(0.9)
-col_weights.append(1.0)
-col_weights.append(1.0)
-
-kat_cols = st.columns(col_weights)
-c_idx = 0
-
-with kat_cols[c_idx]:
-    st.markdown("<div style='font-family:Manrope,sans-serif; font-weight:900; font-size:16px; color:#f8fafc; padding-top:16px;'>DENTMESHER <span style='color:#e8622c;'>HUB</span></div>", unsafe_allow_html=True)
-c_idx += 1
-
+# --- 1. SEVİYE: EŞİT BOYUTLU ANA KATEGORİ ÇUBUĞU ---
+btn_list = []
 for kat_adi in gecerli_kategoriler.keys():
-    is_sel = (st.session_state.secili_kategori == kat_adi)
-    b_type = "primary" if is_sel else "secondary"
-    with kat_cols[c_idx]:
-        if st.button(dikey_buton_metni(kat_adi), key=f"kat_btn_{kat_adi}", use_container_width=True, type=b_type):
-            st.session_state.secili_kategori = kat_adi
-            ilk_mod = gecerli_kategoriler[kat_adi][0]
-            st.session_state.aktif_sayfa = ilk_mod
-            st.query_params["page"] = ilk_mod
-            st.rerun()
-    c_idx += 1
+    k_clean = kat_adi.replace("🛠️ ", "").replace("🤝 ", "").replace("💰 ", "").replace("🏢 ", "")
+    btn_list.append((k_clean, f"?nav_kat={k_clean}", st.session_state.secili_kategori == kat_adi))
 
 if "💬 Mobil İletişim" in menu:
-    with kat_cols[c_idx]:
-        msg_type = "primary" if st.session_state.aktif_sayfa == "💬 Mobil İletişim" else "secondary"
-        if st.button("💬\nİletişim", key="nav_btn_msg", use_container_width=True, type=msg_type):
-            st.session_state.aktif_sayfa = "💬 Mobil İletişim"
-            st.query_params["page"] = "💬 Mobil İletişim"
-            st.rerun()
-    c_idx += 1
-
+    btn_list.append(("İletişim", "?nav_kat=İletişim", st.session_state.aktif_sayfa == "💬 Mobil İletişim"))
 if rol in ["Admin", "Yönetici", "Sekreter"]:
-    with kat_cols[c_idx]:
-        ai_type = "primary" if st.session_state.aktif_sayfa == "🤖 OMG AI Asistan" else "secondary"
-        if st.button("🤖\nOMG AI", key="nav_btn_ai", use_container_width=True, type=ai_type):
-            st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"
-            st.query_params["page"] = "🤖 OMG AI Asistan"
-            st.rerun()
-    c_idx += 1
+    btn_list.append(("OMG AI", "?nav_kat=OMG AI", st.session_state.aktif_sayfa == "🤖 OMG AI Asistan"))
+if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
+    btn_list.append(("Ayarlar", "?nav_kat=Ayarlar", st.session_state.aktif_sayfa == "⚙️ Ayarlar"))
+btn_list.append(("Çıkış", "?logout=true", False))
 
-with kat_cols[c_idx]:
-    if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
-        set_type = "primary" if st.session_state.aktif_sayfa == "⚙️ Ayarlar" else "secondary"
-        if st.button("⚙️\nAyarlar", help="Sistem Ayarları", key="nav_btn_set", use_container_width=True, type=set_type):
-            st.session_state.aktif_sayfa = "⚙️ Ayarlar"
-            st.query_params["page"] = "⚙️ Ayarlar"
-            st.rerun()
-c_idx += 1
+# Tüm butonlar için eşit kolon ağırlığı: [1.6 Logo] + [1.0 Buton] * N
+col_weights = [1.6] + [1.0] * len(btn_list)
+kat_cols = st.columns(col_weights)
 
-# 🚪 ÇIKIŞ BUTONU: Uiverse.io 'Btn' Animasyonlu Genişleyen Buton Tasarımı
-with kat_cols[c_idx]:
-    st.markdown("""
-    <div style='display:flex; justify-content:center; align-items:center;'>
-        <a href="?logout=true" target="_self" class="Btn" title="Güvenli Çıkış Yap">
-            <div class="sign">
-                <svg viewBox="0 0 512 512">
-                    <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"></path>
-                </svg>
-            </div>
-            <div class="text">Çıkış</div>
+# Logo
+with kat_cols[0]:
+    st.markdown("<div style='font-family:Manrope,sans-serif; font-weight:900; font-size:16px; color:#f8fafc; padding-top:16px;'>DENTMESHER <span style='color:#e8622c;'>HUB</span></div>", unsafe_allow_html=True)
+
+# Eşit Boyutlu Beyaz Vektörel İkonlu Butonlar
+for b_idx, (b_name, b_link, b_active) in enumerate(btn_list, start=1):
+    with kat_cols[b_idx]:
+        svg_code = svg_map.get(b_name, svg_map["Ayarlar"])
+        act_class = "active" if b_active else ""
+        st.markdown(f"""
+        <a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}">
+            <div class="dm-icon">{svg_code}</div>
+            <div class="dm-label">{b_name}</div>
         </a>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
 # --- 2. SEVİYE: AKTİF KATEGORİNİN ALT MODÜLLERİ ---
 secili_moduller = gecerli_kategoriler.get(st.session_state.secili_kategori, [])
 if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletişim", "🤖 OMG AI Asistan", "⚙️ Ayarlar"]:
-    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     sub_cols = st.columns(len(secili_moduller))
     for s_idx, mod_adi in enumerate(secili_moduller):
         m_active = (mod_adi == st.session_state.aktif_sayfa)
         m_type = "primary" if m_active else "secondary"
         with sub_cols[s_idx]:
-            if st.button(dikey_buton_metni(mod_adi), key=f"sub_mod_{mod_adi}", use_container_width=True, type=m_type):
+            if st.button(mod_adi, key=f"sub_mod_{mod_adi}", use_container_width=True, type=m_type):
                 st.session_state.aktif_sayfa = mod_adi
                 st.query_params["page"] = mod_adi
                 st.rerun()
 
 st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.20); margin: 8px 0 20px 0;'>", unsafe_allow_html=True)
+
+
 
 sayfa = st.session_state.aktif_sayfa
 
