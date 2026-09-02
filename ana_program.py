@@ -2313,21 +2313,17 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
-/* ── EN TEPEDE SABİT KALAN (STICKY) ANA BANNER ── */
+/* ── EN TEPEDE SABİT KALAN (STICKY) DOĞAL ŞEFFAF ANA BANNER ── */
 .dm-sticky-header {
     position: sticky !important;
     top: 0 !important;
     z-index: 99999 !important;
-    background: rgba(6, 12, 26, 0.94) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    padding: 6px 12px 4px 12px !important;
-    margin-top: -1rem !important;
-    margin-left: -1rem !important;
-    margin-right: -1rem !important;
+    background: rgba(3, 7, 18, 0.70) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    padding: 2px 0 !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55) !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 8px !important;
 }
 
 /* ── EŞİT BOYUTLU, ÇERÇEVESİZ & BEYAZ VEKTÖREL İKONLU SAĞA YASLI SABİT MENÜ BUTONLARI ── */
