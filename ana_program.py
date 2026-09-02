@@ -565,7 +565,7 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
         
-        html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+        html, body, [class*="css"], [class*="st-"] { font-family: 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important; }
         .stApp { background-color: #0f172a; color: #FFFFFF; background-image: radial-gradient(circle at 50% 0%, #1e3a8a 0%, #0f172a 60%); background-attachment: fixed; }
         h1, h2, h3, h4, h5, h6, label, p, span, div { color: #FFFFFF; }
         
@@ -8927,31 +8927,67 @@ if aktif_kullanici != "Misafir":
 
     st.markdown("""
 <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-        /* 1. ANA BUTON VE KASA ZIRHI */
-        div[data-testid="stPopover"] { position: fixed !important; bottom: 25px !important; right: 25px !important; width: fit-content !important; z-index: 999999 !important; }
+        /* 1. SADECE YÜZEN SOHBET BUTONU İÇİN POPOVER (ÜST MENÜYÜ ASLA ETKİLEMEZ) */
+        div[data-testid="stVerticalBlock"] > div:last-child div[data-testid="stPopover"] { 
+            position: fixed !important; 
+            bottom: 25px !important; 
+            right: 25px !important; 
+            width: fit-content !important; 
+            z-index: 999999 !important; 
+        }
         
-        div[data-testid="stPopover"] button { background-color: #1877F2 !important; border-radius: 25px !important; padding: 12px 30px !important; border: none !important; box-shadow: 0 6px 16px rgba(24, 119, 242, 0.4) !important; transition: all 0.3s ease !important; }
+        div[data-testid="stVerticalBlock"] > div:last-child div[data-testid="stPopover"] > button { 
+            background-color: #1877F2 !important; 
+            border-radius: 25px !important; 
+            padding: 12px 30px !important; 
+            border: none !important; 
+            box-shadow: 0 6px 16px rgba(24, 119, 242, 0.4) !important; 
+            transition: all 0.3s ease !important; 
+        }
         
-        div[data-testid="stPopover"] button:hover, 
-        div[data-testid="stPopover"] button:active, 
-        div[data-testid="stPopover"] button:focus { background-color: #166FE5 !important; border: none !important; transform: scale(1.02) !important; color: #ffffff !important; outline: none !important;}
+        div[data-testid="stVerticalBlock"] > div:last-child div[data-testid="stPopover"] > button:hover { 
+            background-color: #166FE5 !important; 
+            border: none !important; 
+            transform: scale(1.02) !important; 
+            color: #ffffff !important; 
+            outline: none !important;
+        }
         
-        div[data-testid="stPopover"] button p { color: #ffffff !important; font-weight: 600 !important; font-size: 16px !important; font-family: 'Inter', sans-serif !important; margin: 0 !important; }
+        div[data-testid="stVerticalBlock"] > div:last-child div[data-testid="stPopover"] > button p { 
+            color: #ffffff !important; 
+            font-weight: 600 !important; 
+            font-size: 16px !important; 
+            margin: 0 !important; 
+        }
         
-        div[data-testid="stPopoverBody"] { position: fixed !important; bottom: 85px !important; top: auto !important; right: 25px !important; left: auto !important; transform: none !important; max-width: 95vw !important; background-color: #ffffff !important; border: 1px solid #E4E6EB !important; border-radius: 12px !important; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1) !important; z-index: 999999 !important; overflow-y: hidden !important; padding: 0 !important; font-family: 'Inter', sans-serif !important; }
-        div[data-testid="stPopoverBody"] > div { position: relative !important; z-index: 2 !important; } 
-        div[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"] { background: transparent !important; gap: 0rem !important; padding: 0 !important; }
-        div[data-testid="stPopoverBody"] *::-webkit-scrollbar { width: 6px !important; }
-        div[data-testid="stPopoverBody"] *::-webkit-scrollbar-thumb { background: #CED0D4 !important; border-radius: 10px !important; }
+        /* Sadece en alttaki yüzen pencerenin gövdesi */
+        div[data-testid="stVerticalBlock"] > div:last-child div[data-testid="stPopoverBody"] { 
+            position: fixed !important; 
+            bottom: 85px !important; 
+            top: auto !important; 
+            right: 25px !important; 
+            left: auto !important; 
+            transform: translateY(18px) !important; 
+            max-width: 95vw !important; 
+            background-color: #ffffff !important; 
+            border: 1px solid #E4E6EB !important; 
+            border-radius: 12px !important; 
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1) !important; 
+            z-index: 999999 !important; 
+            overflow-y: hidden !important; 
+            padding: 0 !important; 
+        }
+        div[data-testid="stVerticalBlock"] > div:last-child div[data-testid="stPopoverBody"] > div { position: relative !important; z-index: 2 !important; } 
+        div[data-testid="stVerticalBlock"] > div:last-child div[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"] { background: transparent !important; gap: 0rem !important; padding: 0 !important; }
+        div[data-testid="stVerticalBlock"] > div:last-child div[data-testid="stPopoverBody"] *::-webkit-scrollbar { width: 6px !important; }
+        div[data-testid="stVerticalBlock"] > div:last-child div[data-testid="stPopoverBody"] *::-webkit-scrollbar-thumb { background: #CED0D4 !important; border-radius: 10px !important; }
         
         /* 🚨 SIZINTI ENGELLEYİCİ: SADECE POPOVER İÇİNDEKİ FORMLARI ETKİLER 🚨 */
-        div[data-testid="stPopoverBody"] div[data-testid="stForm"] { border: none !important; padding: 10px 15px !important; background-color: #ffffff !important; margin: 0 !important; box-shadow: none !important; border-top: 1px solid #E4E6EB !important; }
+        div[data-testid="stVerticalBlock"] > div:last-child div[data-testid="stPopoverBody"] div[data-testid="stForm"] { border: none !important; padding: 10px 15px !important; background-color: #ffffff !important; margin: 0 !important; box-shadow: none !important; border-top: 1px solid #E4E6EB !important; }
 
         /* 2. SOHBET BALONLARI */
         .mesaj-satiri { display: flex; flex-direction: column; width: 100%; margin-bottom: 8px; }
-        .mesaj-kutusu { padding: 8px 12px; margin: 2px 10px; border-radius: 14px; max-width: 80%; font-size: 13px; font-family: 'Inter', sans-serif; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .mesaj-kutusu { padding: 8px 12px; margin: 2px 10px; border-radius: 14px; max-width: 80%; font-size: 13px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .mesaj-gonderen { background: #1877F2; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .mesaj-alici { background: #F0F2F5; color: #050505; align-self: flex-start; border-bottom-left-radius: 4px; }
 </style>
