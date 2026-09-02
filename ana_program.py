@@ -2345,6 +2345,7 @@ st.markdown("""<style>
     width: 20px !important;
     height: 20px !important;
     fill: #ffffff !important;
+    transition: all 0.25s ease !important;
 }
 
 .dm-vector-btn .dm-label {
@@ -2359,14 +2360,21 @@ st.markdown("""<style>
     transition: all 0.25s ease !important;
 }
 
+/* 🌟 MOUSE ÜZERİNE GELDİĞİNDE (HOVER) CANLI TURUNCU NEON IŞIMA 🌟 */
 .dm-vector-btn:hover {
-    background-color: rgba(255, 255, 255, 0.12) !important;
-    transform: translateY(-2px) !important;
+    background-color: rgba(255, 123, 0, 0.14) !important;
+    box-shadow: 0 0 18px rgba(255, 123, 0, 0.35), inset 0 0 10px rgba(255, 123, 0, 0.15) !important;
+    transform: translateY(-2px) scale(1.02) !important;
+}
+
+.dm-vector-btn:hover .dm-icon svg {
+    fill: #ff9933 !important;
+    filter: drop-shadow(0 0 6px #ff7b00) drop-shadow(0 0 14px rgba(255, 123, 0, 0.85)) !important;
 }
 
 .dm-vector-btn:hover .dm-label {
-    color: #ffffff !important;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.9) !important;
+    color: #ffaa44 !important;
+    text-shadow: 0 0 8px #ff7b00, 0 0 16px #ff8c00, 0 0 24px rgba(234, 88, 12, 0.9) !important;
 }
 
 .dm-vector-btn.active {
@@ -2398,13 +2406,16 @@ div[data-testid="stHorizontalBlock"] button p {
     font-weight: 600 !important;
     color: rgb(200, 205, 215) !important;
     margin: 0 !important;
+    transition: all 0.25s ease !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover {
-    background-color: rgba(255, 255, 255, 0.10) !important;
+    background-color: rgba(255, 123, 0, 0.14) !important;
+    box-shadow: 0 0 14px rgba(255, 123, 0, 0.3) !important;
     transform: translateY(-2px) !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover p {
-    color: #ffffff !important;
+    color: #ffaa44 !important;
+    text-shadow: 0 0 8px #ff7b00, 0 0 16px #ff8c00, 0 0 22px rgba(234, 88, 12, 0.85) !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] {
     background-color: rgba(56, 189, 248, 0.16) !important;
