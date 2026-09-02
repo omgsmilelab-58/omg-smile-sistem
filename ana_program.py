@@ -2289,7 +2289,7 @@ if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
         st.rerun()
     st.stop()
 
-# --- 🌟 YATAY ÜST MENÜ (2-TIER MODERN HORIZONTAL NAVBAR) ---
+# --- 🌟 YATAY ÜST MENÜ (ŞEFFAF, DİKEY İKONLU & NEON HOVER NAVBAR) ---
 abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
 alt_baslik = f"{rol} Yetkisi" if rol != "Klinik_Asistan" else f"{ana_klinik} Asistanı"
 
@@ -2305,16 +2305,62 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
-/* Üst Kategori Butonları */
+/* ── ŞEFFAF, DİKEY DİZİLİMLİ (İKON ÜSTTE, İSİM ALTTA) & NEON HOVER BUTONLARI ── */
 div[data-testid="stHorizontalBlock"] button {
-    border-radius: 10px !important;
-    font-weight: 700 !important;
-    font-size: 13.5px !important;
-    padding: 7px 12px !important;
-    white-space: nowrap !important;
+    background: rgba(15, 23, 42, 0.45) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 14px !important;
+    min-height: 64px !important;
+    padding: 8px 10px !important;
+    text-align: center !important;
+    transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
     font-family: 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
 }
+
+div[data-testid="stHorizontalBlock"] button p {
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    color: #e2e8f0 !important;
+    line-height: 1.4 !important;
+    letter-spacing: 0.02em !important;
+    margin: 0 !important;
+    white-space: pre-line !important;
+    transition: all 0.28s ease !important;
+}
+
+/* 🌟 MOUSE ÜZERİNE GELDİĞİNDE (HOVER) CANLI NEON IŞIMA 🌟 */
+div[data-testid="stHorizontalBlock"] button:hover {
+    background: rgba(56, 189, 248, 0.18) !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.65), inset 0 0 14px rgba(56, 189, 248, 0.25) !important;
+    transform: translateY(-4px) scale(1.03) !important;
+}
+div[data-testid="stHorizontalBlock"] button:hover p {
+    color: #ffffff !important;
+    text-shadow: 0 0 12px #38bdf8, 0 0 24px #0284c7, 0 0 35px rgba(56, 189, 248, 0.8) !important;
+}
+
+/* 🔷 AKTİF SEÇİLİ MENÜ BUTONU (PRIMARY) 🔷 */
+div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+    background: linear-gradient(180deg, rgba(56, 189, 248, 0.32) 0%, rgba(14, 165, 233, 0.16) 100%) !important;
+    border: 1.5px solid #38bdf8 !important;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.45), inset 0 0 12px rgba(56, 189, 248, 0.25) !important;
+}
+div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
+    color: #ffffff !important;
+    text-shadow: 0 0 10px #38bdf8 !important;
+}
 </style>""", unsafe_allow_html=True)
+
+def dikey_buton_metni(metin):
+    metin = metin.strip()
+    parcalar = metin.split(" ", 1)
+    if len(parcalar) == 2:
+        return f"{parcalar[0]}\n{parcalar[1]}"
+    return metin
 
 kategoriler = {
     "🛠️ Operasyon": [
@@ -2362,20 +2408,21 @@ if "💬 Mobil İletişim" in menu:
     col_weights.append(1.0)
 if rol in ["Admin", "Yönetici", "Sekreter"]:
     col_weights.append(0.9)
-col_weights.append(1.2)
+col_weights.append(1.0)
+col_weights.append(1.0)
 
 kat_cols = st.columns(col_weights)
 c_idx = 0
 
 with kat_cols[c_idx]:
-    st.markdown("<div style='font-family:Manrope,sans-serif; font-weight:900; font-size:16px; color:#f8fafc; padding-top:8px;'>DENTMESHER <span style='color:#e8622c;'>HUB</span></div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-family:Manrope,sans-serif; font-weight:900; font-size:16px; color:#f8fafc; padding-top:16px;'>DENTMESHER <span style='color:#e8622c;'>HUB</span></div>", unsafe_allow_html=True)
 c_idx += 1
 
 for kat_adi in gecerli_kategoriler.keys():
     is_sel = (st.session_state.secili_kategori == kat_adi)
     b_type = "primary" if is_sel else "secondary"
     with kat_cols[c_idx]:
-        if st.button(kat_adi, key=f"kat_btn_{kat_adi}", use_container_width=True, type=b_type):
+        if st.button(dikey_buton_metni(kat_adi), key=f"kat_btn_{kat_adi}", use_container_width=True, type=b_type):
             st.session_state.secili_kategori = kat_adi
             ilk_mod = gecerli_kategoriler[kat_adi][0]
             st.session_state.aktif_sayfa = ilk_mod
@@ -2386,7 +2433,7 @@ for kat_adi in gecerli_kategoriler.keys():
 if "💬 Mobil İletişim" in menu:
     with kat_cols[c_idx]:
         msg_type = "primary" if st.session_state.aktif_sayfa == "💬 Mobil İletişim" else "secondary"
-        if st.button("💬 İletişim", key="nav_btn_msg", use_container_width=True, type=msg_type):
+        if st.button("💬\nİletişim", key="nav_btn_msg", use_container_width=True, type=msg_type):
             st.session_state.aktif_sayfa = "💬 Mobil İletişim"
             st.query_params["page"] = "💬 Mobil İletişim"
             st.rerun()
@@ -2395,20 +2442,23 @@ if "💬 Mobil İletişim" in menu:
 if rol in ["Admin", "Yönetici", "Sekreter"]:
     with kat_cols[c_idx]:
         ai_type = "primary" if st.session_state.aktif_sayfa == "🤖 OMG AI Asistan" else "secondary"
-        if st.button("🤖 AI", key="nav_btn_ai", use_container_width=True, type=ai_type):
+        if st.button("🤖\nOMG AI", key="nav_btn_ai", use_container_width=True, type=ai_type):
             st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"
             st.query_params["page"] = "🤖 OMG AI Asistan"
             st.rerun()
     c_idx += 1
 
 with kat_cols[c_idx]:
-    c_exit1, c_exit2 = st.columns([1, 1])
     if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
-        if c_exit1.button("⚙️", help="Sistem Ayarları", key="nav_btn_set", use_container_width=True):
+        set_type = "primary" if st.session_state.aktif_sayfa == "⚙️ Ayarlar" else "secondary"
+        if st.button("⚙️\nAyarlar", help="Sistem Ayarları", key="nav_btn_set", use_container_width=True, type=set_type):
             st.session_state.aktif_sayfa = "⚙️ Ayarlar"
             st.query_params["page"] = "⚙️ Ayarlar"
             st.rerun()
-    if c_exit2.button("🚪", help="Çıkış Yap", key="nav_btn_out", use_container_width=True):
+c_idx += 1
+
+with kat_cols[c_idx]:
+    if st.button("🚪\nÇıkış", help="Sistemden Güvenli Çıkış", key="nav_btn_out", use_container_width=True):
         st.query_params.clear()
         st.session_state.clear()
         st.rerun()
@@ -2416,18 +2466,18 @@ with kat_cols[c_idx]:
 # --- 2. SEVİYE: AKTİF KATEGORİNİN ALT MODÜLLERİ ---
 secili_moduller = gecerli_kategoriler.get(st.session_state.secili_kategori, [])
 if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletişim", "🤖 OMG AI Asistan", "⚙️ Ayarlar"]:
-    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
     sub_cols = st.columns(len(secili_moduller))
     for s_idx, mod_adi in enumerate(secili_moduller):
         m_active = (mod_adi == st.session_state.aktif_sayfa)
         m_type = "primary" if m_active else "secondary"
         with sub_cols[s_idx]:
-            if st.button(mod_adi, key=f"sub_mod_{mod_adi}", use_container_width=True, type=m_type):
+            if st.button(dikey_buton_metni(mod_adi), key=f"sub_mod_{mod_adi}", use_container_width=True, type=m_type):
                 st.session_state.aktif_sayfa = mod_adi
                 st.query_params["page"] = mod_adi
                 st.rerun()
 
-st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.20); margin: 6px 0 20px 0;'>", unsafe_allow_html=True)
+st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.20); margin: 8px 0 20px 0;'>", unsafe_allow_html=True)
 
 sayfa = st.session_state.aktif_sayfa
 
