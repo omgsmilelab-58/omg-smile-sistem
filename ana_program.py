@@ -2473,7 +2473,7 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     transform: none !important;
 }
 
-/* ── SAĞ ÜST PROFİL ÇEMBERİ VE DROPDOWN MENÜ ── */
+/* ── SAĞ ÜST PROFİL ÇEMBERİ VE DROPDOWN KART (TAM REFERANS TASARIM) ── */
 .dm-profile-wrapper {
     position: relative !important;
     display: inline-block !important;
@@ -2512,94 +2512,246 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     box-shadow: 0 0 14px rgba(232, 98, 44, 0.6) !important;
 }
 
-.dm-profile-menu {
+.dm-profile-dropdown-card {
     position: absolute !important;
     top: calc(100% + 10px) !important;
     right: 0 !important;
-    width: 220px !important;
-    background: rgba(8, 17, 34, 0.96) !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    border-radius: 14px !important;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(232, 98, 44, 0.2) !important;
-    padding: 10px !important;
+    width: 280px !important;
+    background: #ffffff !important;
+    border-radius: 18px !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45) !important;
+    overflow: hidden !important;
     opacity: 0 !important;
     visibility: hidden !important;
-    transform: translateY(-6px) !important;
-    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s !important;
+    transform: translateY(-8px) !important;
+    transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s !important;
     pointer-events: none !important;
     z-index: 1000000 !important;
+    font-family: 'Inter', sans-serif !important;
+    text-align: left !important;
 }
 
-.dm-profile-wrapper:hover .dm-profile-menu,
-.dm-profile-wrapper:focus-within .dm-profile-menu {
+.dm-profile-wrapper:hover .dm-profile-dropdown-card,
+.dm-profile-wrapper:focus-within .dm-profile-dropdown-card {
     opacity: 1 !important;
     visibility: visible !important;
     transform: translateY(0) !important;
     pointer-events: auto !important;
 }
 
-.dm-profile-header {
-    padding-bottom: 8px !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    margin-bottom: 8px !important;
+/* HEADER BLUE GRADIENT */
+.dm-card-header {
+    background: linear-gradient(135deg, #1d61ea 0%, #2575fc 100%) !important;
+    padding: 16px 14px 12px 14px !important;
+    color: #ffffff !important;
 }
 
-.dm-profile-name {
-    font-family: 'Manrope', 'Inter', sans-serif !important;
-    font-weight: 800 !important;
+.dm-card-header-top {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.dm-card-avatar {
+    width: 46px !important;
+    height: 46px !important;
+    border-radius: 50% !important;
+    background: #0d3b82 !important;
+    border: 2px solid rgba(255, 255, 255, 0.5) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     font-size: 13.5px !important;
-    color: #f8fafc !important;
-    line-height: 1.2 !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+    flex-shrink: 0 !important;
+    font-family: 'Manrope', sans-serif !important;
+}
+
+.dm-card-header-info {
+    flex-grow: 1 !important;
+    min-width: 0 !important;
+}
+
+.dm-card-title-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.dm-card-title {
+    font-size: 14.5px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
 }
 
-.dm-profile-role {
-    font-size: 11px !important;
-    color: #e8622c !important;
-    font-weight: 600 !important;
-    margin-top: 2px !important;
+.dm-card-vip-pill {
+    background: #ffc107 !important;
+    color: #0f172a !important;
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
+    padding: 2px 7px !important;
+    border-radius: 12px !important;
+    letter-spacing: 0.3px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
+    flex-shrink: 0 !important;
+}
+
+.dm-card-role-pill {
+    display: inline-block !important;
+    background: rgba(255, 255, 255, 0.22) !important;
+    color: #ffffff !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    padding: 1px 7px !important;
+    border-radius: 8px !important;
+    margin-top: 3px !important;
+}
+
+.dm-card-code {
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    margin-top: 3px !important;
     letter-spacing: 0.3px !important;
 }
 
-.dm-profile-item {
+.dm-card-progress-row {
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
-    padding: 8px 10px !important;
-    border-radius: 8px !important;
-    color: #e2e8f0 !important;
-    text-decoration: none !important;
+    margin-top: 10px !important;
+}
+
+.dm-card-progress-bar {
+    flex-grow: 1 !important;
+    height: 5px !important;
+    background: rgba(255, 255, 255, 0.25) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+
+.dm-card-progress-fill {
+    height: 100% !important;
+    background: #ff9800 !important;
+    border-radius: 10px !important;
+}
+
+.dm-card-progress-text {
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    white-space: nowrap !important;
+}
+
+/* DETAILS LIST */
+.dm-card-details {
+    padding: 12px 14px !important;
+    background: #ffffff !important;
+}
+
+.dm-detail-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 3.5px 0 !important;
+    color: #475569 !important;
     font-size: 12px !important;
     font-weight: 600 !important;
-    font-family: 'Inter', sans-serif !important;
-    transition: all 0.15s ease !important;
-    margin-bottom: 2px !important;
 }
 
-.dm-profile-item:hover {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: #ffffff !important;
+.dm-detail-icon {
+    font-size: 13.5px !important;
+    width: 18px !important;
+    text-align: center !important;
+    color: #64748b !important;
+    flex-shrink: 0 !important;
 }
 
-.dm-profile-item.settings:hover {
-    color: #38bdf8 !important;
-    background: rgba(56, 189, 248, 0.12) !important;
+.dm-detail-text {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: #334155 !important;
 }
 
-.dm-profile-item.logout {
-    color: #f87171 !important;
-    margin-top: 6px !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    padding-top: 8px !important;
+.dm-card-divider {
+    height: 1px !important;
+    background: #e2e8f0 !important;
+    margin: 0 !important;
 }
 
-.dm-profile-item.logout:hover {
-    background: rgba(239, 68, 68, 0.14) !important;
+/* ACTION LINKS */
+.dm-card-actions {
+    padding: 10px 12px 14px 12px !important;
+    background: #ffffff !important;
+}
+
+.dm-action-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 7px 10px !important;
+    border-radius: 8px !important;
+    color: #1e293b !important;
+    text-decoration: none !important;
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    transition: background 0.15s ease !important;
+    margin-bottom: 3px !important;
+}
+
+.dm-action-item:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+.dm-action-icon {
+    font-size: 15px !important;
+    width: 20px !important;
+    text-align: center !important;
+}
+
+/* VIP ÜYELİK HIGHLIGHT CARD */
+.dm-vip-card {
+    background: #e6f9f0 !important;
+    border: 1px solid #b7edd4 !important;
+    border-radius: 10px !important;
+    padding: 8px 12px !important;
+    margin: 6px 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+.dm-vip-card-title {
+    color: #059669 !important;
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.dm-vip-card-date {
+    color: #065f46 !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    padding-left: 20px !important;
+}
+
+.dm-action-item.logout {
     color: #ef4444 !important;
+    margin-top: 4px !important;
+}
+
+.dm-action-item.logout:hover {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
 }
 </style>""", unsafe_allow_html=True)
 
@@ -2705,55 +2857,164 @@ for b_name, b_link, b_active in btn_list:
     act_class = "active" if b_active else ""
     buttons_html += f'<a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}"><div class="dm-icon">{svg_code}</div><div class="dm-label">{b_name}</div></a>'
 
-def get_user_info(kadi, u_rol, klinik=""):
-    full_name = ""
+def get_profile_card_data(kadi, u_rol, klinik=""):
+    full_name = kadi
+    title_name = klinik if klinik else "Smile Station"
+    user_email = "oguzhangorler@live.com" if (kadi and "oguz" in kadi.lower()) else ("bilgi@omgsmilelab.com" if not klinik else f"{kadi.lower().replace(' ', '')}@klinik.com")
+    user_city = "İzmir"
+    vip_badge = "★ VIP"
+    role_badge = "Klinik" if u_rol in ["Klinik", "Klinik_Asistan"] else ("Laboratuvar" if u_rol in ["Admin", "Yönetici"] else u_rol)
+    
+    hash_num = (abs(hash(kadi + (klinik or ""))) % 9000) + 1000
+    prefix = "KLN" if u_rol in ["Klinik", "Klinik_Asistan"] else "LAB"
+    code_str = f"{prefix}-{hash_num}"
+    
+    reg_date = "07.08.2026"
+    last_login = datetime.now().strftime("%d.%m.%Y %H:%M")
+    profil_yuzde = 62
+    
     try:
         if u_rol in ["Admin", "Teknisyen", "Sekreter", "Yönetici"]:
-            res = c.execute("SELECT isim FROM kullanicilar WHERE LOWER(kullanici_adi)=LOWER(?)", (kadi.strip(),)).fetchone()
+            res = c.execute("SELECT isim, rol FROM kullanicilar WHERE LOWER(kullanici_adi)=LOWER(?)", (kadi.strip(),)).fetchone()
             if res and res[0]:
                 full_name = res[0]
+            if not klinik:
+                title_name = "Smile Station"
+            vip_badge = "★ VIP"
+            
+            kb = c.execute("SELECT Email, Adres, Kurum_Ad FROM kurumsal_bilgiler WHERE Kullanici_Adi='Laboratuvar'").fetchone()
+            if kb:
+                if kb[0] and kb[0] != "Belirtilmemiş": user_email = kb[0]
+                if kb[1] and kb[1] != "Belirtilmemiş": 
+                    user_city = kb[1].split()[-1] if kb[1] else "İzmir"
+                if kb[2] and kb[2] != "Belirtilmemiş" and not klinik:
+                    title_name = kb[2]
+                    
         elif u_rol in ["Klinik", "Klinik_Asistan"]:
             if klinik:
-                res = c.execute("SELECT Yetkili_Kisi, Klinik_Unvani FROM cariler WHERE LOWER(Klinik_Unvani)=LOWER(?)", (klinik.strip(),)).fetchone()
-                if res and res[0] and res[0] != "-":
-                    full_name = res[0]
-                elif res and res[1]:
-                    full_name = res[1]
+                res = c.execute("SELECT Yetkili_Kisi, Klinik_Unvani, Email, Adres, VIP_Seviye FROM cariler WHERE LOWER(Klinik_Unvani)=LOWER(?)", (klinik.strip(),)).fetchone()
+                if res:
+                    if res[0] and res[0] != "-": full_name = res[0]
+                    if res[1]: title_name = res[1]
+                    if res[2] and res[2] != "-": user_email = res[2]
+                    if res[3] and res[3] != "-": user_city = res[3].split()[-1] if res[3] else "İzmir"
+                    if res[4] and "VIP" in str(res[4]).upper(): vip_badge = "★ VIP"
     except Exception:
         pass
-    
-    display_name = full_name if full_name else kadi
-    clean = display_name.replace("Dt.", "").replace("Dt", "").replace("Dr.", "").replace("Dr", "").strip()
+        
+    clean = full_name.replace("Dt.", "").replace("Dt", "").replace("Dr.", "").replace("Dr", "").strip()
     words = clean.split()
     if len(words) >= 2:
         initials = (words[0][0] + words[-1][0]).upper()
     elif len(words) == 1 and len(words[0]) >= 2:
         initials = words[0][:2].upper()
-    elif len(words) == 1 and len(words[0]) == 1:
-        initials = words[0][0].upper()
     else:
-        initials = "DM"
-    return display_name, initials
+        initials = "SS"
+        
+    t_words = title_name.split()
+    if len(t_words) >= 2:
+        logo_text = f"{t_words[0][:5]}<br>{t_words[1][:5]}"
+    else:
+        logo_text = title_name[:6]
 
-u_display_name, u_initials = get_user_info(kullanici_adi, rol, ana_klinik)
+    return {
+        "title_name": title_name,
+        "full_name": full_name,
+        "email": user_email,
+        "city": user_city,
+        "vip_badge": vip_badge,
+        "role_badge": role_badge,
+        "code_str": code_str,
+        "reg_date": reg_date,
+        "last_login": last_login,
+        "initials": initials,
+        "logo_text": logo_text,
+        "percent": profil_yuzde
+    }
+
+p_data = get_profile_card_data(kullanici_adi, rol, ana_klinik)
 
 profile_html = f'''
 <div class="dm-profile-wrapper" tabindex="0">
-    <div class="dm-profile-circle" title="Kullanıcı Menüsü: {u_display_name}">{u_initials}</div>
-    <div class="dm-profile-menu">
-        <div class="dm-profile-header">
-            <div class="dm-profile-name">{u_display_name}</div>
-            <div class="dm-profile-role">🛡️ {rol}</div>
+    <div class="dm-profile-circle" title="Kullanıcı Menüsü: {p_data['full_name']}">{p_data['initials']}</div>
+    <div class="dm-profile-dropdown-card">
+        <!-- HEADER BLUE GRADIENT -->
+        <div class="dm-card-header">
+            <div class="dm-card-header-top">
+                <div class="dm-card-avatar">
+                    <div style="font-size:10px; line-height:1.1; text-align:center; font-weight:800; font-family:'Manrope',sans-serif;">{p_data['logo_text']}</div>
+                </div>
+                <div class="dm-card-header-info">
+                    <div class="dm-card-title-row">
+                        <span class="dm-card-title">{p_data['title_name']}</span>
+                        <span class="dm-card-vip-pill">{p_data['vip_badge']}</span>
+                    </div>
+                    <div class="dm-card-role-pill">{p_data['role_badge']}</div>
+                    <div class="dm-card-code">{p_data['code_str']}</div>
+                </div>
+            </div>
+            <div class="dm-card-progress-row">
+                <div class="dm-card-progress-bar">
+                    <div class="dm-card-progress-fill" style="width: {p_data['percent']}%;"></div>
+                </div>
+                <span class="dm-card-progress-text">Profil %{p_data['percent']}</span>
+            </div>
         </div>
-        <a href="?nav_kat=profil&auth={current_auth}" target="_self" class="dm-profile-item">
-            <span style="font-size:14px;">👤</span> Profil Bilgileri
-        </a>
-        <a href="?nav_kat=ayarlar&auth={current_auth}" target="_self" class="dm-profile-item settings">
-            <span style="font-size:14px;">⚙️</span> Sistem Ayarları
-        </a>
-        <a href="?logout=true" target="_self" class="dm-profile-item logout">
-            <span style="font-size:14px;">🚪</span> Güvenli Çıkış
-        </a>
+        
+        <!-- USER DETAILS LIST -->
+        <div class="dm-card-details">
+            <div class="dm-detail-item">
+                <span class="dm-detail-icon">👤</span>
+                <span class="dm-detail-text">{p_data['full_name']}</span>
+            </div>
+            <div class="dm-detail-item">
+                <span class="dm-detail-icon">✉️</span>
+                <span class="dm-detail-text">{p_data['email']}</span>
+            </div>
+            <div class="dm-detail-item">
+                <span class="dm-detail-icon">📍</span>
+                <span class="dm-detail-text">{p_data['city']}</span>
+            </div>
+            <div class="dm-detail-item">
+                <span class="dm-detail-icon">🕒</span>
+                <span class="dm-detail-text">Son giriş {p_data['last_login']}</span>
+            </div>
+            <div class="dm-detail-item">
+                <span class="dm-detail-icon">📅</span>
+                <span class="dm-detail-text">Üyelik {p_data['reg_date']}</span>
+            </div>
+        </div>
+        
+        <div class="dm-card-divider"></div>
+        
+        <!-- ACTION LINKS -->
+        <div class="dm-card-actions">
+            <a href="?nav_kat=profil&auth={current_auth}" target="_self" class="dm-action-item">
+                <span class="dm-action-icon">🪪</span>
+                <span class="dm-action-label">Klinik Kartım</span>
+            </a>
+            <a href="?nav_kat=yonetim&auth={current_auth}" target="_self" class="dm-action-item">
+                <span class="dm-action-icon">👥</span>
+                <span class="dm-action-label">Asistanlarım</span>
+            </a>
+            
+            <!-- VIP ÜYELİK HIGHLIGHT CARD -->
+            <div class="dm-vip-card">
+                <div class="dm-vip-card-title">
+                    <span style="font-size:14px;">⭐</span> VIP Üyelik
+                </div>
+                <div class="dm-vip-card-date">11.09.2026</div>
+            </div>
+            
+            <a href="?nav_kat=ayarlar&auth={current_auth}" target="_self" class="dm-action-item">
+                <span class="dm-action-icon">⚙️</span>
+                <span class="dm-action-label">Ayarlar</span>
+            </a>
+            <a href="?logout=true" target="_self" class="dm-action-item logout">
+                <span class="dm-action-icon">🚪</span>
+                <span class="dm-action-label">Çıkış</span>
+            </a>
+        </div>
     </div>
 </div>
 '''
