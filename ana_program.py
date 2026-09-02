@@ -2310,53 +2310,58 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
-/* ── ŞEFFAF, DİKEY DİZİLİMLİ (İKON ÜSTTE, İSİM ALTTA) & NEON HOVER BUTONLARI ── */
+/* ── From Uiverse.io by vinodjangid07: MENÜ BUTONLARI (KATEGORİ VE MODÜLLER) ── */
 div[data-testid="stHorizontalBlock"] button {
-    background: rgba(15, 23, 42, 0.45) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 14px !important;
-    min-height: 64px !important;
-    padding: 8px 10px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    cursor: pointer !important;
+    box-shadow: 0px 10px 10px rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    min-height: 56px !important;
+    padding: 6px 12px !important;
     text-align: center !important;
-    transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
     font-family: 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
 }
 
 div[data-testid="stHorizontalBlock"] button p {
     font-size: 11.5px !important;
-    font-weight: 700 !important;
-    color: #e2e8f0 !important;
-    line-height: 1.4 !important;
+    font-weight: 600 !important;
+    color: rgb(180, 185, 195) !important;
+    line-height: 1.35 !important;
     letter-spacing: 0.02em !important;
     margin: 0 !important;
     white-space: pre-line !important;
-    transition: all 0.28s ease !important;
+    transition: all 0.3s ease !important;
 }
 
-/* 🌟 MOUSE ÜZERİNE GELDİĞİNDE (HOVER) CANLI NEON IŞIMA 🌟 */
+/* HOVER: background-color: rgb(59, 59, 59); box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.35); color: white; */
 div[data-testid="stHorizontalBlock"] button:hover {
-    background: rgba(56, 189, 248, 0.18) !important;
-    border-color: #38bdf8 !important;
-    box-shadow: 0 0 24px rgba(56, 189, 248, 0.65), inset 0 0 14px rgba(56, 189, 248, 0.25) !important;
-    transform: translateY(-4px) scale(1.03) !important;
+    box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.35) !important;
+    background-color: rgb(59, 59, 59) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    transform: translateY(-2px) !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover p {
     color: #ffffff !important;
-    text-shadow: 0 0 12px #38bdf8, 0 0 24px #0284c7, 0 0 35px rgba(56, 189, 248, 0.8) !important;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.7) !important;
 }
 
-/* 🔷 AKTİF SEÇİLİ MENÜ BUTONU (PRIMARY) 🔷 */
+/* AKTİF SEÇİLİ BUTON (PRIMARY) */
 div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-    background: linear-gradient(180deg, rgba(56, 189, 248, 0.32) 0%, rgba(14, 165, 233, 0.16) 100%) !important;
+    background-color: rgb(59, 59, 59) !important;
     border: 1.5px solid #38bdf8 !important;
-    box-shadow: 0 0 20px rgba(56, 189, 248, 0.45), inset 0 0 12px rgba(56, 189, 248, 0.25) !important;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.35), 0px 10px 10px rgba(0, 0, 0, 0.2) !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     color: #ffffff !important;
-    text-shadow: 0 0 10px #38bdf8 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 8px #38bdf8 !important;
 }
 
 /* ── From Uiverse.io by kennyotsu-monochromia: ÇIKIŞ BUTONU ── */
