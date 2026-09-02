@@ -2126,6 +2126,11 @@ elif rol == "Klinik_Asistan": menu = ["🦷 Klinik Paneli", "📺 Lobi / TV Ekra
 elif rol == "Kurye": menu = ["🛵 Kurye Mobil Terminali", "📺 Lobi / TV Ekranı"]
 elif rol == "Kiosk": menu = ["📺 Lobi / TV Ekranı"]
 
+if st.query_params.get("logout") == "true":
+    st.query_params.clear()
+    st.session_state.clear()
+    st.rerun()
+
 if st.session_state.aktif_sayfa not in menu and st.session_state.aktif_sayfa not in ["⚙️ Ayarlar", "🤖 OMG AI Asistan"]:
     st.session_state.aktif_sayfa = menu[0]
 
@@ -2353,6 +2358,88 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     color: #ffffff !important;
     text-shadow: 0 0 10px #38bdf8 !important;
 }
+
+/* ── From Uiverse.io by kennyotsu-monochromia: ÇIKIŞ BUTONU ── */
+.Btn {
+  --black: #000000;
+  --ch-black: #141414;
+  --eer-black: #1b1b1b;
+  --night-rider: #2e2e2e;
+  --white: #ffffff;
+  --af-white: #f3f3f3;
+  --ch-white: #e1e1e1;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 45px !important;
+  height: 45px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition-duration: .3s !important;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.25) !important;
+  background-color: var(--af-white) !important;
+  text-decoration: none !important;
+  margin: 10px auto 0 auto !important;
+}
+
+/* plus sign */
+.sign {
+  width: 100% !important;
+  transition-duration: .3s !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.sign svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+.sign svg path {
+  fill: var(--night-rider) !important;
+}
+/* text */
+.text {
+  position: absolute !important;
+  right: 0% !important;
+  width: 0% !important;
+  opacity: 0 !important;
+  color: var(--night-rider) !important;
+  font-size: 1.15em !important;
+  font-weight: 700 !important;
+  transition-duration: .3s !important;
+  white-space: nowrap !important;
+  font-family: 'Inter', sans-serif !important;
+}
+/* hover effect on button width */
+.Btn:hover {
+  width: 115px !important;
+  border-radius: 8px !important;
+  transition-duration: .3s !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.5) !important;
+}
+
+.Btn:hover .sign {
+  width: 30% !important;
+  transition-duration: .3s !important;
+  padding-left: 10px !important;
+}
+/* hover effect button's text */
+.Btn:hover .text {
+  opacity: 1 !important;
+  width: 70% !important;
+  transition-duration: .3s !important;
+  padding-right: 10px !important;
+}
+/* button click effect*/
+.Btn:active {
+  transform: translate(2px ,2px) !important;
+}
 </style>""", unsafe_allow_html=True)
 
 def dikey_buton_metni(metin):
@@ -2457,11 +2544,20 @@ with kat_cols[c_idx]:
             st.rerun()
 c_idx += 1
 
+# 🚪 ÇIKIŞ BUTONU: Uiverse.io 'Btn' Animasyonlu Genişleyen Buton Tasarımı
 with kat_cols[c_idx]:
-    if st.button("🚪\nÇıkış", help="Sistemden Güvenli Çıkış", key="nav_btn_out", use_container_width=True):
-        st.query_params.clear()
-        st.session_state.clear()
-        st.rerun()
+    st.markdown("""
+    <div style='display:flex; justify-content:center; align-items:center;'>
+        <a href="?logout=true" target="_self" class="Btn" title="Güvenli Çıkış Yap">
+            <div class="sign">
+                <svg viewBox="0 0 512 512">
+                    <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"></path>
+                </svg>
+            </div>
+            <div class="text">Çıkış</div>
+        </a>
+    </div>
+    """, unsafe_allow_html=True)
 
 # --- 2. SEVİYE: AKTİF KATEGORİNİN ALT MODÜLLERİ ---
 secili_moduller = gecerli_kategoriler.get(st.session_state.secili_kategori, [])
