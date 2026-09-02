@@ -2307,23 +2307,30 @@ st.markdown("""<style>
     display: none !important;
 }
 .block-container {
-    padding-top: 1rem !important;
+    padding-top: 76px !important;
     padding-left: clamp(1rem, 2vw, 2.5rem) !important;
     padding-right: clamp(1rem, 2vw, 2.5rem) !important;
     max-width: 100% !important;
 }
 
-/* ── EN TEPEDE SABİT KALAN (STICKY) DOĞAL ŞEFFAF ANA BANNER ── */
+/* ── EN TEPEDE SABİT KALAN (FIXED) DOĞAL KOYU LACİVERT ANA BANNER ── */
 .dm-sticky-header {
-    position: sticky !important;
+    position: fixed !important;
     top: 0 !important;
-    z-index: 99999 !important;
-    background: rgba(3, 7, 18, 0.70) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
-    padding: 2px 0 !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    margin-bottom: 8px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 64px !important;
+    z-index: 999999 !important;
+    background: rgba(8, 17, 34, 0.88) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.20) !important;
+    padding: 0 clamp(1rem, 2vw, 2.5rem) !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
 }
 
 /* ── EŞİT BOYUTLU, ÇERÇEVESİZ & BEYAZ VEKTÖREL İKONLU SAĞA YASLI SABİT MENÜ BUTONLARI ── */
@@ -2572,7 +2579,7 @@ for b_name, b_link, b_active in btn_list:
     act_class = "active" if b_active else ""
     buttons_html += f'<a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}"><div class="dm-icon">{svg_code}</div><div class="dm-label">{b_name}</div></a>'
 
-header_html = f'<div class="dm-sticky-header"><div style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:58px;padding:2px 0;"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}</div></div><div style="height:1px;width:100%;background:linear-gradient(90deg, rgba(56,189,248,0.25) 0%, rgba(255,255,255,0.08) 50%, rgba(56,189,248,0.25) 100%);margin:4px 0 2px 0;"></div></div>'
+header_html = f'<div class="dm-sticky-header"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}</div></div>'
 
 st.markdown(header_html, unsafe_allow_html=True)
 
