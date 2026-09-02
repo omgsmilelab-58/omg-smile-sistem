@@ -2332,7 +2332,7 @@ st.markdown("""<style>
     text-decoration: none !important;
     cursor: pointer !important;
     box-shadow: none !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: all 0.2s ease !important;
     box-sizing: border-box !important;
     padding: 6px 2px !important;
 }
@@ -2350,7 +2350,8 @@ st.markdown("""<style>
     width: 20px !important;
     height: 20px !important;
     fill: #ffffff !important;
-    transition: all 0.25s ease !important;
+    filter: none !important;
+    transition: fill 0.2s ease !important;
 }
 
 .dm-vector-btn .dm-label {
@@ -2362,10 +2363,11 @@ st.markdown("""<style>
     font-family: 'Inter', sans-serif !important;
     white-space: nowrap !important;
     letter-spacing: 0.01em !important;
-    transition: all 0.25s ease !important;
+    text-shadow: none !important;
+    transition: color 0.2s ease !important;
 }
 
-/* 🌟 MOUSE ÜZERİNE GELDİĞİNDE: SADECE İKON VE YAZILAR TURUNCU NEON (ARKA PLAN ŞEFFAF) 🌟 */
+/* 🌟 MOUSE ÜZERİNE GELDİĞİNDE: NET VE SADE TURUNCU RENK (NEON IŞIMA YOK) 🌟 */
 .dm-vector-btn:hover {
     background-color: transparent !important;
     background: transparent !important;
@@ -2374,13 +2376,13 @@ st.markdown("""<style>
 }
 
 .dm-vector-btn:hover .dm-icon svg {
-    fill: #ff9933 !important;
-    filter: drop-shadow(0 0 6px #ff7b00) drop-shadow(0 0 14px rgba(255, 123, 0, 0.85)) !important;
+    fill: #e8622c !important;
+    filter: none !important;
 }
 
 .dm-vector-btn:hover .dm-label {
-    color: #ffaa44 !important;
-    text-shadow: 0 0 8px #ff7b00, 0 0 16px #ff8c00, 0 0 24px rgba(234, 88, 12, 0.9) !important;
+    color: #e8622c !important;
+    text-shadow: none !important;
 }
 
 .dm-vector-btn.active {
@@ -2391,7 +2393,7 @@ st.markdown("""<style>
 .dm-vector-btn.active .dm-label {
     color: #ffffff !important;
     font-weight: 700 !important;
-    text-shadow: 0 0 8px #38bdf8 !important;
+    text-shadow: none !important;
 }
 
 /* 2. Seviye Alt Modül Butonları - Banner'dan Ayrı Şerit */
@@ -2404,7 +2406,7 @@ div[data-testid="stHorizontalBlock"] button {
     height: 40px !important;
     padding: 4px 10px !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
-    transition: all 0.25s ease !important;
+    transition: all 0.2s ease !important;
     font-family: 'Inter', sans-serif !important;
 }
 div[data-testid="stHorizontalBlock"] button p {
@@ -2413,28 +2415,29 @@ div[data-testid="stHorizontalBlock"] button p {
     color: rgb(210, 215, 225) !important;
     margin: 0 !important;
     white-space: nowrap !important;
-    transition: all 0.25s ease !important;
+    text-shadow: none !important;
+    transition: color 0.2s ease !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover {
     background-color: transparent !important;
     background: transparent !important;
-    border-color: rgba(255, 123, 0, 0.4) !important;
-    box-shadow: 0 0 12px rgba(255, 123, 0, 0.25) !important;
+    border-color: rgba(232, 98, 44, 0.4) !important;
+    box-shadow: none !important;
     transform: translateY(-2px) !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover p {
-    color: #ffaa44 !important;
-    text-shadow: 0 0 8px #ff7b00, 0 0 16px #ff8c00, 0 0 22px rgba(234, 88, 12, 0.85) !important;
+    color: #e8622c !important;
+    text-shadow: none !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.10) 100%) !important;
+    background: rgba(56, 189, 248, 0.16) !important;
     border: 1px solid rgba(56, 189, 248, 0.6) !important;
-    box-shadow: 0 0 12px rgba(56, 189, 248, 0.25) !important;
+    box-shadow: none !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     color: #ffffff !important;
     font-weight: 700 !important;
-    text-shadow: 0 0 8px #38bdf8 !important;
+    text-shadow: none !important;
 }
 </style>""", unsafe_allow_html=True)
 
