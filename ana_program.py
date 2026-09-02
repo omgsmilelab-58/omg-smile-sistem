@@ -2391,31 +2391,32 @@ st.markdown("""<style>
     text-shadow: 0 0 8px #38bdf8 !important;
 }
 
-/* 2. Seviye Alt Modül Butonları */
+/* 2. Seviye Alt Modül Butonları - Banner'dan Ayrı Şerit */
 div[data-testid="stHorizontalBlock"] button {
     border-radius: 8px !important;
-    border: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     outline: none !important;
-    background-color: transparent !important;
-    background: transparent !important;
-    min-height: 44px !important;
-    height: 44px !important;
-    padding: 4px 8px !important;
-    box-shadow: none !important;
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    padding: 4px 10px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
     transition: all 0.25s ease !important;
     font-family: 'Inter', sans-serif !important;
 }
 div[data-testid="stHorizontalBlock"] button p {
     font-size: 11.5px !important;
     font-weight: 600 !important;
-    color: rgb(200, 205, 215) !important;
+    color: rgb(210, 215, 225) !important;
     margin: 0 !important;
+    white-space: nowrap !important;
     transition: all 0.25s ease !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover {
     background-color: transparent !important;
     background: transparent !important;
-    box-shadow: none !important;
+    border-color: rgba(255, 123, 0, 0.4) !important;
+    box-shadow: 0 0 12px rgba(255, 123, 0, 0.25) !important;
     transform: translateY(-2px) !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover p {
@@ -2423,8 +2424,9 @@ div[data-testid="stHorizontalBlock"] button:hover p {
     text-shadow: 0 0 8px #ff7b00, 0 0 16px #ff8c00, 0 0 22px rgba(234, 88, 12, 0.85) !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-    background-color: rgba(56, 189, 248, 0.16) !important;
-    box-shadow: inset 0 -3px 0 #38bdf8 !important;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.10) 100%) !important;
+    border: 1px solid rgba(56, 189, 248, 0.6) !important;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.25) !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     color: #ffffff !important;
@@ -2509,7 +2511,7 @@ for kat_k, kat_v in gecerli_kategoriler.items():
         st.session_state.secili_kategori = kat_k
         break
 
-# --- 1. SEVİYE: SAĞA YASLANMIŞ EŞİT BOYUTLU ANA KATEGORİ ÇUBUĞU ---
+# --- 1. SEVİYE: SAĞA YASLANMIŞ EŞİT BOYUTLU ANA BANNER ---
 btn_list = []
 for kat_adi in gecerli_kategoriler.keys():
     k_clean = kat_adi.replace("🛠️ ", "").replace("🤝 ", "").replace("💰 ", "").replace("🏢 ", "")
@@ -2529,14 +2531,13 @@ for b_name, b_link, b_active in btn_list:
     act_class = "active" if b_active else ""
     buttons_html += f'<a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}"><div class="dm-icon">{svg_code}</div><div class="dm-label">{b_name}</div></a>'
 
-header_html = f'<div style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:64px;padding:4px 0;margin-bottom:4px;"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}</div></div>'
+header_html = f'<div style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:60px;padding:2px 0;margin-bottom:6px;"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}</div></div><div style="height:1px;width:100%;background:linear-gradient(90deg, rgba(56,189,248,0.25) 0%, rgba(255,255,255,0.08) 50%, rgba(56,189,248,0.25) 100%);margin:4px 0 12px 0;"></div>'
 
 st.markdown(header_html, unsafe_allow_html=True)
 
-# --- 2. SEVİYE: AKTİF KATEGORİNİN ALT MODÜLLERİ ---
+# --- 2. SEVİYE: BANNER'DAN AYRILMIŞ ALT MODÜL ŞERİDİ ---
 secili_moduller = gecerli_kategoriler.get(st.session_state.secili_kategori, [])
 if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletişim", "🤖 OMG AI Asistan", "⚙️ Ayarlar"]:
-    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     sub_cols = st.columns(len(secili_moduller))
     for s_idx, mod_adi in enumerate(secili_moduller):
         m_active = (mod_adi == st.session_state.aktif_sayfa)
@@ -2546,8 +2547,7 @@ if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletiş
                 st.session_state.aktif_sayfa = mod_adi
                 st.query_params["page"] = mod_adi
                 st.rerun()
-
-st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.20); margin: 8px 0 20px 0;'>", unsafe_allow_html=True)
+    st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
 
 
