@@ -2289,120 +2289,156 @@ if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
         st.rerun()
     st.stop()
 
-# --- STANDART MENÜ ---
+# --- 🌟 YATAY ÜST AÇILIR MENÜ (TOP HORIZONTAL NAVBAR) ---
 abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
-
 alt_baslik = f"{rol} Yetkisi" if rol != "Klinik_Asistan" else f"{ana_klinik} Asistanı"
-st.sidebar.markdown(f"""<div class='glass-card' style='padding: 15px; text-align:center; margin-bottom:20px;'><h4 class='neon-text-blue' style='margin:0;'>{kullanici_adi.upper()}</h4><span style='color:#FFFFFF; font-size:12px;'>{alt_baslik}</span></div>""", unsafe_allow_html=True)
 
-abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
-    
+# Sol kenar çubuğunu gizle ve sayfayı tam genişlik yap
+st.markdown("""<style>
+[data-testid="stSidebar"], [data-testid="collapsedControl"] {
+    display: none !important;
+}
+.block-container {
+    padding-top: 1.2rem !important;
+    padding-left: clamp(1rem, 2.5vw, 2.5rem) !important;
+    padding-right: clamp(1rem, 2.5vw, 2.5rem) !important;
+    max-width: 100% !important;
+}
+
+/* Yatay Üst Menü Popover Buton Stilleri */
+div[data-testid="stPopover"] > button {
+    background: rgba(15, 23, 42, 0.85) !important;
+    border: 1px solid rgba(56, 189, 248, 0.28) !important;
+    color: #f8fafc !important;
+    border-radius: 10px !important;
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    padding: 8px 12px !important;
+    min-height: 42px !important;
+    transition: all 0.2s ease !important;
+}
+div[data-testid="stPopover"] > button:hover {
+    background: rgba(56, 189, 248, 0.20) !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.35) !important;
+}
+
+/* Popover Açılır Menü Gövdesi */
+div[data-testid="stPopoverBody"] {
+    background: rgba(8, 16, 32, 0.98) !important;
+    backdrop-filter: blur(25px) !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+    border-radius: 14px !important;
+    padding: 12px !important;
+    box-shadow: 0 14px 45px rgba(0, 0, 0, 0.85) !important;
+    min-width: 240px !important;
+}
+div[data-testid="stPopoverBody"] button {
+    text-align: left !important;
+    margin-bottom: 5px !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+}
+</style>""", unsafe_allow_html=True)
+
 kategoriler = {
-    "🛠️ 1. Operasyon & Üretim": [
+    "🛠️ Operasyon": [
         "🏠 Komuta Merkezi", "📅 Görev & Planlama", "⚙️ İş Akışı", 
         "📱 Teknisyen Terminali", "📺 Lobi / TV Ekranı", "🦷 Klinik Paneli"
     ]
 }
 
 if abonelik_tipi in ["Profesyonel", "Business"]:
-    kategoriler["🤝 2. Müşteri & İletişim (CRM)"] = [
+    kategoriler["🤝 Müşteri & CRM"] = [
         "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
         "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "📅 Doktor Takvimi"
     ]
 
-kategoriler["💰 3. Finans & Tedarik"] = [
+kategoriler["💰 Finans"] = [
     "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
     "🏭 Tedarikçi Yönetimi", "🧾 Detaylı Ekstre"
 ]
-kategoriler["🏢 4. Altyapı & Yönetim"] = [
+kategoriler["🏢 Yönetim"] = [
     "🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", 
-    "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi", "⚙️ Ayarlar"
+    "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi", "🏢 Kurumsal Bilgi"
 ]
 
-if abonelik_tipi in ["Profesyonel", "Business"]:
-    kategoriler["🤝 2. Müşteri & İletişim (CRM)"] = [
-        "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
-        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "📅 Doktor Takvimi"
-    ]
-
-kategoriler["💰 3. Finans & Tedarik"] = [
-    "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
-    "🏭 Tedarikçi Yönetimi", "🧾 Detaylı Ekstre"
-]
-kategoriler["🏢 4. Altyapı & Yönetim"] = [
-    "🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", 
-    "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi"
-]
-kategoriler["💬 5. Mobil İletişim"] = [
-    "💬 Mobil İletişim"
-]
-
-kategori_bulundu = False
-for mods in kategoriler.values():
-    if st.session_state.aktif_sayfa in mods:
-        kategori_bulundu = True
-        break
-
+# İzinli kategorileri ve modülleri topla
+gecerli_kategoriler = {}
 for kat_adi, moduller in kategoriler.items():
-    izinli_moduller = [m for m in moduller if m in menu]
-    if izinli_moduller:
-        is_expanded = (st.session_state.aktif_sayfa in izinli_moduller) or (not kategori_bulundu and kat_adi.startswith("🛠️"))
-        with st.sidebar.expander(kat_adi, expanded=is_expanded):
-            for modul in izinli_moduller:
-                btn_type = "primary" if modul == st.session_state.aktif_sayfa else "secondary"
-                if st.button(modul, key=f"nav_{modul}", use_container_width=True, type=btn_type):
-                    st.session_state.aktif_sayfa = modul
-                    st.query_params["page"] = modul
-                    st.rerun()
+    izinli = [m for m in moduller if m in menu]
+    if izinli:
+        gecerli_kategoriler[kat_adi] = izinli
 
-# Diğer modüller menüsü iptal edildi (ekstra_moduller)
-
-st.sidebar.markdown("<br>", unsafe_allow_html=True)
-
-st.sidebar.markdown("""
-<style>
-    [data-testid=\"stSidebar\"] > div:first-child {
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-    }
-    [data-testid=\"stSidebar\"] .stMarkdown:has(div.bottom-spacer) {
-        flex-grow: 1 !important;
-    }
-    div.bottom-spacer {
-        height: 100%;
-    }
-</style>
-<div class=\"bottom-spacer\"></div>
-""", unsafe_allow_html=True)
-
+# Ek butonlar
+ek_butonlar = []
+if "💬 Mobil İletişim" in menu:
+    ek_butonlar.append("💬 İletişim")
 if rol in ["Admin", "Yönetici", "Sekreter"]:
-    if st.sidebar.button("🤖 OMG AI Asistan", type="primary", use_container_width=True): 
-        st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"
-        st.query_params["page"] = "🤖 OMG AI Asistan"
-        st.rerun()
+    ek_butonlar.append("🤖 AI")
 
-if "🏢 Kurumsal Bilgi" in menu:
-    if st.sidebar.button("🏢 Kurumsal Bilgi", type="primary", use_container_width=True):
-        st.session_state.aktif_sayfa = "🏢 Kurumsal Bilgi"
-        st.query_params["page"] = "🏢 Kurumsal Bilgi"
-        st.rerun()
+toplam_kolon = 1 + len(gecerli_kategoriler) + len(ek_butonlar) + 1
+top_cols = st.columns(toplam_kolon)
+c_idx = 0
 
-st.sidebar.markdown("<hr style='border-color: rgba(56, 189, 248, 0.2); margin: 5px 0;'>", unsafe_allow_html=True)
-if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
-    if st.sidebar.button("⚙️ Ayarlar", help="Sistem ve Güvenlik Ayarları", use_container_width=True):
-        st.session_state.aktif_sayfa = "⚙️ Ayarlar"
-        st.query_params["page"] = "⚙️ Ayarlar"
-        st.rerun()
-    if st.sidebar.button("🚪 Çıkış Yap", help="Sistemden Çıkış Yap", use_container_width=True):
-        st.query_params.clear()
-        st.session_state.clear()
-        st.rerun()
-else:
-    if st.sidebar.button("🚪 Çıkış Yap", help="Sistemden Çıkış Yap", use_container_width=True):
-        st.query_params.clear()
-        st.session_state.clear()
-        st.rerun()
+# 1. Logo
+with top_cols[c_idx]:
+    st.markdown("<div style='font-family:Manrope,sans-serif; font-weight:900; font-size:16px; color:#f8fafc; padding-top:9px;'>DENTMESHER <span style='color:#e8622c;'>HUB</span></div>", unsafe_allow_html=True)
+c_idx += 1
+
+# 2. Açılır Kategori Menüleri (Popovers)
+for kat_adi, moduller in gecerli_kategoriler.items():
+    kat_aktif = any(m == st.session_state.aktif_sayfa for m in moduller)
+    btn_label = f"{kat_adi} {'🔷' if kat_aktif else '▼'}"
+    with top_cols[c_idx]:
+        with st.popover(btn_label, use_container_width=True):
+            st.markdown(f"**{kat_adi}**")
+            for m in moduller:
+                b_type = "primary" if m == st.session_state.aktif_sayfa else "secondary"
+                if st.button(m, key=f"top_nav_{m}", use_container_width=True, type=b_type):
+                    st.session_state.aktif_sayfa = m
+                    st.query_params["page"] = m
+                    st.rerun()
+    c_idx += 1
+
+# 3. İletişim Butonu
+if "💬 Mobil İletişim" in menu:
+    with top_cols[c_idx]:
+        msg_type = "primary" if st.session_state.aktif_sayfa == "💬 Mobil İletişim" else "secondary"
+        if st.button("💬 İletişim", key="top_btn_msg", use_container_width=True, type=msg_type):
+            st.session_state.aktif_sayfa = "💬 Mobil İletişim"
+            st.query_params["page"] = "💬 Mobil İletişim"
+            st.rerun()
+    c_idx += 1
+
+# 4. AI Butonu
+if rol in ["Admin", "Yönetici", "Sekreter"]:
+    with top_cols[c_idx]:
+        ai_type = "primary" if st.session_state.aktif_sayfa == "🤖 OMG AI Asistan" else "secondary"
+        if st.button("🤖 AI", key="top_btn_ai", use_container_width=True, type=ai_type):
+            st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"
+            st.query_params["page"] = "🤖 OMG AI Asistan"
+            st.rerun()
+    c_idx += 1
+
+# 5. Kullanıcı & Profil & Ayarlar & Çıkış Popover
+with top_cols[c_idx]:
+    with st.popover(f"👤 {kullanici_adi[:10]}", use_container_width=True):
+        st.markdown(f"**{kullanici_adi.upper()}**")
+        st.caption(f"Rol: {alt_baslik}")
+        st.markdown("---")
+        if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
+            if st.button("⚙️ Sistem Ayarları", key="top_pop_settings", use_container_width=True):
+                st.session_state.aktif_sayfa = "⚙️ Ayarlar"
+                st.query_params["page"] = "⚙️ Ayarlar"
+                st.rerun()
+        if st.button("🚪 Çıkış Yap", key="top_pop_logout", use_container_width=True):
+            st.query_params.clear()
+            st.session_state.clear()
+            st.rerun()
+
+st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.20); margin: 6px 0 20px 0;'>", unsafe_allow_html=True)
 
 sayfa = st.session_state.aktif_sayfa
 
