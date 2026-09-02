@@ -2313,7 +2313,7 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
-/* ── EN TEPEDE SABİT KALAN (FIXED) DOĞAL KOYU LACİVERT ANA BANNER ── */
+/* ── EN TEPEDE SABİT KALAN (FIXED) PREMIUM BUZLU CAM (FROSTED GLASS) ANA BANNER ── */
 .dm-sticky-header {
     position: fixed !important;
     top: 0 !important;
@@ -2322,10 +2322,11 @@ st.markdown("""<style>
     width: 100% !important;
     height: 64px !important;
     z-index: 999999 !important;
-    background: rgba(8, 17, 34, 0.88) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border-bottom: 1px solid rgba(56, 189, 248, 0.20) !important;
+    background: rgba(13, 27, 54, 0.45) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
     padding: 0 clamp(1rem, 2vw, 2.5rem) !important;
     box-sizing: border-box !important;
     display: flex !important;
