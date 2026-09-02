@@ -2289,9 +2289,9 @@ if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
         st.rerun()
     st.stop()
 
-# --- 🌟 YATAY ÜST MENÜ (ŞEFFAF, DİKEY İKONLU & NEON HOVER NAVBAR) ---
+# --- 🌟 YATAY ÜST ROYAL BLUE BANNER (BİREBİR REFERANS GÖRSEL DİZAYNI) ---
 abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
-alt_baslik = f"{rol} Yetkisi" if rol != "Klinik_Asistan" else f"{ana_klinik} Asistanı"
+panel_basligi = "KLİNİK PANELİ" if rol in ["Klinik", "Klinik_Asistan"] else "DİJİTAL LAB PANELİ"
 
 # Sol kenar çubuğunu tamamen gizle ve tam genişlik yap
 st.markdown("""<style>
@@ -2299,185 +2299,224 @@ st.markdown("""<style>
     display: none !important;
 }
 .block-container {
-    padding-top: 1rem !important;
-    padding-left: clamp(1rem, 2vw, 2.5rem) !important;
-    padding-right: clamp(1rem, 2vw, 2.5rem) !important;
+    padding-top: 0.6rem !important;
+    padding-left: clamp(0.5rem, 1.5vw, 2rem) !important;
+    padding-right: clamp(0.5rem, 1.5vw, 2rem) !important;
     max-width: 100% !important;
 }
 
-/* ── ŞEFFAF, DİKEY DİZİLİMLİ (İKON ÜSTTE, İSİM ALTTA) & NEON HOVER BUTONLARI ── */
-div[data-testid="stHorizontalBlock"] button {
-    background: rgba(15, 23, 42, 0.45) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 14px !important;
-    min-height: 64px !important;
-    padding: 8px 10px !important;
+/* ── ROYAL BLUE BANNER BUTONLARI & ARAMA ÇUBUĞU STİLLERİ ── */
+div.dm-search-wrap div.stTextInput > div > div > input {
+    background: rgba(255, 255, 255, 0.16) !important;
+    border: 1px solid rgba(255, 255, 255, 0.30) !important;
+    border-radius: 12px !important;
+    color: #ffffff !important;
+    font-size: 13px !important;
+    height: 42px !important;
+    padding-left: 14px !important;
+}
+div.dm-search-wrap div.stTextInput > div > div > input::placeholder {
+    color: rgba(255, 255, 255, 0.78) !important;
+}
+
+/* Sağ Menü Dikey Şeffaf Butonları */
+div.dm-nav-btn button {
+    background: transparent !important;
+    border: none !important;
+    color: #ffffff !important;
+    min-height: 50px !important;
+    padding: 2px 6px !important;
     text-align: center !important;
-    transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
+    box-shadow: none !important;
+    transition: all 0.22s ease !important;
     font-family: 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
 }
-
-div[data-testid="stHorizontalBlock"] button p {
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    color: #e2e8f0 !important;
-    line-height: 1.4 !important;
-    letter-spacing: 0.02em !important;
+div.dm-nav-btn button p {
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
     margin: 0 !important;
     white-space: pre-line !important;
-    transition: all 0.28s ease !important;
+    letter-spacing: 0.01em !important;
+    transition: all 0.22s ease !important;
+}
+div.dm-nav-btn button:hover {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border-radius: 10px !important;
+    transform: translateY(-2px) !important;
+}
+div.dm-nav-btn button:hover p {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 20px rgba(56, 189, 248, 0.8) !important;
 }
 
-/* 🌟 MOUSE ÜZERİNE GELDİĞİNDE (HOVER) CANLI NEON IŞIMA 🌟 */
-div[data-testid="stHorizontalBlock"] button:hover {
-    background: rgba(56, 189, 248, 0.18) !important;
-    border-color: #38bdf8 !important;
-    box-shadow: 0 0 24px rgba(56, 189, 248, 0.65), inset 0 0 14px rgba(56, 189, 248, 0.25) !important;
-    transform: translateY(-4px) scale(1.03) !important;
+/* 🌟 ALTIN SARI "YENİ SİPARİŞ" CTA BUTONU 🌟 */
+div.dm-cta-btn button {
+    background: linear-gradient(180deg, #fbb03b 0%, #f59e0b 100%) !important;
+    border: 1px solid #d97706 !important;
+    border-radius: 14px !important;
+    min-height: 50px !important;
+    padding: 4px 10px !important;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45) !important;
+    transition: all 0.22s ease !important;
 }
-div[data-testid="stHorizontalBlock"] button:hover p {
-    color: #ffffff !important;
-    text-shadow: 0 0 12px #38bdf8, 0 0 24px #0284c7, 0 0 35px rgba(56, 189, 248, 0.8) !important;
+div.dm-cta-btn button p {
+    color: #111827 !important;
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    white-space: pre-line !important;
 }
-
-/* 🔷 AKTİF SEÇİLİ MENÜ BUTONU (PRIMARY) 🔷 */
-div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-    background: linear-gradient(180deg, rgba(56, 189, 248, 0.32) 0%, rgba(14, 165, 233, 0.16) 100%) !important;
-    border: 1.5px solid #38bdf8 !important;
-    box-shadow: 0 0 20px rgba(56, 189, 248, 0.45), inset 0 0 12px rgba(56, 189, 248, 0.25) !important;
+div.dm-cta-btn button:hover {
+    background: linear-gradient(180deg, #fcd34d 0%, #fbbf24 100%) !important;
+    box-shadow: 0 0 25px rgba(251, 191, 36, 0.85) !important;
+    transform: translateY(-3px) scale(1.04) !important;
 }
-div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
-    color: #ffffff !important;
-    text-shadow: 0 0 10px #38bdf8 !important;
+div.dm-cta-btn button:hover p {
+    color: #000000 !important;
+    text-shadow: none !important;
 }
 </style>""", unsafe_allow_html=True)
 
-def dikey_buton_metni(metin):
-    metin = metin.strip()
-    parcalar = metin.split(" ", 1)
-    if len(parcalar) == 2:
-        return f"{parcalar[0]}\n{parcalar[1]}"
-    return metin
+# --- 🌟 ROYAL BLUE BANNER GÖVDESİ 🌟 ---
+st.markdown("""
+<div style="background: linear-gradient(90deg, #1b49d6 0%, #2563eb 50%, #1d4fd8 100%); border-radius: 16px; padding: 10px 16px; margin-bottom: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 25px rgba(37, 99, 235, 0.35); border: 1px solid rgba(255, 255, 255, 0.18);">
+""", unsafe_allow_html=True)
 
-kategoriler = {
-    "🛠️ Operasyon": [
-        "🏠 Komuta Merkezi", "📅 Görev & Planlama", "⚙️ İş Akışı", 
-        "📱 Teknisyen Terminali", "📺 Lobi / TV Ekranı", "🦷 Klinik Paneli"
-    ]
-}
+banner_cols = st.columns([1.8, 2.2, 0.8, 1.0, 1.2, 1.0, 1.0, 1.0, 1.0, 0.9, 0.8])
 
-if abonelik_tipi in ["Profesyonel", "Business"]:
-    kategoriler["🤝 Müşteri & CRM"] = [
-        "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
-        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "📅 Doktor Takvimi"
-    ]
+# 1. Logo & Subtitle
+with banner_cols[0]:
+    st.markdown(f"""
+    <div style='display:flex; flex-direction:column; justify-content:center; padding-top:4px;'>
+        <span style='font-family:Manrope,sans-serif; font-weight:900; font-size:18px; color:#ffffff; letter-spacing:0.5px;'>DENTMESHER</span>
+        <span style='font-family:Manrope,sans-serif; font-weight:800; font-size:9.5px; color:rgba(255,255,255,0.88); letter-spacing:1.8px; margin-top:-2px;'>{panel_basligi}</span>
+    </div>
+    """, unsafe_allow_html=True)
 
-kategoriler["💰 Finans"] = [
-    "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
-    "🏭 Tedarikçi Yönetimi", "🧾 Detaylı Ekstre"
-]
-kategoriler["🏢 Yönetim"] = [
-    "🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", 
-    "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi", "🏢 Kurumsal Bilgi"
-]
+# 2. Translucent Search Box
+with banner_cols[1]:
+    st.markdown("<div class='dm-search-wrap'>", unsafe_allow_html=True)
+    hdr_arama = st.text_input("Arama", placeholder="🔍 Sipariş no veya hasta ara", key="hdr_search_input", label_visibility="collapsed")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# İzinli kategorileri ve modülleri topla
-gecerli_kategoriler = {}
-for kat_adi, moduller in kategoriler.items():
-    izinli = [m for m in moduller if m in menu]
-    if izinli:
-        gecerli_kategoriler[kat_adi] = izinli
+# 3. Divider & Smile Badge
+with banner_cols[2]:
+    st.markdown("""
+    <div style='display:flex; align-items:center; gap:8px; justify-content:center; padding-top:2px;'>
+        <div style='width:1px; height:34px; background:rgba(255,255,255,0.25);'></div>
+        <div style='width:36px; height:36px; border-radius:50%; border:2px solid #f59e0b; background:#0b2265; display:flex; align-items:center; justify-content:center; color:#ffffff; font-weight:800; font-size:11px; font-family:Manrope,sans-serif; box-shadow:0 0 10px rgba(245,158,11,0.5);'>Smile</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-# Seçili kategoriyi belirle (aktif sayfa hangi kategorideyse o seçili başlar)
-if "secili_kategori" not in st.session_state:
-    st.session_state.secili_kategori = list(gecerli_kategoriler.keys())[0] if gecerli_kategoriler else "🛠️ Operasyon"
+# 4. Siparişlerim Butonu
+with banner_cols[3]:
+    st.markdown("<div class='dm-nav-btn'>", unsafe_allow_html=True)
+    sip_target = "🦷 Klinik Paneli" if rol in ["Klinik", "Klinik_Asistan"] else "⚙️ İş Akışı"
+    if st.button("📦¹\nSiparişlerim", key="hdr_btn_siparis", use_container_width=True):
+        st.session_state.aktif_sayfa = sip_target
+        st.query_params["page"] = sip_target
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# Eğer aktif sayfa bir kategorinin içindeyse, otomatik o kategoriye geç
-for kat_k, kat_v in gecerli_kategoriler.items():
-    if st.session_state.aktif_sayfa in kat_v:
-        st.session_state.secili_kategori = kat_k
-        break
+# 5. ALTIN SARI "Yeni Sipariş" CTA Butonu
+with banner_cols[4]:
+    st.markdown("<div class='dm-cta-btn'>", unsafe_allow_html=True)
+    yeni_target = "📤 Yeni Sipariş (Reçete)" if "📤 Yeni Sipariş (Reçete)" in menu else ("⚙️ İş Akışı" if "⚙️ İş Akışı" in menu else menu[0])
+    if st.button("➕\nYeni Sipariş", key="hdr_btn_yeni", use_container_width=True):
+        st.session_state.aktif_sayfa = yeni_target
+        st.query_params["page"] = yeni_target
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 1. SEVİYE: ANA KATEGORİ ÇUBUĞU ---
-col_count = len(gecerli_kategoriler)
-col_weights = [1.6] + [1.3] * col_count
-if "💬 Mobil İletişim" in menu:
-    col_weights.append(1.0)
-if rol in ["Admin", "Yönetici", "Sekreter"]:
-    col_weights.append(0.9)
-col_weights.append(1.0)
-col_weights.append(1.0)
+# 6. Hastalarım Butonu
+with banner_cols[5]:
+    st.markdown("<div class='dm-nav-btn'>", unsafe_allow_html=True)
+    hasta_target = "🦷 Klinik Paneli" if "🦷 Klinik Paneli" in menu else ("🤝 Hekim ve Cari Kayıt" if "🤝 Hekim ve Cari Kayıt" in menu else menu[0])
+    if st.button("👤\nHastalarım", key="hdr_btn_hasta", use_container_width=True):
+        st.session_state.aktif_sayfa = hasta_target
+        st.query_params["page"] = hasta_target
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-kat_cols = st.columns(col_weights)
-c_idx = 0
+# 7. Favorilerim Butonu
+with banner_cols[6]:
+    st.markdown("<div class='dm-nav-btn'>", unsafe_allow_html=True)
+    fav_target = "💰 Finans & Analitik" if "💰 Finans & Analitik" in menu else ("🧾 Detaylı Ekstre" if "🧾 Detaylı Ekstre" in menu else menu[0])
+    if st.button("🤍\nFavorilerim", key="hdr_btn_fav", use_container_width=True):
+        st.session_state.aktif_sayfa = fav_target
+        st.query_params["page"] = fav_target
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-with kat_cols[c_idx]:
-    st.markdown("<div style='font-family:Manrope,sans-serif; font-weight:900; font-size:16px; color:#f8fafc; padding-top:16px;'>DENTMESHER <span style='color:#e8622c;'>HUB</span></div>", unsafe_allow_html=True)
-c_idx += 1
+# 8. Mesajlar Butonu
+with banner_cols[7]:
+    st.markdown("<div class='dm-nav-btn'>", unsafe_allow_html=True)
+    msg_target = "💬 Mobil İletişim" if "💬 Mobil İletişim" in menu else menu[0]
+    if st.button("💬\nMesajlar", key="hdr_btn_msg", use_container_width=True):
+        st.session_state.aktif_sayfa = msg_target
+        st.query_params["page"] = msg_target
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-for kat_adi in gecerli_kategoriler.keys():
-    is_sel = (st.session_state.secili_kategori == kat_adi)
-    b_type = "primary" if is_sel else "secondary"
-    with kat_cols[c_idx]:
-        if st.button(dikey_buton_metni(kat_adi), key=f"kat_btn_{kat_adi}", use_container_width=True, type=b_type):
-            st.session_state.secili_kategori = kat_adi
-            ilk_mod = gecerli_kategoriler[kat_adi][0]
-            st.session_state.aktif_sayfa = ilk_mod
-            st.query_params["page"] = ilk_mod
-            st.rerun()
-    c_idx += 1
+# 9. Bildirim Butonu
+with banner_cols[8]:
+    st.markdown("<div class='dm-nav-btn'>", unsafe_allow_html=True)
+    if st.button("🔔🔴\nBildirim", key="hdr_btn_notif", use_container_width=True):
+        st.session_state.aktif_panel = "bildirim"
+        st.toast("🔔 Bildirimler ve duyurular açıldı!", icon="📢")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-if "💬 Mobil İletişim" in menu:
-    with kat_cols[c_idx]:
-        msg_type = "primary" if st.session_state.aktif_sayfa == "💬 Mobil İletişim" else "secondary"
-        if st.button("💬\nİletişim", key="nav_btn_msg", use_container_width=True, type=msg_type):
-            st.session_state.aktif_sayfa = "💬 Mobil İletişim"
-            st.query_params["page"] = "💬 Mobil İletişim"
-            st.rerun()
-    c_idx += 1
+# 10. Tema Butonu
+with banner_cols[9]:
+    st.markdown("<div class='dm-nav-btn'>", unsafe_allow_html=True)
+    if st.button("🌙\nTema", key="hdr_btn_theme", use_container_width=True):
+        st.toast("🌙 Koyu tema aktif.", icon="✨")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-if rol in ["Admin", "Yönetici", "Sekreter"]:
-    with kat_cols[c_idx]:
-        ai_type = "primary" if st.session_state.aktif_sayfa == "🤖 OMG AI Asistan" else "secondary"
-        if st.button("🤖\nOMG AI", key="nav_btn_ai", use_container_width=True, type=ai_type):
-            st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"
-            st.query_params["page"] = "🤖 OMG AI Asistan"
-            st.rerun()
-    c_idx += 1
-
-with kat_cols[c_idx]:
-    if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
-        set_type = "primary" if st.session_state.aktif_sayfa == "⚙️ Ayarlar" else "secondary"
-        if st.button("⚙️\nAyarlar", help="Sistem Ayarları", key="nav_btn_set", use_container_width=True, type=set_type):
-            st.session_state.aktif_sayfa = "⚙️ Ayarlar"
-            st.query_params["page"] = "⚙️ Ayarlar"
-            st.rerun()
-c_idx += 1
-
-with kat_cols[c_idx]:
-    if st.button("🚪\nÇıkış", help="Sistemden Güvenli Çıkış", key="nav_btn_out", use_container_width=True):
+# 11. Çıkış Butonu
+with banner_cols[10]:
+    st.markdown("<div class='dm-nav-btn'>", unsafe_allow_html=True)
+    if st.button("🚪\nÇıkış", help="Güvenli Çıkış", key="hdr_btn_logout", use_container_width=True):
         st.query_params.clear()
         st.session_state.clear()
         st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 2. SEVİYE: AKTİF KATEGORİNİN ALT MODÜLLERİ ---
-secili_moduller = gecerli_kategoriler.get(st.session_state.secili_kategori, [])
-if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletişim", "🤖 OMG AI Asistan", "⚙️ Ayarlar"]:
-    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
-    sub_cols = st.columns(len(secili_moduller))
-    for s_idx, mod_adi in enumerate(secili_moduller):
-        m_active = (mod_adi == st.session_state.aktif_sayfa)
-        m_type = "primary" if m_active else "secondary"
-        with sub_cols[s_idx]:
-            if st.button(dikey_buton_metni(mod_adi), key=f"sub_mod_{mod_adi}", use_container_width=True, type=m_type):
-                st.session_state.aktif_sayfa = mod_adi
-                st.query_params["page"] = mod_adi
-                st.rerun()
+st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.20); margin: 8px 0 20px 0;'>", unsafe_allow_html=True)
+# --- 2. SEVİYE: GELİŞMİŞ ERP VE MODÜL ŞERİDİ (Laboratuvar & Yönetim İçin) ---
+if rol not in ["Klinik", "Klinik_Asistan", "Kurye", "Kiosk"]:
+    kategoriler = {
+        "🛠️ Operasyon": ["🏠 Komuta Merkezi", "📅 Görev & Planlama", "⚙️ İş Akışı", "📱 Teknisyen Terminali", "📺 Lobi / TV Ekranı"],
+        "🤝 Müşteri & CRM": ["🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik", "📤 Yeni Sipariş (Reçete)", "📅 Doktor Takvimi"],
+        "💰 Finans": ["💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", "🏭 Tedarikçi Yönetimi", "🧾 Detaylı Ekstre"],
+        "🏢 Yönetim": ["🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi", "🏢 Kurumsal Bilgi", "⚙️ Ayarlar"]
+    }
+    
+    gecerli_kategoriler = {k: [m for m in v if m in menu] for k, v in kategoriler.items() if any(m in menu for m in v)}
+    if "secili_kategori" not in st.session_state:
+        st.session_state.secili_kategori = list(gecerli_kategoriler.keys())[0] if gecerli_kategoriler else "🛠️ Operasyon"
+    for kat_k, kat_v in gecerli_kategoriler.items():
+        if st.session_state.aktif_sayfa in kat_v:
+            st.session_state.secili_kategori = kat_k
+            break
+            
+    # Hızlı Kategori ve Alt Modül Şeridi
+    secili_mods = gecerli_kategoriler.get(st.session_state.secili_kategori, [])
+    if secili_mods:
+        sub_cols = st.columns(len(secili_mods))
+        for s_idx, mod_adi in enumerate(secili_mods):
+            m_active = (mod_adi == st.session_state.aktif_sayfa)
+            m_type = "primary" if m_active else "secondary"
+            with sub_cols[s_idx]:
+                if st.button(mod_adi, key=f"sub_mod_{mod_adi}", use_container_width=True, type=m_type):
+                    st.session_state.aktif_sayfa = mod_adi
+                    st.query_params["page"] = mod_adi
+                    st.rerun()
+
+st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.15); margin: 6px 0 16px 0;'>", unsafe_allow_html=True)
 
 sayfa = st.session_state.aktif_sayfa
 
