@@ -2310,15 +2310,16 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
-/* ── From Uiverse.io by vinodjangid07: MENÜ BUTONLARI (KATEGORİ VE MODÜLLER) ── */
+/* ── From Uiverse.io by vinodjangid07: ÇERÇEVESİZ MENÜ BUTONLARI ── */
 div[data-testid="stHorizontalBlock"] button {
     border-radius: 10px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border: none !important;
+    outline: none !important;
     cursor: pointer !important;
-    box-shadow: 0px 10px 10px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.20) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     background-color: rgba(255, 255, 255, 0.05) !important;
     backdrop-filter: blur(12px) !important;
@@ -2342,9 +2343,10 @@ div[data-testid="stHorizontalBlock"] button p {
 
 /* HOVER: background-color: rgb(59, 59, 59); box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.35); color: white; */
 div[data-testid="stHorizontalBlock"] button:hover {
-    box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.35) !important;
+    box-shadow: 0px 10px 18px rgba(0, 0, 0, 0.45) !important;
     background-color: rgb(59, 59, 59) !important;
-    border-color: rgba(255, 255, 255, 0.35) !important;
+    border: none !important;
+    outline: none !important;
     transform: translateY(-2px) !important;
 }
 div[data-testid="stHorizontalBlock"] button:hover p {
@@ -2352,11 +2354,12 @@ div[data-testid="stHorizontalBlock"] button:hover p {
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.7) !important;
 }
 
-/* AKTİF SEÇİLİ BUTON (PRIMARY) */
+/* AKTİF SEÇİLİ BUTON (PRIMARY) - ÇERÇEVESİZ VURGU */
 div[data-testid="stHorizontalBlock"] button[kind="primary"] {
     background-color: rgb(59, 59, 59) !important;
-    border: 1.5px solid #38bdf8 !important;
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.35), 0px 10px 10px rgba(0, 0, 0, 0.2) !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: inset 0 -3px 0 #38bdf8, 0px 10px 15px rgba(0, 0, 0, 0.35) !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
     color: #ffffff !important;
