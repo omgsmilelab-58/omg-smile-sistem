@@ -2310,16 +2310,18 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
-/* ── EŞİT BOYUTLU, ÇERÇEVESİZ & BEYAZ VEKTÖREL İKONLU MENÜ BUTONLARI ── */
+/* ── EŞİT BOYUTLU, ÇERÇEVESİZ & BEYAZ VEKTÖREL İKONLU SAĞA YASLI MENÜ BUTONLARI ── */
 .dm-vector-btn {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 100% !important;
-    height: 60px !important;
-    min-height: 60px !important;
-    max-height: 60px !important;
+    width: 82px !important;
+    min-width: 82px !important;
+    max-width: 82px !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    max-height: 58px !important;
     border-radius: 10px !important;
     border: none !important;
     outline: none !important;
@@ -2329,7 +2331,7 @@ st.markdown("""<style>
     box-shadow: none !important;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-sizing: border-box !important;
-    padding: 6px 4px !important;
+    padding: 6px 2px !important;
 }
 
 .dm-vector-btn .dm-icon {
@@ -2507,7 +2509,7 @@ for kat_k, kat_v in gecerli_kategoriler.items():
         st.session_state.secili_kategori = kat_k
         break
 
-# --- 1. SEVİYE: EŞİT BOYUTLU ANA KATEGORİ ÇUBUĞU ---
+# --- 1. SEVİYE: SAĞA YASLANMIŞ EŞİT BOYUTLU ANA KATEGORİ ÇUBUĞU ---
 btn_list = []
 for kat_adi in gecerli_kategoriler.keys():
     k_clean = kat_adi.replace("🛠️ ", "").replace("🤝 ", "").replace("💰 ", "").replace("🏢 ", "")
@@ -2521,25 +2523,29 @@ if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
     btn_list.append(("Ayarlar", "?nav_kat=Ayarlar", st.session_state.aktif_sayfa == "⚙️ Ayarlar"))
 btn_list.append(("Çıkış", "?logout=true", False))
 
-# Tüm butonlar için eşit kolon ağırlığı: [1.6 Logo] + [1.0 Buton] * N
-col_weights = [1.6] + [1.0] * len(btn_list)
-kat_cols = st.columns(col_weights)
+buttons_html = ""
+for b_name, b_link, b_active in btn_list:
+    svg_code = svg_map.get(b_name, svg_map["Ayarlar"])
+    act_class = "active" if b_active else ""
+    buttons_html += f"""
+    <a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}">
+        <div class="dm-icon">{svg_code}</div>
+        <div class="dm-label">{b_name}</div>
+    </a>
+    """
 
-# Logo
-with kat_cols[0]:
-    st.markdown("<div style='font-family:Manrope,sans-serif; font-weight:900; font-size:16px; color:#f8fafc; padding-top:16px;'>DENTMESHER <span style='color:#e8622c;'>HUB</span></div>", unsafe_allow_html=True)
+header_html = f"""
+<div style="display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 64px; padding: 4px 0; margin-bottom: 4px;">
+    <div style="font-family:Manrope,sans-serif; font-weight:900; font-size:18px; color:#f8fafc; letter-spacing:0.5px; white-space:nowrap;">
+        DENTMESHER <span style="color:#e8622c;">HUB</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-left: auto;">
+        {buttons_html}
+    </div>
+</div>
+"""
 
-# Eşit Boyutlu Beyaz Vektörel İkonlu Butonlar
-for b_idx, (b_name, b_link, b_active) in enumerate(btn_list, start=1):
-    with kat_cols[b_idx]:
-        svg_code = svg_map.get(b_name, svg_map["Ayarlar"])
-        act_class = "active" if b_active else ""
-        st.markdown(f"""
-        <a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}">
-            <div class="dm-icon">{svg_code}</div>
-            <div class="dm-label">{b_name}</div>
-        </a>
-        """, unsafe_allow_html=True)
+st.markdown(header_html, unsafe_allow_html=True)
 
 # --- 2. SEVİYE: AKTİF KATEGORİNİN ALT MODÜLLERİ ---
 secili_moduller = gecerli_kategoriler.get(st.session_state.secili_kategori, [])
