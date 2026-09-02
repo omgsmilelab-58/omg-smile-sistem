@@ -2313,6 +2313,23 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
+/* ── EN TEPEDE SABİT KALAN (STICKY) ANA BANNER ── */
+.dm-sticky-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 99999 !important;
+    background: rgba(6, 12, 26, 0.94) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    padding: 6px 12px 4px 12px !important;
+    margin-top: -1rem !important;
+    margin-left: -1rem !important;
+    margin-right: -1rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55) !important;
+    margin-bottom: 12px !important;
+}
+
 /* ── EŞİT BOYUTLU, ÇERÇEVESİZ & BEYAZ VEKTÖREL İKONLU SAĞA YASLI SABİT MENÜ BUTONLARI ── */
 .dm-vector-btn {
     display: flex !important;
@@ -2559,7 +2576,7 @@ for b_name, b_link, b_active in btn_list:
     act_class = "active" if b_active else ""
     buttons_html += f'<a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}"><div class="dm-icon">{svg_code}</div><div class="dm-label">{b_name}</div></a>'
 
-header_html = f'<div style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:60px;padding:2px 0;margin-bottom:6px;"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}</div></div><div style="height:1px;width:100%;background:linear-gradient(90deg, rgba(56,189,248,0.25) 0%, rgba(255,255,255,0.08) 50%, rgba(56,189,248,0.25) 100%);margin:4px 0 12px 0;"></div>'
+header_html = f'<div class="dm-sticky-header"><div style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:58px;padding:2px 0;"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}</div></div><div style="height:1px;width:100%;background:linear-gradient(90deg, rgba(56,189,248,0.25) 0%, rgba(255,255,255,0.08) 50%, rgba(56,189,248,0.25) 100%);margin:4px 0 2px 0;"></div></div>'
 
 st.markdown(header_html, unsafe_allow_html=True)
 
