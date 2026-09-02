@@ -2424,26 +2424,29 @@ st.markdown("""<style>
     transform: none !important;
 }
 
-/* 2. Seviye Alt Modül Butonları - Sabit ve Kaymasız */
+/* 2. Seviye Alt Modül Butonları - Üst Butonlarla Birebir Uyumlu Tasarım */
 div[data-testid="stHorizontalBlock"] button {
-    border-radius: 8px !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 10px !important;
+    border: none !important;
     outline: none !important;
-    background-color: rgba(255, 255, 255, 0.04) !important;
-    min-height: 40px !important;
-    height: 40px !important;
-    padding: 4px 10px !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+    background-color: transparent !important;
+    background: transparent !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    padding: 6px 12px !important;
+    box-shadow: none !important;
     transform: none !important;
-    transition: color 0.15s ease, border-color 0.15s ease !important;
+    transition: color 0.15s ease, background-color 0.15s ease !important;
     font-family: 'Inter', sans-serif !important;
+    cursor: pointer !important;
 }
 div[data-testid="stHorizontalBlock"] button p {
-    font-size: 11.5px !important;
+    font-size: 12px !important;
     font-weight: 600 !important;
     color: rgb(210, 215, 225) !important;
     margin: 0 !important;
     white-space: nowrap !important;
+    letter-spacing: 0.01em !important;
     text-shadow: none !important;
     transform: none !important;
     transition: color 0.15s ease !important;
@@ -2451,7 +2454,7 @@ div[data-testid="stHorizontalBlock"] button p {
 div[data-testid="stHorizontalBlock"] button:hover {
     background-color: transparent !important;
     background: transparent !important;
-    border-color: rgba(232, 98, 44, 0.4) !important;
+    border: none !important;
     box-shadow: none !important;
     transform: none !important;
 }
@@ -2461,9 +2464,9 @@ div[data-testid="stHorizontalBlock"] button:hover p {
     transform: none !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-    background: rgba(56, 189, 248, 0.16) !important;
-    border: 1px solid rgba(56, 189, 248, 0.6) !important;
-    box-shadow: none !important;
+    background-color: rgba(56, 189, 248, 0.16) !important;
+    box-shadow: inset 0 -3px 0 #38bdf8 !important;
+    border: none !important;
     transform: none !important;
 }
 div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
