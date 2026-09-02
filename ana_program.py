@@ -2289,67 +2289,30 @@ if st.session_state.aktif_sayfa == "🛵 Kurye Mobil Terminali":
         st.rerun()
     st.stop()
 
-# --- 🌟 YATAY ÜST AÇILIR MENÜ (TOP HORIZONTAL NAVBAR) ---
+# --- 🌟 YATAY ÜST MENÜ (2-TIER MODERN HORIZONTAL NAVBAR) ---
 abonelik_tipi = ayar_getir("Abonelik_Tipi", "Standart")
 alt_baslik = f"{rol} Yetkisi" if rol != "Klinik_Asistan" else f"{ana_klinik} Asistanı"
 
-# Sol kenar çubuğunu gizle ve sayfayı tam genişlik yap
+# Sol kenar çubuğunu tamamen gizle ve tam genişlik yap
 st.markdown("""<style>
 [data-testid="stSidebar"], [data-testid="collapsedControl"] {
     display: none !important;
 }
 .block-container {
-    padding-top: 1.2rem !important;
+    padding-top: 1rem !important;
     padding-left: clamp(1rem, 2vw, 2.5rem) !important;
     padding-right: clamp(1rem, 2vw, 2.5rem) !important;
     max-width: 100% !important;
 }
 
-/* EMOJİ VE İKONLARIN KUSURSUZ GÖRÜNMESİ */
-div[data-testid="stPopover"] button, 
-div[data-testid="stPopover"] button *,
-div.stButton > button,
-div.stButton > button * {
-    font-family: 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
-    font-size: 14px !important;
-    font-weight: 700 !important;
-    overflow: visible !important;
-    white-space: nowrap !important;
-}
-
-/* Yatay Üst Menü Popover Buton Stilleri */
-div[data-testid="stPopover"] > button {
-    background: rgba(15, 23, 42, 0.88) !important;
-    border: 1px solid rgba(56, 189, 248, 0.32) !important;
-    color: #ffffff !important;
+/* Üst Kategori Butonları */
+div[data-testid="stHorizontalBlock"] button {
     border-radius: 10px !important;
-    padding: 8px 10px !important;
-    min-height: 42px !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
-    transition: all 0.2s ease !important;
-}
-div[data-testid="stPopover"] > button:hover {
-    background: rgba(56, 189, 248, 0.25) !important;
-    border-color: #38bdf8 !important;
-    box-shadow: 0 0 16px rgba(56, 189, 248, 0.45) !important;
-}
-
-/* Popover Açılır Menü Gövdesi */
-div[data-testid="stPopoverBody"] {
-    background: rgba(8, 16, 32, 0.98) !important;
-    backdrop-filter: blur(25px) !important;
-    border: 1px solid rgba(56, 189, 248, 0.40) !important;
-    border-radius: 14px !important;
-    padding: 12px !important;
-    box-shadow: 0 14px 45px rgba(0, 0, 0, 0.85) !important;
-    min-width: 250px !important;
-}
-div[data-testid="stPopoverBody"] button {
-    text-align: left !important;
-    margin-bottom: 6px !important;
-    border-radius: 8px !important;
-    padding: 9px 14px !important;
+    font-weight: 700 !important;
     font-size: 13.5px !important;
+    padding: 7px 12px !important;
+    white-space: nowrap !important;
+    font-family: 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
 }
 </style>""", unsafe_allow_html=True)
 
@@ -2382,74 +2345,87 @@ for kat_adi, moduller in kategoriler.items():
     if izinli:
         gecerli_kategoriler[kat_adi] = izinli
 
-# Kolon genişliklerini orantılı ayarla
-col_weights = [1.8]
-for _ in gecerli_kategoriler:
-    col_weights.append(1.4)
-if "💬 Mobil İletişim" in menu:
-    col_weights.append(1.1)
-if rol in ["Admin", "Yönetici", "Sekreter"]:
-    col_weights.append(1.0)
-col_weights.append(1.6)
+# Seçili kategoriyi belirle (aktif sayfa hangi kategorideyse o seçili başlar)
+if "secili_kategori" not in st.session_state:
+    st.session_state.secili_kategori = list(gecerli_kategoriler.keys())[0] if gecerli_kategoriler else "🛠️ Operasyon"
 
-top_cols = st.columns(col_weights)
+# Eğer aktif sayfa bir kategorinin içindeyse, otomatik o kategoriye geç
+for kat_k, kat_v in gecerli_kategoriler.items():
+    if st.session_state.aktif_sayfa in kat_v:
+        st.session_state.secili_kategori = kat_k
+        break
+
+# --- 1. SEVİYE: ANA KATEGORİ ÇUBUĞU ---
+col_count = len(gecerli_kategoriler)
+col_weights = [1.6] + [1.3] * col_count
+if "💬 Mobil İletişim" in menu:
+    col_weights.append(1.0)
+if rol in ["Admin", "Yönetici", "Sekreter"]:
+    col_weights.append(0.9)
+col_weights.append(1.2)
+
+kat_cols = st.columns(col_weights)
 c_idx = 0
 
-# 1. Logo
-with top_cols[c_idx]:
-    st.markdown("<div style='font-family:Manrope,sans-serif; font-weight:900; font-size:16px; color:#f8fafc; padding-top:9px;'>DENTMESHER <span style='color:#e8622c;'>HUB</span></div>", unsafe_allow_html=True)
+with kat_cols[c_idx]:
+    st.markdown("<div style='font-family:Manrope,sans-serif; font-weight:900; font-size:16px; color:#f8fafc; padding-top:8px;'>DENTMESHER <span style='color:#e8622c;'>HUB</span></div>", unsafe_allow_html=True)
 c_idx += 1
 
-# 2. Açılır Kategori Menüleri (Popovers)
-for kat_adi, moduller in gecerli_kategoriler.items():
-    kat_aktif = any(m == st.session_state.aktif_sayfa for m in moduller)
-    btn_label = f"{kat_adi}"
-    with top_cols[c_idx]:
-        with st.popover(btn_label, use_container_width=True):
-            st.markdown(f"**{kat_adi}**")
-            for m in moduller:
-                b_type = "primary" if m == st.session_state.aktif_sayfa else "secondary"
-                if st.button(m, key=f"top_nav_{m}", use_container_width=True, type=b_type):
-                    st.session_state.aktif_sayfa = m
-                    st.query_params["page"] = m
-                    st.rerun()
+for kat_adi in gecerli_kategoriler.keys():
+    is_sel = (st.session_state.secili_kategori == kat_adi)
+    b_type = "primary" if is_sel else "secondary"
+    with kat_cols[c_idx]:
+        if st.button(kat_adi, key=f"kat_btn_{kat_adi}", use_container_width=True, type=b_type):
+            st.session_state.secili_kategori = kat_adi
+            ilk_mod = gecerli_kategoriler[kat_adi][0]
+            st.session_state.aktif_sayfa = ilk_mod
+            st.query_params["page"] = ilk_mod
+            st.rerun()
     c_idx += 1
 
-# 3. İletişim Butonu
 if "💬 Mobil İletişim" in menu:
-    with top_cols[c_idx]:
+    with kat_cols[c_idx]:
         msg_type = "primary" if st.session_state.aktif_sayfa == "💬 Mobil İletişim" else "secondary"
-        if st.button("💬 İletişim", key="top_btn_msg", use_container_width=True, type=msg_type):
+        if st.button("💬 İletişim", key="nav_btn_msg", use_container_width=True, type=msg_type):
             st.session_state.aktif_sayfa = "💬 Mobil İletişim"
             st.query_params["page"] = "💬 Mobil İletişim"
             st.rerun()
     c_idx += 1
 
-# 4. AI Butonu
 if rol in ["Admin", "Yönetici", "Sekreter"]:
-    with top_cols[c_idx]:
+    with kat_cols[c_idx]:
         ai_type = "primary" if st.session_state.aktif_sayfa == "🤖 OMG AI Asistan" else "secondary"
-        if st.button("🤖 AI", key="top_btn_ai", use_container_width=True, type=ai_type):
+        if st.button("🤖 AI", key="nav_btn_ai", use_container_width=True, type=ai_type):
             st.session_state.aktif_sayfa = "🤖 OMG AI Asistan"
             st.query_params["page"] = "🤖 OMG AI Asistan"
             st.rerun()
     c_idx += 1
 
-# 5. Kullanıcı & Profil & Ayarlar & Çıkış Popover
-with top_cols[c_idx]:
-    with st.popover(f"👤 {kullanici_adi[:10]}", use_container_width=True):
-        st.markdown(f"**{kullanici_adi.upper()}**")
-        st.caption(f"Rol: {alt_baslik}")
-        st.markdown("---")
-        if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
-            if st.button("⚙️ Sistem Ayarları", key="top_pop_settings", use_container_width=True):
-                st.session_state.aktif_sayfa = "⚙️ Ayarlar"
-                st.query_params["page"] = "⚙️ Ayarlar"
-                st.rerun()
-        if st.button("🚪 Çıkış Yap", key="top_pop_logout", use_container_width=True):
-            st.query_params.clear()
-            st.session_state.clear()
+with kat_cols[c_idx]:
+    c_exit1, c_exit2 = st.columns([1, 1])
+    if rol not in ["Teknisyen", "Kiosk", "Klinik_Asistan"]:
+        if c_exit1.button("⚙️", help="Sistem Ayarları", key="nav_btn_set", use_container_width=True):
+            st.session_state.aktif_sayfa = "⚙️ Ayarlar"
+            st.query_params["page"] = "⚙️ Ayarlar"
             st.rerun()
+    if c_exit2.button("🚪", help="Çıkış Yap", key="nav_btn_out", use_container_width=True):
+        st.query_params.clear()
+        st.session_state.clear()
+        st.rerun()
+
+# --- 2. SEVİYE: AKTİF KATEGORİNİN ALT MODÜLLERİ ---
+secili_moduller = gecerli_kategoriler.get(st.session_state.secili_kategori, [])
+if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletişim", "🤖 OMG AI Asistan", "⚙️ Ayarlar"]:
+    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+    sub_cols = st.columns(len(secili_moduller))
+    for s_idx, mod_adi in enumerate(secili_moduller):
+        m_active = (mod_adi == st.session_state.aktif_sayfa)
+        m_type = "primary" if m_active else "secondary"
+        with sub_cols[s_idx]:
+            if st.button(mod_adi, key=f"sub_mod_{mod_adi}", use_container_width=True, type=m_type):
+                st.session_state.aktif_sayfa = mod_adi
+                st.query_params["page"] = mod_adi
+                st.rerun()
 
 st.markdown("<hr style='border-color: rgba(56, 189, 248, 0.20); margin: 6px 0 20px 0;'>", unsafe_allow_html=True)
 
