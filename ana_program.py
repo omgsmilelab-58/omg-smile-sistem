@@ -2527,23 +2527,9 @@ buttons_html = ""
 for b_name, b_link, b_active in btn_list:
     svg_code = svg_map.get(b_name, svg_map["Ayarlar"])
     act_class = "active" if b_active else ""
-    buttons_html += f"""
-    <a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}">
-        <div class="dm-icon">{svg_code}</div>
-        <div class="dm-label">{b_name}</div>
-    </a>
-    """
+    buttons_html += f'<a href="{b_link}" target="_self" class="dm-vector-btn {act_class}" title="{b_name}"><div class="dm-icon">{svg_code}</div><div class="dm-label">{b_name}</div></a>'
 
-header_html = f"""
-<div style="display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 64px; padding: 4px 0; margin-bottom: 4px;">
-    <div style="font-family:Manrope,sans-serif; font-weight:900; font-size:18px; color:#f8fafc; letter-spacing:0.5px; white-space:nowrap;">
-        DENTMESHER <span style="color:#e8622c;">HUB</span>
-    </div>
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-left: auto;">
-        {buttons_html}
-    </div>
-</div>
-"""
+header_html = f'<div style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:64px;padding:4px 0;margin-bottom:4px;"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}</div></div>'
 
 st.markdown(header_html, unsafe_allow_html=True)
 
