@@ -591,6 +591,15 @@ st.markdown("""
             border-right: 1px solid rgba(56, 189, 248, 0.20) !important;
         }
 
+        /* İç boşlukları daraltarak 76px alana ikonların tam sığmasını sağla */
+        [data-testid="stSidebar"] > div:first-child,
+        [data-testid="stSidebarContent"],
+        [data-testid="stSidebarUserContent"],
+        [data-testid="stSidebar"] section > div {
+            padding: 12px 6px !important;
+            width: 100% !important;
+        }
+
         [data-testid="stSidebar"]:hover {
             width: 285px !important;
             min-width: 285px !important;
@@ -606,19 +615,27 @@ st.markdown("""
 
         [data-testid="stSidebarNav"] { display: none !important; }
 
-        /* Butonlar: Kapalıyken ilk ikon net görünür, açılınca tam metin */
+        /* Butonlar: Kapalıyken ortalı ve büyük ikon, açılınca sola yaslı tam metin */
         [data-testid="stSidebar"] button {
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
-            text-align: left !important;
-            font-size: 13.5px !important;
-            padding: 9px 12px !important;
+            min-height: 42px !important;
             border-radius: 10px !important;
             transition: all 0.2s ease !important;
         }
+        [data-testid="stSidebar"]:not(:hover) button {
+            text-align: center !important;
+            padding: 8px 0 !important;
+            font-size: 18px !important;
+        }
+        [data-testid="stSidebar"]:hover button {
+            text-align: left !important;
+            font-size: 13.5px !important;
+            padding: 9px 14px !important;
+        }
 
-        /* Expander başlıkları */
+        /* Expander başlıkları ve ikonları */
         [data-testid="stSidebar"] [data-testid="stExpander"] {
             border: 1px solid rgba(255, 255, 255, 0.08) !important;
             border-radius: 10px !important;
@@ -630,17 +647,44 @@ st.markdown("""
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
-            padding: 8px 10px !important;
+            padding: 10px 6px !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+        [data-testid="stSidebar"]:not(:hover) [data-testid="stExpander"] summary {
+            text-align: center !important;
+            font-size: 20px !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+        }
+        [data-testid="stSidebar"]:not(:hover) [data-testid="stExpander"] summary svg {
+            display: none !important;
+        }
+        [data-testid="stSidebar"]:hover [data-testid="stExpander"] summary {
+            text-align: left !important;
             font-size: 13px !important;
+            padding: 8px 10px !important;
+        }
+        [data-testid="stSidebar"]:hover [data-testid="stExpander"] summary svg {
+            display: inline-block !important;
+            margin-right: 6px !important;
         }
 
         /* Kullanıcı Kartı */
         [data-testid="stSidebar"] .glass-card {
-            padding: 10px 8px !important;
-            margin-bottom: 14px !important;
+            padding: 10px 6px !important;
+            margin-bottom: 12px !important;
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
+            text-align: center !important;
+        }
+        [data-testid="stSidebar"]:not(:hover) .glass-card h4 {
+            font-size: 14px !important;
+        }
+        [data-testid="stSidebar"]:not(:hover) .glass-card span {
+            display: none !important;
         }
         
         /* 🚀 Glassmorphism Kartları (GPU Optimize Edilmiş - Ghosting Giderildi) */
