@@ -1996,63 +1996,158 @@ div[data-testid="InputInstructions"] { display: none !important; }
     
     col_space_left, col_login, col_space_right = st.columns([1, 1.25, 1])
     with col_login:
+        def tr_normalize(text):
+            if text is None:
+                return ""
+            s = str(text).strip().lower()
+            replacements = {
+                'ı': 'i', 'İ': 'i', 'i̇': 'i', 'I': 'i',
+                'ğ': 'g', 'Ğ': 'g',
+                'ü': 'u', 'Ü': 'u',
+                'ş': 's', 'Ş': 's',
+                'ö': 'o', 'Ö': 'o',
+                'ç': 'c', 'Ç': 'c'
+            }
+            for tr_c, asc_c in replacements.items():
+                s = s.replace(tr_c, asc_c)
+            return re.sub(r'\s+', ' ', s)
+
+        def dogrula_kullanici_girisi(k_giris, s_giris):
+            if not k_giris or not s_giris:
+                return None
+            k_raw = str(k_giris).strip()
+            k_norm = tr_normalize(k_raw)
+            p_raw = str(s_giris).strip()
+            if not k_norm or not p_raw:
+                return None
+
+            # 1. Cariler Tablosu (Klinik / Hekim)
+            try:
+                cariler_list = c.execute("SELECT Klinik_Unvani, Yetkili_Kisi, Email, Telefon, Sifre, Durum FROM cariler").fetchall()
+                for row in cariler_list:
+                    c_unvan = row[0] if len(row) > 0 and row[0] is not None else ""
+                    c_yetkili = row[1] if len(row) > 1 and row[1] is not None else ""
+                    c_email = row[2] if len(row) > 2 and row[2] is not None else ""
+                    c_tel = row[3] if len(row) > 3 and row[3] is not None else ""
+                    c_sifre = row[4] if len(row) > 4 and row[4] is not None else ""
+                    c_durum = row[5] if len(row) > 5 and row[5] is not None else "Aktif"
+                    
+                    if str(c_durum).strip().lower() == "pasif":
+                        continue
+                        
+                    eff_sifre = str(c_sifre).strip() if (c_sifre is not None and str(c_sifre).strip() not in ["", "-", "None"]) else "1234"
+                    if p_raw != eff_sifre and not (not c_sifre and p_raw == "1234"):
+                        continue
+                        
+                    unvan_norm = tr_normalize(c_unvan)
+                    email_norm = tr_normalize(c_email)
+                    yetkili_norm = tr_normalize(c_yetkili)
+                    
+                    # Ünvan tam veya normalize eşleşme
+                    if unvan_norm and (k_norm == unvan_norm or k_raw.lower() == str(c_unvan).strip().lower()):
+                        return ("Klinik", c_unvan, c_unvan)
+                        
+                    # E-posta eşleşmesi
+                    if email_norm and (k_norm == email_norm or k_raw.lower() == str(c_email).strip().lower()):
+                        return ("Klinik", c_unvan, c_unvan)
+                        
+                    # Hekim Yetkili Adı (Dt., Dr. ön ekleri temizlenerek)
+                    if yetkili_norm:
+                        if k_norm == yetkili_norm:
+                            return ("Klinik", c_unvan, c_unvan)
+                        clean_yetkili = tr_normalize(re.sub(r'^(dt\.|dr\.|uzm\.|prof\.|doc\.)\s*', '', str(c_yetkili), flags=re.IGNORECASE))
+                        clean_input = tr_normalize(re.sub(r'^(dt\.|dr\.|uzm\.|prof\.|doc\.)\s*', '', k_raw, flags=re.IGNORECASE))
+                        if clean_yetkili and clean_yetkili == clean_input:
+                            return ("Klinik", c_unvan, c_unvan)
+                            
+                    # Telefon numarası (sadece rakamlar karşılaştırılır)
+                    if c_tel:
+                        digits_tel = re.sub(r'\D', '', str(c_tel))
+                        digits_in = re.sub(r'\D', '', k_raw)
+                        if len(digits_in) >= 7 and (digits_tel == digits_in or digits_tel.endswith(digits_in) or digits_in.endswith(digits_tel)):
+                            return ("Klinik", c_unvan, c_unvan)
+                            
+                    # Klinik ünvanı başlama veya içerme (örn: "Dent 58" -> "Dent 58 Polikliniği")
+                    if unvan_norm and len(k_norm) >= 4 and (unvan_norm.startswith(k_norm) or k_norm.startswith(unvan_norm)):
+                        return ("Klinik", c_unvan, c_unvan)
+            except Exception:
+                pass
+
+            # 2. Klinik Asistanları Tablosu
+            try:
+                asistanlar = c.execute("SELECT Asistan_Kadi, Klinik_Unvani, Sifre FROM klinik_asistanlari").fetchall()
+                for a_row in asistanlar:
+                    a_kadi = a_row[0] if len(a_row) > 0 and a_row[0] is not None else ""
+                    a_unvan = a_row[1] if len(a_row) > 1 and a_row[1] is not None else ""
+                    a_sifre = a_row[2] if len(a_row) > 2 and a_row[2] is not None else ""
+                    eff_a_sifre = str(a_sifre).strip() if (a_sifre is not None and str(a_sifre).strip() not in ["", "-", "None"]) else "1234"
+                    if tr_normalize(a_kadi) == k_norm and p_raw == eff_a_sifre:
+                        return ("Klinik_Asistan", a_kadi, a_unvan)
+            except Exception:
+                pass
+
+            # 3. Kullanıcılar Tablosu (Laboratuvar & Sistem Kullanıcıları)
+            try:
+                kullanicilar = c.execute("SELECT Kullanici_Adi, Sifre, Rol FROM kullanicilar").fetchall()
+                for u_row in kullanicilar:
+                    u_kadi = u_row[0] if len(u_row) > 0 and u_row[0] is not None else ""
+                    u_sifre = u_row[1] if len(u_row) > 1 and u_row[1] is not None else ""
+                    u_rol = u_row[2] if len(u_row) > 2 and u_row[2] is not None else ""
+                    eff_u_sifre = str(u_sifre).strip() if (u_sifre is not None and str(u_sifre).strip() not in ["", "-", "None"]) else "1234"
+                    if tr_normalize(u_kadi) == k_norm and p_raw == eff_u_sifre:
+                        u_rol_str = str(u_rol).strip()
+                        if u_rol_str.lower() in ["klinik", "doktor", "hekim"]:
+                            mapped_k = u_kadi
+                            try:
+                                for r in c.execute("SELECT Klinik_Unvani FROM cariler").fetchall():
+                                    if tr_normalize(r[0]) == k_norm:
+                                        mapped_k = r[0]
+                                        break
+                            except Exception:
+                                pass
+                            return ("Klinik", u_kadi, mapped_k)
+                        elif u_rol_str.lower() in ["asistan", "klinik_asistan"]:
+                            return ("Klinik_Asistan", u_kadi, u_kadi)
+                        else:
+                            return (u_rol_str, u_kadi, "")
+            except Exception:
+                pass
+
+            return None
+
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
         giris_tipi = st.radio(" ", ["👨‍🔬 Laboratuvar Yetkilisi", "🏥 Hekim / Klinik Portalı"], horizontal=True, label_visibility="collapsed")
         
         with st.form("giris_formu"):
             if giris_tipi == "👨‍🔬 Laboratuvar Yetkilisi":
-                st.markdown("<div class=\"form-header\"><p class=\"form-title\">Hoş Geldiniz</p><p class=\"form-subtitle\">Laboratuvar yönetim paneline erişmek için giriş yapın</p></div>", unsafe_allow_html=True)
-                kullanici_giris = st.text_input("Kullanıcı Adı / E-posta", placeholder="Kullanıcı adınızı girin")
+                st.markdown("<div class=\"form-header\"><p class=\"form-title\">Laboratuvar Yönetim Paneli</p><p class=\"form-subtitle\">Laboratuvar yönetim paneline erişmek için giriş yapın</p></div>", unsafe_allow_html=True)
+                kullanici_giris = st.text_input("Kullanıcı Adı / E-posta", placeholder="Kullanıcı adınızı veya e-postanızı girin")
                 sifre_giris = st.text_input("Şifre", type="password", placeholder="••••••••")
                 st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
                 if st.form_submit_button("Giriş Yap", use_container_width=True):
-                    sorgu = c.execute("SELECT Rol, Kullanici_Adi FROM kullanicilar WHERE LOWER(Kullanici_Adi)=LOWER(?) AND Sifre=?", (kullanici_giris.strip(), sifre_giris.strip())).fetchone()
-                    if sorgu:
-                        st.query_params["auth"] = create_session_token(sorgu[1], sorgu[0], "")
-                        st.session_state.update({"giris_yapildi": True, "kullanici_adi": sorgu[1], "kullanici_rolu": sorgu[0], "ana_klinik": ""})
+                    auth_res = dogrula_kullanici_girisi(kullanici_giris, sifre_giris)
+                    if auth_res:
+                        u_rol, u_kadi, u_klinik = auth_res
+                        st.query_params["auth"] = create_session_token(u_kadi, u_rol, u_klinik)
+                        st.session_state.update({"giris_yapildi": True, "kullanici_adi": u_kadi, "kullanici_rolu": u_rol, "ana_klinik": u_klinik})
                         st.rerun()
                     else:
                         st.error("Erişim Reddedildi! Kullanıcı adı veya şifre hatalı.")
             else:
-                st.markdown("<div class=\"form-header\"><p class=\"form-title\">Hekim Portalı</p><p class=\"form-subtitle\">Klinik sipariş ve takip sistemine erişmek için giriş yapın</p></div>", unsafe_allow_html=True)
-                
-                asistan_girisi_mi = st.checkbox("👩‍💻 Asistan Girişi (Alt Hesap)")
-                
-                if asistan_girisi_mi:
-                    kullanici_giris = st.text_input("Asistan Kullanıcı Adı", placeholder="Örn: OMG_Ayse")
-                else:
-                    kullanici_giris = st.text_input("Klinik Adı / Kullanıcı Adı", placeholder="Örn: Dent 58")
-                
+                st.markdown("<div class=\"form-header\"><p class=\"form-title\">Hekim & Klinik Portalı</p><p class=\"form-subtitle\">Klinik sipariş, hasta takibi ve ekstrenize erişmek için giriş yapın</p></div>", unsafe_allow_html=True)
+                kullanici_giris = st.text_input("Klinik Adı / Hekim Adı / E-Posta", placeholder="Örn: Dent 58 veya info@dent58.com")
                 sifre_giris = st.text_input("Şifre", type="password", placeholder="••••••••")
+                st.caption("ℹ️ Hekim, asistan veya klinik kullanıcı adınız / e-postanız ile doğrudan giriş yapabilirsiniz.")
                 st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
                 if st.form_submit_button("Giriş Yap", use_container_width=True):
-                    if asistan_girisi_mi:
-                        sorgu = c.execute("SELECT Klinik_Unvani, Sifre FROM klinik_asistanlari WHERE LOWER(Asistan_Kadi)=LOWER(?) AND Sifre=?", (kullanici_giris.strip(), sifre_giris.strip())).fetchone()
-                        if sorgu:
-                            st.query_params["auth"] = create_session_token(kullanici_giris.strip(), "Klinik_Asistan", sorgu[0])
-                            st.session_state.update({"giris_yapildi": True, "kullanici_adi": kullanici_giris.strip(), "kullanici_rolu": "Klinik_Asistan", "ana_klinik": sorgu[0]})
-                            st.rerun()
-                        else: st.error("Asistan bilgileri hatalı!")
+                    auth_res = dogrula_kullanici_girisi(kullanici_giris, sifre_giris)
+                    if auth_res:
+                        u_rol, u_kadi, u_klinik = auth_res
+                        st.query_params["auth"] = create_session_token(u_kadi, u_rol, u_klinik)
+                        st.session_state.update({"giris_yapildi": True, "kullanici_adi": u_kadi, "kullanici_rolu": u_rol, "ana_klinik": u_klinik})
+                        st.rerun()
                     else:
-                        # Case insensitive match with Python
-                        klinikler = c.execute("SELECT Klinik_Unvani, Sifre FROM cariler").fetchall()
-                        giris_basarili = False
-                        gercek_unvan = ""
-                        
-                        def tr_lower(text):
-                            return text.replace('I','ı').replace('İ','i').lower()
-                            
-                        for k_unvan, k_sifre in klinikler:
-                            if tr_lower(k_unvan) == tr_lower(kullanici_giris.strip()) and k_sifre == sifre_giris:
-                                giris_basarili = True
-                                gercek_unvan = k_unvan
-                                break
-                                
-                        if giris_basarili: 
-                            st.query_params["auth"] = create_session_token(gercek_unvan, "Klinik", gercek_unvan)
-                            st.session_state.update({"giris_yapildi": True, "kullanici_adi": gercek_unvan, "kullanici_rolu": "Klinik", "ana_klinik": gercek_unvan})
-                            st.rerun()
-                        else: st.error("Klinik Adı (Kullanıcı Adı) veya Şifre Hatalı!")
+                        st.error("Klinik Adı, Hekim Adı, E-Posta veya Şifre Hatalı!")
     
     st.markdown("""<style>
 .footer-meta {
@@ -2816,31 +2911,52 @@ svg_map = {
     "Finans": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>""",
     "Yönetim": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>""",
     "İletişim": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>""",
-    "OMG AI": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>"""
+    "OMG AI": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>""",
+    "Sipariş & Takip": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7V7h10v2z"/></svg>""",
+    "Hesap & Ekstre": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>""",
+    "Takvim": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>""",
+    "İletişim & Bilgi": """<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>""",
 }
 
 # Aktif oturum anahtarını al (oturumun asla düşmemesi için linklerde taşınır)
 current_auth = st.query_params.get("auth") or create_session_token(st.session_state.get("kullanici_adi", "tamer"), st.session_state.get("kullanici_rolu", "Admin"), st.session_state.get("ana_klinik", ""))
 
-kat_slug_map = {
-    "🛠️ Operasyon": ("Üretim", "uretim"),
-    "🤝 Müşteri & CRM": ("Müşteri", "musteri"),
-    "💰 Finans": ("Finans", "finans"),
-    "🏢 Yönetim": ("Yönetim", "yonetim")
-}
-slug_to_kat = {
-    "uretim": ("🛠️ Operasyon", "🏠 Komuta Merkezi"),
-    "operasyon": ("🛠️ Operasyon", "🏠 Komuta Merkezi"),
-    "musteri": ("🤝 Müşteri & CRM", "🤝 Hekim ve Cari Kayıt"),
-    "crm": ("🤝 Müşteri & CRM", "🤝 Hekim ve Cari Kayıt"),
-    "finans": ("💰 Finans", "💰 Finans & Analitik"),
-    "yonetim": ("🏢 Yönetim", "🔧 Makine Parkuru ve Bakımı"),
-    "iletisim": (None, "💬 Mobil İletişim"),
-    "omg_ai": (None, "🤖 OMG AI Asistan"),
-    "ai": (None, "🤖 OMG AI Asistan"),
-    "ayarlar": (None, "⚙️ Ayarlar"),
-    "profil": (None, "👤 Profil Bilgileri"),
-}
+if rol in ["Klinik", "Klinik_Asistan"]:
+    kat_slug_map = {
+        "🦷 Sipariş & Takip": ("Sipariş & Takip", "klinik_takip"),
+        "💰 Hesap & Ekstre": ("Hesap & Ekstre", "klinik_ekstre"),
+        "📅 Doktor Takvimi": ("Takvim", "klinik_takvim"),
+        "🏢 Kurumsal Bilgi": ("İletişim & Bilgi", "klinik_bilgi")
+    }
+    slug_to_kat = {
+        "klinik_takip": ("🦷 Sipariş & Takip", "🦷 Klinik Paneli"),
+        "klinik_ekstre": ("💰 Hesap & Ekstre", "🧾 Detaylı Ekstre"),
+        "klinik_takvim": ("📅 Doktor Takvimi", "📅 Doktor Takvimi"),
+        "klinik_bilgi": ("🏢 Kurumsal Bilgi", "🏢 Kurumsal Bilgi"),
+        "iletisim": (None, "💬 Mobil İletişim"),
+        "ayarlar": (None, "⚙️ Ayarlar"),
+        "profil": (None, "👤 Profil Bilgileri"),
+    }
+else:
+    kat_slug_map = {
+        "🛠️ Operasyon": ("Üretim", "uretim"),
+        "🤝 Müşteri & CRM": ("Müşteri", "musteri"),
+        "💰 Finans": ("Finans", "finans"),
+        "🏢 Yönetim": ("Yönetim", "yonetim")
+    }
+    slug_to_kat = {
+        "uretim": ("🛠️ Operasyon", "🏠 Komuta Merkezi"),
+        "operasyon": ("🛠️ Operasyon", "🏠 Komuta Merkezi"),
+        "musteri": ("🤝 Müşteri & CRM", "🤝 Hekim ve Cari Kayıt"),
+        "crm": ("🤝 Müşteri & CRM", "🤝 Hekim ve Cari Kayıt"),
+        "finans": ("💰 Finans", "💰 Finans & Analitik"),
+        "yonetim": ("🏢 Yönetim", "🔧 Makine Parkuru ve Bakımı"),
+        "iletisim": (None, "💬 Mobil İletişim"),
+        "omg_ai": (None, "🤖 OMG AI Asistan"),
+        "ai": (None, "🤖 OMG AI Asistan"),
+        "ayarlar": (None, "⚙️ Ayarlar"),
+        "profil": (None, "👤 Profil Bilgileri"),
+    }
 
 import urllib.parse
 
@@ -2895,27 +3011,43 @@ if "nav_sub" in st.query_params:
     st.query_params["page"] = st.session_state.aktif_sayfa
     st.rerun()
 
-kategoriler = {
-    "🛠️ Operasyon": [
-        "🏠 Komuta Merkezi", "📅 Görev & Planlama", "⚙️ İş Akışı", 
-        "📱 Teknisyen Terminali", "📺 Lobi / TV Ekranı", "🦷 Klinik Paneli"
-    ]
-}
+if rol in ["Klinik", "Klinik_Asistan"]:
+    kategoriler = {
+        "🦷 Sipariş & Takip": [
+            "🦷 Klinik Paneli", "📤 Yeni Sipariş (Reçete)", "📺 Lobi / TV Ekranı"
+        ],
+        "💰 Hesap & Ekstre": [
+            "🧾 Detaylı Ekstre"
+        ],
+        "📅 Doktor Takvimi": [
+            "📅 Doktor Takvimi"
+        ],
+        "🏢 Kurumsal Bilgi": [
+            "🏢 Kurumsal Bilgi"
+        ]
+    }
+else:
+    kategoriler = {
+        "🛠️ Operasyon": [
+            "🏠 Komuta Merkezi", "📅 Görev & Planlama", "⚙️ İş Akışı", 
+            "📱 Teknisyen Terminali", "📺 Lobi / TV Ekranı", "🦷 Klinik Paneli"
+        ]
+    }
 
-if abonelik_tipi in ["Profesyonel", "Business"]:
-    kategoriler["🤝 Müşteri & CRM"] = [
-        "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
-        "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "📅 Doktor Takvimi"
-    ]
+    if abonelik_tipi in ["Profesyonel", "Business"]:
+        kategoriler["🤝 Müşteri & CRM"] = [
+            "🤝 Hekim ve Cari Kayıt", "📱 WhatsApp Entegrasyonu", "🛵 Kurye Lojistik",
+            "📤 Yeni Sipariş (Reçete)", "🛵 Kurye Mobil Terminali", "📅 Doktor Takvimi"
+        ]
 
-kategoriler["💰 Finans"] = [
-    "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
-    "🏭 Tedarikçi Yönetimi", "🧾 Detaylı Ekstre"
-]
-kategoriler["🏢 Yönetim"] = [
-    "🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", 
-    "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi", "🏢 Kurumsal Bilgi"
-]
+    kategoriler["💰 Finans"] = [
+        "💰 Finans & Analitik", "📉 Maliyet Yönetimi", "📦 Stok Yönetimi", 
+        "🏭 Tedarikçi Yönetimi", "🧾 Detaylı Ekstre"
+    ]
+    kategoriler["🏢 Yönetim"] = [
+        "🔧 Makine Parkuru ve Bakımı", "🏢 Varlık Yönetimi", 
+        "👥 Personel Yönetimi", "🔐 Kullanıcı & Yetki Yönetimi", "🏢 Kurumsal Bilgi"
+    ]
 
 # İzinli kategorileri ve modülleri topla
 gecerli_kategoriler = {}
