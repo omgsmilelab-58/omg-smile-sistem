@@ -959,6 +959,38 @@ try: c.execute("ALTER TABLE isler ADD COLUMN Bakiye_Durumu TEXT DEFAULT 'Bekliyo
 except: pass
 try: c.execute("ALTER TABLE isler ADD COLUMN KDV_Orani REAL DEFAULT 0")
 except: pass
+
+# Faturası kesilmiş ekstrelerdeki işlerin Fatura_Tarihi alanını senkronize et (Eski/Mevcut kayıtlar için)
+try:
+    c.execute("""
+        UPDATE isler 
+        SET Fatura_Tarihi = (
+            SELECT COALESCE(f.Fatura_Tarihi, h.Bitis_Tarihi)
+            FROM hesap_ekstreleri h 
+            LEFT JOIN faturalar f ON h.id = f.Ekstre_ID 
+            WHERE TRIM(LOWER(isler.Klinik_Unvani)) = TRIM(LOWER(h.Klinik_Unvani))
+              AND (f.id IS NOT NULL OR h.Fatura_ID IS NOT NULL OR h.Durum = 'Faturalanmış')
+              AND (
+                  (substr(isler.Tarih, 1, 10) >= substr(h.Baslangic_Tarihi, 1, 10) AND substr(isler.Tarih, 1, 10) <= substr(h.Bitis_Tarihi, 1, 10))
+                  OR (isler.Tarih >= h.Baslangic_Tarihi AND isler.Tarih <= h.Bitis_Tarihi || ' 23:59:59')
+              )
+            LIMIT 1
+        )
+        WHERE (Fatura_Tarihi IS NULL OR Fatura_Tarihi = '-' OR TRIM(Fatura_Tarihi) = '' OR Fatura_Tarihi = 'None')
+          AND EXISTS (
+            SELECT 1 
+            FROM hesap_ekstreleri h 
+            LEFT JOIN faturalar f ON h.id = f.Ekstre_ID 
+            WHERE TRIM(LOWER(isler.Klinik_Unvani)) = TRIM(LOWER(h.Klinik_Unvani))
+              AND (f.id IS NOT NULL OR h.Fatura_ID IS NOT NULL OR h.Durum = 'Faturalanmış')
+              AND (
+                  (substr(isler.Tarih, 1, 10) >= substr(h.Baslangic_Tarihi, 1, 10) AND substr(isler.Tarih, 1, 10) <= substr(h.Bitis_Tarihi, 1, 10))
+                  OR (isler.Tarih >= h.Baslangic_Tarihi AND isler.Tarih <= h.Bitis_Tarihi || ' 23:59:59')
+              )
+          )
+    """)
+    conn.commit()
+except: pass
 c.execute('''CREATE TABLE IF NOT EXISTS stok (id SERIAL PRIMARY KEY, Urun_Kodu TEXT, Urun_Adi TEXT, Kategori TEXT, Mevcut_Miktar REAL, Birim TEXT, Kritik_Sinir REAL, Satis_Fiyati REAL, Durum TEXT DEFAULT 'Aktif', Renk TEXT DEFAULT '-', Guncelleme_Tarihi TEXT DEFAULT '-', Marka TEXT DEFAULT '-')''')
 c.execute('''CREATE TABLE IF NOT EXISTS fiyat_listesi (id SERIAL PRIMARY KEY, Hizmet_Adi TEXT, Kategori TEXT, Fiyat REAL, Para_Birimi TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS hizmet_maliyetleri (id SERIAL PRIMARY KEY, hizmet_id INTEGER, kalem_adi TEXT, tutar REAL)''')
@@ -4257,7 +4289,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                 bas_tar = arsiv_tarih[0].strftime("%Y-%m-%d")
                 bit_tar = (arsiv_tarih[1] + timedelta(days=1)).strftime("%Y-%m-%d")
                 
-                fat_sorgu = "(SELECT COUNT(*) FROM hesap_ekstreleri e INNER JOIN faturalar f ON f.Ekstre_ID = e.id WHERE e.Klinik_Unvani = isler.Klinik_Unvani AND isler.Tarih >= e.Baslangic_Tarihi AND isler.Tarih <= e.Bitis_Tarihi) as Faturali_Mi"
+                fat_sorgu = "(CASE WHEN isler.Fatura_Tarihi IS NOT NULL AND isler.Fatura_Tarihi != '-' AND TRIM(isler.Fatura_Tarihi) != '' AND isler.Fatura_Tarihi != 'None' THEN 1 ELSE (SELECT COUNT(*) FROM hesap_ekstreleri e INNER JOIN faturalar f ON f.Ekstre_ID = e.id WHERE TRIM(LOWER(e.Klinik_Unvani)) = TRIM(LOWER(isler.Klinik_Unvani)) AND ((substr(isler.Tarih, 1, 10) >= substr(e.Baslangic_Tarihi, 1, 10) AND substr(isler.Tarih, 1, 10) <= substr(e.Bitis_Tarihi, 1, 10)) OR (isler.Tarih >= e.Baslangic_Tarihi AND isler.Tarih <= e.Bitis_Tarihi || ' 23:59:59'))) END) as Faturali_Mi"
                 if arsiv_klinik == "Tümü":
                     df_arsiv_isler = pd.read_sql(f"SELECT id, Teslim_Tarihi, Hasta_Kodu, Hasta_Adi, Klinik_Unvani, Adet, {fat_sorgu} FROM isler WHERE Tarih >= ? AND Tarih < ? ORDER BY Tarih DESC", conn, params=(bas_tar, bit_tar))
                 else:
@@ -4512,15 +4544,19 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             conn.commit(); st.rerun()
 
             df_isler = pd.read_sql('''
-                SELECT id, Barkod, Tarih, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Renk, Adet as "Adet", Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Aciklama, Lot_Numarasi, Sertifika_No 
+                SELECT id, Barkod, Tarih, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Renk, Adet as "Adet", Asama, Tutar_TL, Sorumlu_Personel, Harcanan_Malzeme, Aciklama, Lot_Numarasi, Sertifika_No, Fatura_Tarihi 
                 FROM isler i 
-                WHERE i.Asama != 'Teslim Edildi' OR NOT EXISTS (
-                    SELECT 1 FROM hesap_ekstreleri h
-                    JOIN faturalar f ON h.id = f.Ekstre_ID
-                    WHERE i.Klinik_Unvani = h.Klinik_Unvani
-                      AND i.Tarih >= h.Baslangic_Tarihi
-                      AND i.Tarih <= h.Bitis_Tarihi || ' 23:59:59'
-                )
+                WHERE (i.Fatura_Tarihi IS NULL OR i.Fatura_Tarihi = '-' OR TRIM(i.Fatura_Tarihi) = '' OR i.Fatura_Tarihi = 'None')
+                  AND NOT EXISTS (
+                      SELECT 1 FROM hesap_ekstreleri h
+                      LEFT JOIN faturalar f ON h.id = f.Ekstre_ID
+                      WHERE TRIM(LOWER(i.Klinik_Unvani)) = TRIM(LOWER(h.Klinik_Unvani))
+                        AND (f.id IS NOT NULL OR h.Fatura_ID IS NOT NULL OR h.Durum = 'Faturalanmış')
+                        AND (
+                            (substr(i.Tarih, 1, 10) >= substr(h.Baslangic_Tarihi, 1, 10) AND substr(i.Tarih, 1, 10) <= substr(h.Bitis_Tarihi, 1, 10))
+                            OR (i.Tarih >= h.Baslangic_Tarihi AND i.Tarih <= h.Bitis_Tarihi || ' 23:59:59')
+                        )
+                  )
             ''', conn)
             if 'adet' in df_isler.columns: df_isler = df_isler.rename(columns={'adet': 'Adet'})
             
@@ -4529,7 +4565,14 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             # Sıra No Sütunu Ekle
             st.subheader("📋 Reçeteler ve Üretim Takibi")
 
-            takip_arama = st.text_input("🔍 Hasta Adı, Klinik, Barkod veya Sorumlu ile Ara...", key="uretim_takip_arama")
+            col_ara, col_asama_flt = st.columns([3, 1.2])
+            takip_arama = col_ara.text_input("🔍 Hasta Adı, Klinik, Barkod veya Sorumlu ile Ara...", key="uretim_takip_arama")
+            asama_secimi = col_asama_flt.selectbox("Aşama Durumu", ["Tümü (Faturasız)", "Aktif Üretimde Olanlar", "Teslim Edilenler (Faturasız)"], key="uretim_asama_flt")
+
+            if asama_secimi == "Aktif Üretimde Olanlar":
+                df_isler = df_isler[df_isler["Asama"] != "Teslim Edildi"].reset_index(drop=True)
+            elif asama_secimi == "Teslim Edilenler (Faturasız)":
+                df_isler = df_isler[df_isler["Asama"] == "Teslim Edildi"].reset_index(drop=True)
             if takip_arama:
                 mask = (
                     df_isler.get('Hasta_Adi', pd.Series()).astype(str).str.contains(takip_arama, case=False, na=False) |
@@ -7291,7 +7334,7 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
             if klinikler:
                 f_klinik = st.selectbox("Filtrelenecek Klinik", ["Tümü"] + klinikler, key="fiyat_klinik_secim")
                 
-                query_fiyat = """SELECT id, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Adet, Tutar_TL, Fatura_Tarihi, Iskonto, KDV_Orani, Bakiye_Durumu FROM isler i WHERE NOT EXISTS (SELECT 1 FROM hesap_ekstreleri h JOIN faturalar f ON h.id = f.Ekstre_ID WHERE i.Klinik_Unvani = h.Klinik_Unvani AND i.Tarih >= h.Baslangic_Tarihi AND i.Tarih <= h.Bitis_Tarihi || ' 23:59:59')"""
+                query_fiyat = """SELECT id, Teslim_Tarihi, Klinik_Unvani, Hasta_Adi, Hasta_Kodu, Is_Turu, Adet, Tutar_TL, Fatura_Tarihi, Iskonto, KDV_Orani, Bakiye_Durumu FROM isler i WHERE (i.Fatura_Tarihi IS NULL OR i.Fatura_Tarihi = '-' OR TRIM(i.Fatura_Tarihi) = '' OR i.Fatura_Tarihi = 'None') AND NOT EXISTS (SELECT 1 FROM hesap_ekstreleri h LEFT JOIN faturalar f ON h.id = f.Ekstre_ID WHERE TRIM(LOWER(i.Klinik_Unvani)) = TRIM(LOWER(h.Klinik_Unvani)) AND (f.id IS NOT NULL OR h.Fatura_ID IS NOT NULL OR h.Durum = 'Faturalanmış') AND ((substr(i.Tarih, 1, 10) >= substr(h.Baslangic_Tarihi, 1, 10) AND substr(i.Tarih, 1, 10) <= substr(h.Bitis_Tarihi, 1, 10)) OR (i.Tarih >= h.Baslangic_Tarihi AND i.Tarih <= h.Bitis_Tarihi || ' 23:59:59')))"""
                 if f_klinik != "Tümü":
                     df_fiyat = pd.read_sql(f"{query_fiyat} AND i.Klinik_Unvani='{f_klinik}' ORDER BY i.id DESC LIMIT 200", conn)
                 else:
@@ -7924,6 +7967,13 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                      "Beklemede", fatura_pdf, dosya_fat, fatura_aciklama))
                                 fatura_id_yeni = c.execute("SELECT id FROM faturalar ORDER BY id DESC LIMIT 1").fetchone()[0]
                                 c.execute("UPDATE hesap_ekstreleri SET Durum=?, Fatura_ID=? WHERE id=?", ("Faturalanmış", fatura_id_yeni, ekstre_id_f))
+                                try:
+                                    c.execute(
+                                        "UPDATE isler SET Fatura_Tarihi=? WHERE TRIM(LOWER(Klinik_Unvani))=TRIM(LOWER(?)) AND ((substr(Tarih, 1, 10) >= ? AND substr(Tarih, 1, 10) <= ?) OR (Tarih >= ? AND Tarih <= ?))",
+                                        (fatura_tarihi_input, fat_klinik, ekstre_data[0], ekstre_data[1], ekstre_data[0], ekstre_data[1] + " 23:59:59")
+                                    )
+                                except Exception:
+                                    pass
                                 conn.commit()
                                 st.success(f"✅ Fatura {fatura_no_input} oluşturuldu!")
                                 st.session_state["son_fatura_pdf"] = fatura_pdf
@@ -7988,6 +8038,13 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                                         bagli_ekstre = c.execute("SELECT Ekstre_ID FROM faturalar WHERE id=?", (fat_id,)).fetchone()
                                         if bagli_ekstre and bagli_ekstre[0]:
                                             c.execute("UPDATE hesap_ekstreleri SET Durum='Taslak', Fatura_ID=NULL WHERE id=?", (bagli_ekstre[0],))
+                                            try:
+                                                ek_bilgi = c.execute("SELECT Klinik_Unvani, Baslangic_Tarihi, Bitis_Tarihi FROM hesap_ekstreleri WHERE id=?", (bagli_ekstre[0],)).fetchone()
+                                                if ek_bilgi:
+                                                    c.execute("UPDATE isler SET Fatura_Tarihi='-' WHERE TRIM(LOWER(Klinik_Unvani))=TRIM(LOWER(?)) AND ((substr(Tarih, 1, 10) >= ? AND substr(Tarih, 1, 10) <= ?) OR (Tarih >= ? AND Tarih <= ?))",
+                                                              (ek_bilgi[0], ek_bilgi[1], ek_bilgi[2], ek_bilgi[1], ek_bilgi[2] + " 23:59:59"))
+                                            except Exception:
+                                                pass
                                         c.execute("DELETE FROM faturalar WHERE id=?", (fat_id,))
                                         conn.commit()
                                         st.success("Fatura iptal edildi ve ekstre geri çekildi!")
