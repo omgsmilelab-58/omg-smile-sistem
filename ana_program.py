@@ -561,11 +561,18 @@ def son_mesaji_getir(benim_id, karsi_id, c=None):
     return "Henüz mesaj yok", ""
 # ==========================================
 # --- 🌓 TEMA YÖNETİMİ (GÜNDÜZ / GECE) ---
+if "aktif_tema" not in st.session_state:
+    st.session_state["aktif_tema"] = "gece"
+
+if "theme_degis" in st.query_params and not st.session_state.get("giris_yapildi"):
+    st.session_state["aktif_tema"] = "gunduz" if st.session_state.get("aktif_tema", "gece") == "gece" else "gece"
+    del st.query_params["theme_degis"]
+    st.rerun()
+
 url_tema_init = st.query_params.get("theme", "").lower().strip()
 if url_tema_init in ["gunduz", "gece"]:
     st.session_state["aktif_tema"] = url_tema_init
-elif "aktif_tema" not in st.session_state:
-    st.session_state["aktif_tema"] = "gece"
+    del st.query_params["theme"]
 
 st.markdown("""
 <style>
@@ -1999,16 +2006,13 @@ if not st.session_state["giris_yapildi"]:
             saved_page = st.query_params.get("page", "")
             if saved_page:
                 st.session_state["aktif_sayfa"] = saved_page
-            if not st.query_params.get("theme"):
+            if not st.session_state.get("aktif_tema"):
                 db_tema = ayar_getir(f"tema_{sess_data['u']}", "")
                 if db_tema in ["gunduz", "gece"]:
                     st.session_state["aktif_tema"] = db_tema
-            st.query_params["theme"] = st.session_state.get("aktif_tema", "gece")
 else:
     if not st.query_params.get("auth") and st.session_state.get("kullanici_adi"):
         st.query_params["auth"] = create_session_token(st.session_state["kullanici_adi"], st.session_state["kullanici_rolu"], st.session_state.get("ana_klinik", ""))
-    if "aktif_tema" in st.session_state and not st.query_params.get("theme"):
-        st.query_params["theme"] = st.session_state["aktif_tema"]
 
 client_ip = st.query_params.get("ip", "127.0.0.1") 
 kayitli_lobi_ip = ayar_getir("Lobi_IP", "192.168.1.100")
@@ -2420,7 +2424,7 @@ div[data-testid="InputInstructions"] { display: none !important; }
 </div>
 </div>
 
-<div class="giris-marka">DENTMESHER <span>HUB</span></div>""" + f'<a href="?theme={"gece" if st.session_state.get("aktif_tema") == "gunduz" else "gunduz"}" target="_self" class="dm-login-theme-btn" title="Temayı Değiştir">{"🌙 Gece Modu" if st.session_state.get("aktif_tema") == "gunduz" else "☀️ Gündüz Modu"}</a>', unsafe_allow_html=True)
+<div class="giris-marka">DENTMESHER <span>HUB</span></div>""" + f'<a href="?theme_degis=1" target="_self" class="dm-login-theme-btn" title="Temayı Değiştir">{"🌙 Gece Modu" if st.session_state.get("aktif_tema") == "gunduz" else "☀️ Gündüz Modu"}</a>', unsafe_allow_html=True)
     
     col_space_left, col_login, col_space_right = st.columns([1, 1.25, 1])
     with col_login:
@@ -2560,7 +2564,6 @@ div[data-testid="InputInstructions"] { display: none !important; }
                         db_tema = ayar_getir(f"tema_{u_kadi}", "")
                         if db_tema in ["gunduz", "gece"]:
                             st.session_state["aktif_tema"] = db_tema
-                        st.query_params["theme"] = st.session_state.get("aktif_tema", "gece")
                         st.session_state.update({"giris_yapildi": True, "kullanici_adi": u_kadi, "kullanici_rolu": u_rol, "ana_klinik": u_klinik})
                         st.rerun()
                     else:
@@ -2579,7 +2582,6 @@ div[data-testid="InputInstructions"] { display: none !important; }
                         db_tema = ayar_getir(f"tema_{u_kadi}", "")
                         if db_tema in ["gunduz", "gece"]:
                             st.session_state["aktif_tema"] = db_tema
-                        st.query_params["theme"] = st.session_state.get("aktif_tema", "gece")
                         st.session_state.update({"giris_yapildi": True, "kullanici_adi": u_kadi, "kullanici_rolu": u_rol, "ana_klinik": u_klinik})
                         st.rerun()
                     else:
@@ -2668,11 +2670,9 @@ if st.query_params.get("logout") == "true":
 if st.session_state.aktif_sayfa not in menu and st.session_state.aktif_sayfa not in ["⚙️ Ayarlar", "🤖 OMG AI Asistan", "👤 Profil Bilgileri"]:
     st.session_state.aktif_sayfa = menu[0]
 
-# Aktif sayfayı ve temayı tarayıcı URL'sine senkronize et (F5 durumunda aynı sayfada ve temada kalması için)
+# Aktif sayfayı tarayıcı URL'sine senkronize et (F5 durumunda aynı sayfada kalması için)
 if st.query_params.get("page") != st.session_state.aktif_sayfa:
     st.query_params["page"] = st.session_state.aktif_sayfa
-if "aktif_tema" in st.session_state and st.query_params.get("theme") != st.session_state["aktif_tema"]:
-    st.query_params["theme"] = st.session_state["aktif_tema"]
 
 if st.session_state.aktif_sayfa == "💬 Mobil İletişim":
     st.markdown("<div style='text-align:center; padding:20px;'><h2 class='neon-text-blue' style='font-size:40px;'>💬 Mesaj ve Bildirim Merkezi</h2><h3 style='color:#94a3b8; letter-spacing:2px;'>Mobil Uygulama Haberleşme Ağı</h3></div>", unsafe_allow_html=True)
@@ -3454,23 +3454,20 @@ sub_svg_map = {
 }
 
 # Link Navigasyon Router'ı
-if "theme" in st.query_params:
-    t_val = str(st.query_params.get("theme", "")).lower().strip()
-    if t_val in ["gunduz", "light", "aydinlik"]:
-        st.session_state["aktif_tema"] = "gunduz"
-    elif t_val in ["gece", "dark", "karanlik"]:
-        st.session_state["aktif_tema"] = "gece"
+if "theme_degis" in st.query_params:
+    simdiki = st.session_state.get("aktif_tema", "gece")
+    yeni = "gece" if simdiki == "gunduz" else "gunduz"
+    st.session_state["aktif_tema"] = yeni
     if st.session_state.get("giris_yapildi") and kullanici_adi:
         try:
-            ayar_kaydet(f"tema_{kullanici_adi}", st.session_state["aktif_tema"])
+            ayar_kaydet(f"tema_{kullanici_adi}", yeni)
         except Exception:
             pass
-    st.query_params.clear()
+    del st.query_params["theme_degis"]
     if current_auth:
         st.query_params["auth"] = current_auth
     if "aktif_sayfa" in st.session_state:
         st.query_params["page"] = st.session_state.aktif_sayfa
-    st.query_params["theme"] = st.session_state["aktif_tema"]
     st.rerun()
 
 if "nav_kat" in st.query_params:
@@ -3485,7 +3482,6 @@ if "nav_kat" in st.query_params:
     if current_auth:
         st.query_params["auth"] = current_auth
     st.query_params["page"] = st.session_state.aktif_sayfa
-    st.query_params["theme"] = st.session_state.get("aktif_tema", "gece")
     st.rerun()
 
 if "nav_sub" in st.query_params:
@@ -3496,7 +3492,6 @@ if "nav_sub" in st.query_params:
     if current_auth:
         st.query_params["auth"] = current_auth
     st.query_params["page"] = st.session_state.aktif_sayfa
-    st.query_params["theme"] = st.session_state.get("aktif_tema", "gece")
     st.rerun()
 
 if rol in ["Klinik", "Klinik_Asistan"]:
@@ -3555,16 +3550,15 @@ for kat_k, kat_v in gecerli_kategoriler.items():
         break
 
 # --- 1. SEVİYE: SAĞA YASLANMIŞ EŞİT BOYUTLU BEYAZ VEKTÖREL İKONLU ANA BANNER ---
-aktif_t = st.session_state.get("aktif_tema", "gece")
 btn_list = []
 for kat_adi in gecerli_kategoriler.keys():
     label, slug = kat_slug_map.get(kat_adi, (kat_adi, "uretim"))
-    btn_list.append((label, f"?nav_kat={slug}&theme={aktif_t}&auth={current_auth}", st.session_state.secili_kategori == kat_adi))
+    btn_list.append((label, f"?nav_kat={slug}&auth={current_auth}", st.session_state.secili_kategori == kat_adi))
 
 if "💬 Mobil İletişim" in menu:
-    btn_list.append(("İletişim", f"?nav_kat=iletisim&theme={aktif_t}&auth={current_auth}", st.session_state.aktif_sayfa == "💬 Mobil İletişim"))
+    btn_list.append(("İletişim", f"?nav_kat=iletisim&auth={current_auth}", st.session_state.aktif_sayfa == "💬 Mobil İletişim"))
 if rol in ["Admin", "Yönetici", "Sekreter"]:
-    btn_list.append(("OMG AI", f"?nav_kat=omg_ai&theme={aktif_t}&auth={current_auth}", st.session_state.aktif_sayfa == "🤖 OMG AI Asistan"))
+    btn_list.append(("OMG AI", f"?nav_kat=omg_ai&auth={current_auth}", st.session_state.aktif_sayfa == "🤖 OMG AI Asistan"))
 
 buttons_html = ""
 for b_name, b_link, b_active in btn_list:
@@ -3655,7 +3649,7 @@ tema_icon = "🌙" if aktif_t == "gunduz" else "☀️"
 tema_tooltip = "Gece Moduna Geç" if aktif_t == "gunduz" else "Gündüz Moduna Geç"
 tema_btn_label = "Gece Modu" if aktif_t == "gunduz" else "Gündüz Modu"
 
-theme_btn_html = f'<a href="?theme={hedef_tema}&auth={current_auth}" target="_self" class="dm-theme-toggle-btn" title="{tema_tooltip}">{tema_icon}</a>'
+theme_btn_html = f'<a href="?theme_degis=1&auth={current_auth}" target="_self" class="dm-theme-toggle-btn" title="{tema_tooltip}">{tema_icon}</a>'
 
 profile_html = (
     f'<details class="dm-profile-details">'
@@ -3689,11 +3683,11 @@ profile_html = (
     f'</div>'
     f'<div class="dm-card-divider"></div>'
     f'<div class="dm-card-actions">'
-    f'<a href="?nav_kat=profil&theme={aktif_t}&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">🪪</span><span class="dm-action-label">Klinik Kartım</span></a>'
-    f'<a href="?nav_kat=yonetim&theme={aktif_t}&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">👥</span><span class="dm-action-label">Asistanlarım</span></a>'
+    f'<a href="?nav_kat=profil&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">🪪</span><span class="dm-action-label">Klinik Kartım</span></a>'
+    f'<a href="?nav_kat=yonetim&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">👥</span><span class="dm-action-label">Asistanlarım</span></a>'
     f'<div class="dm-vip-card"><div class="dm-vip-card-title"><span style="font-size:14px;">⭐</span> VIP Üyelik</div><div class="dm-vip-card-date">11.09.2026</div></div>'
-    f'<a href="?theme={hedef_tema}&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">{tema_icon}</span><span class="dm-action-label">{tema_btn_label}</span></a>'
-    f'<a href="?nav_kat=ayarlar&theme={aktif_t}&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">⚙️</span><span class="dm-action-label">Ayarlar</span></a>'
+    f'<a href="?theme_degis=1&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">{tema_icon}</span><span class="dm-action-label">{tema_btn_label}</span></a>'
+    f'<a href="?nav_kat=ayarlar&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">⚙️</span><span class="dm-action-label">Ayarlar</span></a>'
     f'<a href="?logout=true" target="_self" class="dm-action-item logout"><span class="dm-action-icon">🚪</span><span class="dm-action-label">Çıkış</span></a>'
     f'</div>'
     f'</div>'
@@ -3718,7 +3712,7 @@ if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletiş
             clean_lbl = clean_lbl.replace(prefix, "")
             
         enc_sub = urllib.parse.quote(mod_adi)
-        sub_btns_html += f'<a href="?nav_sub={enc_sub}&theme={aktif_t}&auth={current_auth}" target="_self" class="dm-sub-vector-btn {act_cls}" title="{clean_lbl}"><div class="dm-icon">{s_icon}</div><div class="dm-label">{clean_lbl}</div></a>'
+        sub_btns_html += f'<a href="?nav_sub={enc_sub}&auth={current_auth}" target="_self" class="dm-sub-vector-btn {act_cls}" title="{clean_lbl}"><div class="dm-icon">{s_icon}</div><div class="dm-label">{clean_lbl}</div></a>'
         
     st.markdown(f'<div class="dm-sub-bar">{sub_btns_html}</div>', unsafe_allow_html=True)
 
@@ -4202,7 +4196,6 @@ if rol in ["Klinik", "Klinik_Asistan"]:
                 yeni_val = "gece" if "Gece" in k_secilen else "gunduz"
                 st.session_state["aktif_tema"] = yeni_val
                 ayar_kaydet(f"tema_{kullanici_adi}", yeni_val)
-                st.query_params["theme"] = yeni_val
                 st.success("Tema tercihiniz başarıyla kaydedildi!")
                 st.rerun()
 
@@ -9786,7 +9779,6 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                         st.session_state["aktif_tema"] = yeni_kod
                         ayar_kaydet(f"tema_{kullanici_adi}", yeni_kod)
                         ayar_kaydet("Sistem_Temasi", "Karanlık Tema (Gece)" if yeni_kod == "gece" else "Aydınlık Tema (Gündüz)")
-                        st.query_params["theme"] = yeni_kod
                         
                         try:
                             import re
