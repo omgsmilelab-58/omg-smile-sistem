@@ -560,7 +560,13 @@ def son_mesaji_getir(benim_id, karsi_id, c=None):
         return f"{isim_on_eki}{res[1]}", res[2]
     return "Henüz mesaj yok", ""
 # ==========================================
-# 💎 V3.6 TAM DONANIMLI, GÜVENLİ VE OTOPİLOTLU SÜRÜM 💎
+# --- 🌓 TEMA YÖNETİMİ (GÜNDÜZ / GECE) ---
+url_tema_init = st.query_params.get("theme", "").lower().strip()
+if url_tema_init in ["gunduz", "gece"]:
+    st.session_state["aktif_tema"] = url_tema_init
+elif "aktif_tema" not in st.session_state:
+    st.session_state["aktif_tema"] = "gece"
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
@@ -764,6 +770,362 @@ st.markdown("""
         div.stButton > button[key="btn_ayarlar_alt"] { background: transparent !important; border: none !important; box-shadow: none !important; padding: 5px !important; display: flex; justify-content: flex-start; }
         div.stButton > button[key="btn_ayarlar_alt"] p { color: #94a3b8 !important; font-size: 13px !important; font-weight: 600 !important; transition: color 0.3s; }
         div.stButton > button[key="btn_ayarlar_alt"]:hover p { color: #38bdf8 !important; text-shadow: 0 0 8px rgba(56,189,248,0.5); }
+</style>
+""", unsafe_allow_html=True)
+
+# ── ☀️ GÜNDÜZ TEMASI (LIGHT MODE) CSS OVERRIDES ──
+if st.session_state.get("aktif_tema") == "gunduz":
+    st.markdown("""
+<style>
+    /* ── ARKA PLAN VE TEMEL METİNLER ── */
+    html, body, .stApp {
+        background-color: #f8fafc !important;
+        background: radial-gradient(120% 90% at 8% 100%, rgba(224, 242, 254, 0.9) 0%, transparent 60%),
+                    radial-gradient(90% 70% at 100% 0%, rgba(219, 234, 254, 0.8) 0%, transparent 55%),
+                    linear-gradient(160deg, #f8fafc 0%, #eef2f6 100%) !important;
+        background-attachment: fixed !important;
+        color: #0f172a !important;
+    }
+
+    h1, h2, h3, h4, h5, h6, label, p, span, div, caption {
+        color: #0f172a;
+    }
+
+    .neon-text-blue {
+        color: #0284c7 !important;
+        text-shadow: none !important;
+        font-weight: 800 !important;
+    }
+    .neon-text-green {
+        color: #059669 !important;
+        text-shadow: none !important;
+        font-weight: 800 !important;
+    }
+    .neon-text-red {
+        color: #dc2626 !important;
+        text-shadow: none !important;
+        font-weight: 800 !important;
+    }
+
+    /* ── KARTLAR & WIDGETLAR ── */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.92) !important;
+        border: 1px solid rgba(203, 213, 225, 0.8) !important;
+        box-shadow: 0 4px 20px rgba(148, 163, 184, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+        color: #0f172a !important;
+    }
+    .glass-card * {
+        color: #0f172a;
+    }
+    .glass-card:hover {
+        border-color: #38bdf8 !important;
+        box-shadow: 0 8px 30px rgba(56, 189, 248, 0.22) !important;
+    }
+
+    /* ── FORM GİRDİLERİ, SELECTBOX & INPUTLAR ── */
+    div[data-baseweb="input"] input, textarea {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+    }
+    div[data-baseweb="input"] input:focus, textarea:focus {
+        border-color: #0284c7 !important;
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18) !important;
+    }
+    div[data-baseweb="select"] > div {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+    div[data-baseweb="select"] * {
+        color: #0f172a !important;
+    }
+    div[data-baseweb="popover"] ul {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+    }
+    div[data-baseweb="popover"] li {
+        color: #0f172a !important;
+    }
+    div[data-baseweb="popover"] li:hover {
+        background-color: #f1f5f9 !important;
+    }
+
+    /* ── SEKME VE TABLAR ── */
+    .stTabs [data-baseweb="tab-list"] {
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+    .stTabs [data-baseweb="tab-list"] button {
+        color: #64748b !important;
+        background-color: rgba(241, 245, 249, 0.75) !important;
+        border: 1px solid rgba(203, 213, 225, 0.5) !important;
+        border-bottom: none !important;
+    }
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+        color: #0284c7 !important;
+        background-color: #ffffff !important;
+        border-bottom: 2px solid #0284c7 !important;
+    }
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] p {
+        color: #0284c7 !important;
+    }
+
+    /* ── TABLOLAR VE DATAFRAME ── */
+    [data-testid="stDataFrame"] {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+    }
+    [data-testid="stTable"] tr {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+    }
+
+    /* ── METRİK DEĞERLERİ ── */
+    [data-testid="stMetricValue"] {
+        color: #0f172a !important;
+        font-weight: 800 !important;
+    }
+    [data-testid="stMetricLabel"] p {
+        color: #64748b !important;
+        font-weight: 600 !important;
+    }
+
+    /* ── ALARMLAR VE BİLDİRİM ALANLARI ── */
+    .alarm-bar {
+        background: linear-gradient(90deg, rgba(254, 242, 242, 0.95) 0%, rgba(255, 255, 255, 0.95) 100%) !important;
+        border-left: 5px solid #ef4444 !important;
+        border: 1px solid #fecaca !important;
+        border-left-width: 5px !important;
+    }
+    .alarm-title {
+        color: #dc2626 !important;
+    }
+    .alarm-badge {
+        background: #fee2e2 !important;
+        color: #b91c1c !important;
+        border: 1px solid #fca5a5 !important;
+    }
+
+    /* ── RADAR VE CANLI ÜRETİM BANDI ── */
+    .radar-container {
+        background: rgba(255, 255, 255, 0.92) !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+    }
+    .radar-line {
+        background: #e2e8f0 !important;
+    }
+    .radar-circle {
+        background: #f8fafc !important;
+        border: 3px solid #cbd5e1 !important;
+        color: #334155 !important;
+    }
+    .radar-label {
+        color: #334155 !important;
+    }
+    .step-active .radar-circle {
+        border-color: #0284c7 !important;
+        background: #e0f2fe !important;
+        color: #0284c7 !important;
+        box-shadow: 0 0 15px rgba(2, 132, 199, 0.35) !important;
+    }
+
+    /* ── MODÜL BAŞLIK ŞERİDİ ── */
+    .module-banner {
+        background: linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.25) !important;
+    }
+    .module-banner h2, .module-banner p {
+        color: #ffffff !important;
+    }
+
+    /* ── BARKOD KARTI ── */
+    .barcode-result-card {
+        background: rgba(255, 255, 255, 0.95) !important;
+        border-left: 5px solid #0284c7 !important;
+        border: 1px solid #cbd5e1 !important;
+        border-left-width: 5px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.06) !important;
+    }
+    .barcode-result-card h3 {
+        color: #0284c7 !important;
+    }
+    .barcode-result-card p {
+        color: #334155 !important;
+    }
+
+    /* ── EXPANDER (AKORDİYON) ── */
+    [data-testid="stExpander"] {
+        background-color: rgba(255, 255, 255, 0.9) !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03) !important;
+    }
+    [data-testid="stExpander"] summary {
+        color: #0f172a !important;
+        font-weight: 700 !important;
+    }
+    [data-testid="stExpander"] summary:hover {
+        color: #0284c7 !important;
+    }
+
+    /* ── CHAT INPUT (OMG AI) ── */
+    [data-testid="stChatInput"] {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+    }
+    [data-testid="stChatInput"] textarea {
+        color: #0f172a !important;
+    }
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: #94a3b8 !important;
+    }
+
+    /* ── FOOTER ── */
+    .footer-meta {
+        background: rgba(255, 255, 255, 0.90) !important;
+        border-top: 1px solid #cbd5e1 !important;
+        color: #475569 !important;
+    }
+    .footer-meta a {
+        color: #334155 !important;
+    }
+    .footer-meta a:hover {
+        color: #e8622c !important;
+    }
+
+    /* ── STICKY HEADER & NAVBAR (GÜNDÜZ MODU) ── */
+    .dm-sticky-header {
+        background: rgba(255, 255, 255, 0.94) !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+    }
+    .dm-sticky-header > div:first-child {
+        color: #0f172a !important;
+    }
+    .dm-sub-bar {
+        background: rgba(255, 255, 255, 0.92) !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+    }
+    .dm-vector-btn {
+        background: rgba(241, 245, 249, 0.85) !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #334155 !important;
+    }
+    .dm-vector-btn .dm-icon svg {
+        fill: #334155 !important;
+    }
+    .dm-vector-btn .dm-label {
+        color: #334155 !important;
+    }
+    .dm-vector-btn:hover {
+        background: #ffffff !important;
+        border-color: #0284c7 !important;
+    }
+    .dm-vector-btn:hover .dm-icon svg {
+        fill: #0284c7 !important;
+    }
+    .dm-vector-btn:hover .dm-label {
+        color: #0284c7 !important;
+    }
+    .dm-vector-btn.active {
+        background: #0284c7 !important;
+        border-color: #0284c7 !important;
+    }
+    .dm-vector-btn.active .dm-icon svg {
+        fill: #ffffff !important;
+    }
+    .dm-vector-btn.active .dm-label {
+        color: #ffffff !important;
+    }
+
+    .dm-sub-vector-btn {
+        background: rgba(241, 245, 249, 0.85) !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #334155 !important;
+    }
+    .dm-sub-vector-btn .dm-icon svg {
+        fill: #334155 !important;
+    }
+    .dm-sub-vector-btn .dm-label {
+        color: #334155 !important;
+    }
+    .dm-sub-vector-btn:hover {
+        background: #ffffff !important;
+        border-color: #0284c7 !important;
+    }
+    .dm-sub-vector-btn:hover .dm-icon svg {
+        fill: #0284c7 !important;
+    }
+    .dm-sub-vector-btn:hover .dm-label {
+        color: #0284c7 !important;
+    }
+    .dm-sub-vector-btn.active {
+        background: #0284c7 !important;
+        border-color: #0284c7 !important;
+    }
+    .dm-sub-vector-btn.active .dm-icon svg {
+        fill: #ffffff !important;
+    }
+    .dm-sub-vector-btn.active .dm-label {
+        color: #ffffff !important;
+    }
+
+    .dm-theme-toggle-btn {
+        background: rgba(241, 245, 249, 0.9) !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+    }
+    .dm-theme-toggle-btn:hover {
+        background: #ffffff !important;
+        border-color: #0284c7 !important;
+        box-shadow: 0 0 10px rgba(2, 132, 199, 0.25) !important;
+    }
+
+    /* ── GİRİŞ EKRANI (GÜNDÜZ MODU) ── */
+    .giris-marka {
+        color: #0f172a !important;
+    }
+    .dm-login-theme-btn {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+    }
+    .dm-login-theme-btn:hover {
+        background: #ffffff !important;
+        border-color: #0284c7 !important;
+    }
+    div[data-testid="stForm"] {
+        background: rgba(255, 255, 255, 0.94) !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08), 0 1px 0 rgba(255, 255, 255, 1) inset !important;
+    }
+    .form-title {
+        color: #0f172a !important;
+    }
+    .form-subtitle {
+        color: #64748b !important;
+    }
+    .dm-telemetry-badge {
+        background: rgba(255, 255, 255, 0.88) !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06) !important;
+    }
+    .dm-badge-text h5 {
+        color: #0f172a !important;
+    }
+    .dm-badge-text p {
+        color: #64748b !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1637,9 +1999,16 @@ if not st.session_state["giris_yapildi"]:
             saved_page = st.query_params.get("page", "")
             if saved_page:
                 st.session_state["aktif_sayfa"] = saved_page
+            if not st.query_params.get("theme"):
+                db_tema = ayar_getir(f"tema_{sess_data['u']}", "")
+                if db_tema in ["gunduz", "gece"]:
+                    st.session_state["aktif_tema"] = db_tema
+            st.query_params["theme"] = st.session_state.get("aktif_tema", "gece")
 else:
     if not st.query_params.get("auth") and st.session_state.get("kullanici_adi"):
         st.query_params["auth"] = create_session_token(st.session_state["kullanici_adi"], st.session_state["kullanici_rolu"], st.session_state.get("ana_klinik", ""))
+    if "aktif_tema" in st.session_state and not st.query_params.get("theme"):
+        st.query_params["theme"] = st.session_state["aktif_tema"]
 
 client_ip = st.query_params.get("ip", "127.0.0.1") 
 kayitli_lobi_ip = ayar_getir("Lobi_IP", "192.168.1.100")
@@ -1779,6 +2148,33 @@ if not st.session_state["giris_yapildi"]:
 .giris-marka span {
     color: var(--dm-vurgu);
     text-shadow: 0 0 20px rgba(232, 98, 44, 0.6);
+}
+
+.dm-login-theme-btn {
+    position: fixed;
+    top: clamp(16px, 3vh, 28px);
+    right: clamp(18px, 3vw, 34px);
+    z-index: 99;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--dm-cizgi);
+    color: var(--dm-metin);
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.dm-login-theme-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: #38bdf8;
+    transform: translateY(-1px);
 }
 
 /* ── GİRİŞ KARTI (GLASSMORPHISM) ── */
@@ -2024,7 +2420,7 @@ div[data-testid="InputInstructions"] { display: none !important; }
 </div>
 </div>
 
-<div class="giris-marka">DENTMESHER <span>HUB</span></div>""", unsafe_allow_html=True)
+<div class="giris-marka">DENTMESHER <span>HUB</span></div>""" + f'<a href="?theme={"gece" if st.session_state.get("aktif_tema") == "gunduz" else "gunduz"}" target="_self" class="dm-login-theme-btn" title="Temayı Değiştir">{"🌙 Gece Modu" if st.session_state.get("aktif_tema") == "gunduz" else "☀️ Gündüz Modu"}</a>', unsafe_allow_html=True)
     
     col_space_left, col_login, col_space_right = st.columns([1, 1.25, 1])
     with col_login:
@@ -2161,6 +2557,10 @@ div[data-testid="InputInstructions"] { display: none !important; }
                     if auth_res:
                         u_rol, u_kadi, u_klinik = auth_res
                         st.query_params["auth"] = create_session_token(u_kadi, u_rol, u_klinik)
+                        db_tema = ayar_getir(f"tema_{u_kadi}", "")
+                        if db_tema in ["gunduz", "gece"]:
+                            st.session_state["aktif_tema"] = db_tema
+                        st.query_params["theme"] = st.session_state.get("aktif_tema", "gece")
                         st.session_state.update({"giris_yapildi": True, "kullanici_adi": u_kadi, "kullanici_rolu": u_rol, "ana_klinik": u_klinik})
                         st.rerun()
                     else:
@@ -2176,6 +2576,10 @@ div[data-testid="InputInstructions"] { display: none !important; }
                     if auth_res:
                         u_rol, u_kadi, u_klinik = auth_res
                         st.query_params["auth"] = create_session_token(u_kadi, u_rol, u_klinik)
+                        db_tema = ayar_getir(f"tema_{u_kadi}", "")
+                        if db_tema in ["gunduz", "gece"]:
+                            st.session_state["aktif_tema"] = db_tema
+                        st.query_params["theme"] = st.session_state.get("aktif_tema", "gece")
                         st.session_state.update({"giris_yapildi": True, "kullanici_adi": u_kadi, "kullanici_rolu": u_rol, "ana_klinik": u_klinik})
                         st.rerun()
                     else:
@@ -2264,9 +2668,11 @@ if st.query_params.get("logout") == "true":
 if st.session_state.aktif_sayfa not in menu and st.session_state.aktif_sayfa not in ["⚙️ Ayarlar", "🤖 OMG AI Asistan", "👤 Profil Bilgileri"]:
     st.session_state.aktif_sayfa = menu[0]
 
-# Aktif sayfayı tarayıcı URL'sine senkronize et (F5 durumunda aynı sayfada kalması için)
+# Aktif sayfayı ve temayı tarayıcı URL'sine senkronize et (F5 durumunda aynı sayfada ve temada kalması için)
 if st.query_params.get("page") != st.session_state.aktif_sayfa:
     st.query_params["page"] = st.session_state.aktif_sayfa
+if "aktif_tema" in st.session_state and st.query_params.get("theme") != st.session_state["aktif_tema"]:
+    st.query_params["theme"] = st.session_state["aktif_tema"]
 
 if st.session_state.aktif_sayfa == "💬 Mobil İletişim":
     st.markdown("<div style='text-align:center; padding:20px;'><h2 class='neon-text-blue' style='font-size:40px;'>💬 Mesaj ve Bildirim Merkezi</h2><h3 style='color:#94a3b8; letter-spacing:2px;'>Mobil Uygulama Haberleşme Ağı</h3></div>", unsafe_allow_html=True)
@@ -2651,6 +3057,35 @@ st.markdown("""<style>
     font-weight: 700 !important;
 }
 
+/* ── HEADER TEMA DEĞİŞTİRME BUTONU (GÜNDÜZ / GECE) ── */
+.dm-theme-toggle-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: #f8fafc !important;
+    font-size: 16px !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    user-select: none !important;
+}
+.dm-theme-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+    border-color: #38bdf8 !important;
+    transform: scale(1.08) !important;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.4) !important;
+}
+
 /* ── TIKLAYINCA AÇILAN PROFİL MENÜSÜ (<details> / <summary>) ── */
 details.dm-profile-details {
     position: relative !important;
@@ -3019,6 +3454,25 @@ sub_svg_map = {
 }
 
 # Link Navigasyon Router'ı
+if "theme" in st.query_params:
+    t_val = str(st.query_params.get("theme", "")).lower().strip()
+    if t_val in ["gunduz", "light", "aydinlik"]:
+        st.session_state["aktif_tema"] = "gunduz"
+    elif t_val in ["gece", "dark", "karanlik"]:
+        st.session_state["aktif_tema"] = "gece"
+    if st.session_state.get("giris_yapildi") and kullanici_adi:
+        try:
+            ayar_kaydet(f"tema_{kullanici_adi}", st.session_state["aktif_tema"])
+        except Exception:
+            pass
+    st.query_params.clear()
+    if current_auth:
+        st.query_params["auth"] = current_auth
+    if "aktif_sayfa" in st.session_state:
+        st.query_params["page"] = st.session_state.aktif_sayfa
+    st.query_params["theme"] = st.session_state["aktif_tema"]
+    st.rerun()
+
 if "nav_kat" in st.query_params:
     k_slug = st.query_params.get("nav_kat", "").lower().strip()
     if k_slug in slug_to_kat:
@@ -3031,6 +3485,7 @@ if "nav_kat" in st.query_params:
     if current_auth:
         st.query_params["auth"] = current_auth
     st.query_params["page"] = st.session_state.aktif_sayfa
+    st.query_params["theme"] = st.session_state.get("aktif_tema", "gece")
     st.rerun()
 
 if "nav_sub" in st.query_params:
@@ -3041,6 +3496,7 @@ if "nav_sub" in st.query_params:
     if current_auth:
         st.query_params["auth"] = current_auth
     st.query_params["page"] = st.session_state.aktif_sayfa
+    st.query_params["theme"] = st.session_state.get("aktif_tema", "gece")
     st.rerun()
 
 if rol in ["Klinik", "Klinik_Asistan"]:
@@ -3099,15 +3555,16 @@ for kat_k, kat_v in gecerli_kategoriler.items():
         break
 
 # --- 1. SEVİYE: SAĞA YASLANMIŞ EŞİT BOYUTLU BEYAZ VEKTÖREL İKONLU ANA BANNER ---
+aktif_t = st.session_state.get("aktif_tema", "gece")
 btn_list = []
 for kat_adi in gecerli_kategoriler.keys():
     label, slug = kat_slug_map.get(kat_adi, (kat_adi, "uretim"))
-    btn_list.append((label, f"?nav_kat={slug}&auth={current_auth}", st.session_state.secili_kategori == kat_adi))
+    btn_list.append((label, f"?nav_kat={slug}&theme={aktif_t}&auth={current_auth}", st.session_state.secili_kategori == kat_adi))
 
 if "💬 Mobil İletişim" in menu:
-    btn_list.append(("İletişim", f"?nav_kat=iletisim&auth={current_auth}", st.session_state.aktif_sayfa == "💬 Mobil İletişim"))
+    btn_list.append(("İletişim", f"?nav_kat=iletisim&theme={aktif_t}&auth={current_auth}", st.session_state.aktif_sayfa == "💬 Mobil İletişim"))
 if rol in ["Admin", "Yönetici", "Sekreter"]:
-    btn_list.append(("OMG AI", f"?nav_kat=omg_ai&auth={current_auth}", st.session_state.aktif_sayfa == "🤖 OMG AI Asistan"))
+    btn_list.append(("OMG AI", f"?nav_kat=omg_ai&theme={aktif_t}&auth={current_auth}", st.session_state.aktif_sayfa == "🤖 OMG AI Asistan"))
 
 buttons_html = ""
 for b_name, b_link, b_active in btn_list:
@@ -3192,6 +3649,14 @@ def get_profile_card_data(kadi, u_rol, klinik=""):
 
 p_data = get_profile_card_data(kullanici_adi, rol, ana_klinik)
 
+aktif_t = st.session_state.get("aktif_tema", "gece")
+hedef_tema = "gece" if aktif_t == "gunduz" else "gunduz"
+tema_icon = "🌙" if aktif_t == "gunduz" else "☀️"
+tema_tooltip = "Gece Moduna Geç" if aktif_t == "gunduz" else "Gündüz Moduna Geç"
+tema_btn_label = "Gece Modu" if aktif_t == "gunduz" else "Gündüz Modu"
+
+theme_btn_html = f'<a href="?theme={hedef_tema}&auth={current_auth}" target="_self" class="dm-theme-toggle-btn" title="{tema_tooltip}">{tema_icon}</a>'
+
 profile_html = (
     f'<details class="dm-profile-details">'
     f'<summary class="dm-profile-circle" title="Kullanıcı Menüsü: {p_data["full_name"]}">{p_data["initials"]}</summary>'
@@ -3224,17 +3689,18 @@ profile_html = (
     f'</div>'
     f'<div class="dm-card-divider"></div>'
     f'<div class="dm-card-actions">'
-    f'<a href="?nav_kat=profil&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">🪪</span><span class="dm-action-label">Klinik Kartım</span></a>'
-    f'<a href="?nav_kat=yonetim&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">👥</span><span class="dm-action-label">Asistanlarım</span></a>'
+    f'<a href="?nav_kat=profil&theme={aktif_t}&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">🪪</span><span class="dm-action-label">Klinik Kartım</span></a>'
+    f'<a href="?nav_kat=yonetim&theme={aktif_t}&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">👥</span><span class="dm-action-label">Asistanlarım</span></a>'
     f'<div class="dm-vip-card"><div class="dm-vip-card-title"><span style="font-size:14px;">⭐</span> VIP Üyelik</div><div class="dm-vip-card-date">11.09.2026</div></div>'
-    f'<a href="?nav_kat=ayarlar&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">⚙️</span><span class="dm-action-label">Ayarlar</span></a>'
+    f'<a href="?theme={hedef_tema}&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">{tema_icon}</span><span class="dm-action-label">{tema_btn_label}</span></a>'
+    f'<a href="?nav_kat=ayarlar&theme={aktif_t}&auth={current_auth}" target="_self" class="dm-action-item"><span class="dm-action-icon">⚙️</span><span class="dm-action-label">Ayarlar</span></a>'
     f'<a href="?logout=true" target="_self" class="dm-action-item logout"><span class="dm-action-icon">🚪</span><span class="dm-action-label">Çıkış</span></a>'
     f'</div>'
     f'</div>'
     f'</details>'
 )
 
-header_html = f'<div class="dm-sticky-header"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;color:#f8fafc;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;">{buttons_html}{profile_html}</div></div>'
+header_html = f'<div class="dm-sticky-header"><div style="font-family:Manrope,sans-serif;font-weight:900;font-size:18px;letter-spacing:0.5px;white-space:nowrap;">DENTMESHER <span style="color:#e8622c;">HUB</span></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-left:auto;">{buttons_html}{theme_btn_html}{profile_html}</div></div>'
 
 st.markdown(header_html, unsafe_allow_html=True)
 
@@ -3252,7 +3718,7 @@ if secili_moduller and st.session_state.aktif_sayfa not in ["💬 Mobil İletiş
             clean_lbl = clean_lbl.replace(prefix, "")
             
         enc_sub = urllib.parse.quote(mod_adi)
-        sub_btns_html += f'<a href="?nav_sub={enc_sub}&auth={current_auth}" target="_self" class="dm-sub-vector-btn {act_cls}" title="{clean_lbl}"><div class="dm-icon">{s_icon}</div><div class="dm-label">{clean_lbl}</div></a>'
+        sub_btns_html += f'<a href="?nav_sub={enc_sub}&theme={aktif_t}&auth={current_auth}" target="_self" class="dm-sub-vector-btn {act_cls}" title="{clean_lbl}"><div class="dm-icon">{s_icon}</div><div class="dm-label">{clean_lbl}</div></a>'
         
     st.markdown(f'<div class="dm-sub-bar">{sub_btns_html}</div>', unsafe_allow_html=True)
 
@@ -3611,7 +4077,7 @@ if rol in ["Klinik", "Klinik_Asistan"]:
     elif sayfa == "⚙️ Ayarlar" and rol == "Klinik":
         banner_olustur("⚙️", "Klinik Ayarları", "Şifre, güvenlik, asistan ve otonom laboratuvar tercihlerinizi yönetin.")
         
-        tab_sifre, tab_asistan, tab_bildirim, tab_otopilot, tab_kurumsal = st.tabs(["🔑 Şifre Değiştir", "👥 Asistan / Alt Hesaplar", "🔔 Bildirim Tercihleri", "⚡ Otopilot Reçete", "🏢 Kurumsal Kimlik"])
+        tab_sifre, tab_asistan, tab_bildirim, tab_otopilot, tab_kurumsal, tab_tema = st.tabs(["🔑 Şifre Değiştir", "👥 Asistan / Alt Hesaplar", "🔔 Bildirim Tercihleri", "⚡ Otopilot Reçete", "🏢 Kurumsal Kimlik", "🎨 Görünüm / Tema"])
         
         with tab_sifre:
             col_bos1, col_form, col_bos2 = st.columns([1, 2, 1])
@@ -3721,6 +4187,24 @@ if rol in ["Klinik", "Klinik_Asistan"]:
                 if st.form_submit_button("Otopilotu Kaydet", type="primary"):
                     c.execute("UPDATE cariler SET Otopilot_Kategori=?, Otopilot_Islem=?, Otopilot_Renk=? WHERE Klinik_Unvani=?", (kat_sec_oto, islem_sec_oto, renk_sec_oto, kullanici_adi))
                     conn.commit(); st.success("Otopilot reçete ayarları kaydedildi!"); st.rerun()
+
+        with tab_tema:
+            st.markdown("### 🎨 Arayüz Görünümü ve Tema Seçimi")
+            st.info("Klinik panelinizin gece (koyu) veya gündüz (aydınlık) görünümünü buradan seçebilirsiniz.")
+            mevcut_k_tema = st.session_state.get("aktif_tema", "gece")
+            k_secilen = st.selectbox(
+                "Aktif Tema Tercihi",
+                ["🌙 Gece Teması (Karanlık Mod)", "☀️ Gündüz Teması (Aydınlık Mod)"],
+                index=0 if mevcut_k_tema == "gece" else 1,
+                key="sb_klinik_tema"
+            )
+            if st.button("Temayı Kaydet ve Uygula", key="btn_kaydet_klinik_tema", type="primary"):
+                yeni_val = "gece" if "Gece" in k_secilen else "gunduz"
+                st.session_state["aktif_tema"] = yeni_val
+                ayar_kaydet(f"tema_{kullanici_adi}", yeni_val)
+                st.query_params["theme"] = yeni_val
+                st.success("Tema tercihiniz başarıyla kaydedildi!")
+                st.rerun()
 
 
 # =====================================================================
@@ -9289,34 +9773,45 @@ elif rol in ["Admin", "Yönetici", "Sekreter", "Teknisyen"]:
                             st.rerun()
                     
                     st.markdown("---")
-                    st.markdown("#### 🎨 Arkaplan Teması")
-                    mevcut_tema = ayar_getir("Sistem_Temasi", "Karanlık Tema (Gece)")
-                    yeni_tema = st.selectbox("Sistem Teması", ["Karanlık Tema (Gece)", "Aydınlık Tema (Gündüz)"], index=0 if mevcut_tema == "Karanlık Tema (Gece)" else 1)
-                    if st.button("Temayı Kaydet ve Uygula", type="primary"):
-                        ayar_kaydet("Sistem_Temasi", yeni_tema)
+                    st.markdown("#### 🎨 Arkaplan Teması (Gece / Gündüz)")
+                    mevcut_t = st.session_state.get("aktif_tema", "gece")
+                    yeni_tema = st.selectbox(
+                        "Sistem Teması", 
+                        ["🌙 Gece Teması (Karanlık Mod)", "☀️ Gündüz Teması (Aydınlık Mod)"], 
+                        index=0 if mevcut_t == "gece" else 1,
+                        key="sb_lab_sistem_tema"
+                    )
+                    if st.button("Temayı Kaydet ve Uygula", key="btn_kaydet_lab_tema", type="primary"):
+                        yeni_kod = "gece" if "Gece" in yeni_tema else "gunduz"
+                        st.session_state["aktif_tema"] = yeni_kod
+                        ayar_kaydet(f"tema_{kullanici_adi}", yeni_kod)
+                        ayar_kaydet("Sistem_Temasi", "Karanlık Tema (Gece)" if yeni_kod == "gece" else "Aydınlık Tema (Gündüz)")
+                        st.query_params["theme"] = yeni_kod
                         
-                        import re
-                        config_yolu = ".streamlit/config.toml"
-                        if os.path.exists(config_yolu):
-                            with open(config_yolu, "r", encoding="utf-8") as f:
-                                icerik = f.read()
+                        try:
+                            import re
+                            config_yolu = ".streamlit/config.toml"
+                            if os.path.exists(config_yolu):
+                                with open(config_yolu, "r", encoding="utf-8") as f:
+                                    icerik = f.read()
+                                
+                                theme_pattern = re.compile(r"\[theme\].*?(?=\n\[|$)", re.DOTALL)
+                                if yeni_kod == "gunduz":
+                                    y_theme = '[theme]\nbase = "light"\nprimaryColor = "#0284c7"\nbackgroundColor = "#f8fafc"\nsecondaryBackgroundColor = "#ffffff"\ntextColor = "#0f172a"\nfont = "sans serif"\n'
+                                else:
+                                    y_theme = '[theme]\nbase = "dark"\nprimaryColor = "#38bdf8"\nbackgroundColor = "#0f172a"\nsecondaryBackgroundColor = "#1e293b"\ntextColor = "#FFFFFF"\nfont = "sans serif"\n'
+                                    
+                                if theme_pattern.search(icerik):
+                                    yeni_icerik = theme_pattern.sub(y_theme, icerik)
+                                else:
+                                    yeni_icerik = icerik + "\n\n" + y_theme
+                                    
+                                with open(config_yolu, "w", encoding="utf-8") as f:
+                                    f.write(yeni_icerik)
+                        except Exception:
+                            pass
                             
-                            theme_pattern = re.compile(r"\[theme\].*?(?=\n\[|$)", re.DOTALL)
-                            if yeni_tema == "Aydınlık Tema (Gündüz)":
-                                y_theme = '[theme]\nbase = "light"\nprimaryColor = "#0284c7"\nbackgroundColor = "#f8fafc"\nsecondaryBackgroundColor = "#ffffff"\ntextColor = "#0f172a"\nfont = "sans serif"\n'
-                            else:
-                                y_theme = '[theme]\nbase = "dark"\nprimaryColor = "#38bdf8"\nbackgroundColor = "#0f172a"\nsecondaryBackgroundColor = "#1e293b"\ntextColor = "#FFFFFF"\nfont = "sans serif"\n'
-                                
-                            if theme_pattern.search(icerik):
-                                yeni_icerik = theme_pattern.sub(y_theme, icerik)
-                            else:
-                                yeni_icerik = icerik + "\n\n" + y_theme
-                                
-                            with open(config_yolu, "w", encoding="utf-8") as f:
-                                f.write(yeni_icerik)
-                                
-                        st.success("Tema güncellendi! Sayfa yeniden yükleniyor...")
-                        import time; time.sleep(1)
+                        st.success("Tema başarıyla güncellendi ve uygulandı!")
                         st.rerun()
                     
                 elif secilen_ayar == "💬 İletişim & Şablon":
